@@ -1,0 +1,20 @@
+<template>
+    <lightning-card title="Select an SObject">
+
+        <div class="slds-p-around_medium">
+            <lightning-combobox
+                label="Choose SObject"
+                value={selectedSObject}
+                options={sobjectOptions}
+                placeholder="Select SObject"
+                onchange={handleSObjectChange}>
+            </lightning-combobox>
+        </div>
+
+        <!-- Child Component -->
+        <c-field-selector 
+            selected-object={selectedSObject}>
+        </c-field-selector>
+
+    </lightning-card>
+</template>

@@ -1,0 +1,37 @@
+<template>
+    <template if:true={selectedObject}>
+        <div class="slds-grid slds-p-around_medium slds-grid_align-spread">
+
+            <!-- LEFT BOX -->
+            <div class="listbox-container">
+                <label>Available Fields</label>
+                <select size="12" class="listbox" onchange={handleLeftSelection}>
+                    <template for:each={fieldOptions} for:item="fld">
+                        <option key={fld.value} value={fld.value}>{fld.label}</option>
+                    </template>
+                </select>
+            </div>
+
+            <!-- BUTTONS -->
+            <div class="button-container">
+                <lightning-button label=">" onclick={moveRight}></lightning-button>
+                <lightning-button label="<" onclick={moveLeft} class="slds-m-top_small"></lightning-button>
+            </div>
+
+            <!-- RIGHT BOX -->
+            <div class="listbox-container">
+                <label>Selected Fields</label>
+                <select size="12" class="listbox" onchange={handleRightSelection}>
+                    <template for:each={selectedFieldOptions} for:item="fld">
+                        <option key={fld.value} value={fld.value}>{fld.label}</option>
+                    </template>
+                </select>
+            </div>
+
+        </div>
+    </template>
+
+    <template if:false={selectedObject}>
+        <p class="slds-p-around_medium">Select an SObject to view fields.</p>
+    </template>
+</template>

@@ -1,0 +1,26 @@
+<template>
+     <div class="slds-col slds-size_1-of-3">
+
+        <lightning-combobox name="sObjectNames" label="Select an Object" value={selectedSObject} options={objectOptions}
+            onchange={handleObjectChange}>
+        </lightning-combobox>
+         </div>
+         
+            <template if:true={showfields}>
+                <div class="slds-col slds-size_1-of-3"></div>
+                <c-field-selector object-name={selectedSObject} ></c-field-selector>
+         </div>
+            </template>
+        
+       
+    <template lwc:if={objectBooleanFlag}>
+        <lightning-combobox name="modeSelector" label="Select Mode" value={selectedMode} options={modeOptions}
+            onchange={handleModeChange}>
+        </lightning-combobox>
+    </template>
+    </div>
+    
+
+
+
+</template>

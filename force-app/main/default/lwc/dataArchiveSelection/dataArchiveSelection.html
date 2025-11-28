@@ -1,0 +1,15 @@
+<template>
+    <lightning-card title="DATA ARCHIVES" class = "slds-m-around_medium">
+
+        <lightning-radio-group class="slds-m-around_medium" name="radioGroup" label="Data Archives" options={options} value={value} type="radio"
+            onchange={handleChange}></lightning-radio-group>
+            <template lwc:if ={booleanFlag}>
+                <c-s-object-combox></c-s-object-combox>
+                
+            </template>
+            <template lwc:elseif={unArchiveFlag}>
+                <c-un-archived-data></c-un-archived-data>
+            </template>
+    </lightning-card>
+
+</template>
