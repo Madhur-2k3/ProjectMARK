@@ -63,13 +63,15 @@ public with sharing class sObjectsController {
         // Step 3: Build wrapper list in sorted order
         for (String fieldApiName : fieldApiNames) {
             Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldApiName).getDescribe();
+            System.debug('Field API Name: ' + fieldDescribe.getName());
             String fieldTypeString = String.valueOf(fieldDescribe.getType());
             fieldInfoList.add(new FieldInfo(
                 fieldDescribe.getLabel(),
-                fieldApiName,
+                fieldDescribe.getName(),
                 fieldTypeString
             ));
         }
+        // System.debug('Field Info List: ' + fieldInfoList);
         return fieldInfoList;
     }
 }

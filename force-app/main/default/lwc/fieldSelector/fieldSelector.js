@@ -58,6 +58,7 @@ export default class FieldSelector extends LightningElement {
         }));
         // Reset the dual list left side with fresh copy
         this.fieldOptions = [...this.masterFieldOptions];
+        console.log("Field options",JSON.stringify(this.fieldOptions));
         // Reset the selected list
         this.selectedFieldOptions = [];
     } 
@@ -119,6 +120,8 @@ export default class FieldSelector extends LightningElement {
     }
 
     rebuildConditions() {
+        console.log("selectedFieldOptions:", JSON.stringify(this.selectedFieldOptions));
+        console.log("dataTableColumns",JSON.stringify(this.dataTableColumns))
     const rows = this.dumArray.filter(
         row => row.field && row.operator && row.value
     );
@@ -205,7 +208,8 @@ export default class FieldSelector extends LightningElement {
     //     return this.masterFieldOptions;
     // }
     get allFieldsForQuery() {
-    return this.masterFieldOptions;
+    // return this.masterFieldOptions;
+    return this.selectedFieldOptions;
 }
     get operatorOptions(){
         return[
@@ -294,10 +298,15 @@ export default class FieldSelector extends LightningElement {
     //convert fields to set
     get selectedFields(){
         
+        // const fieldSet = new Set(
+        //     this.dumArray
+        //         .filter(row=>row.field)
+        //         .map(row=>row.field)
+        // );
+        // return Array.from(fieldSet).join(',');
         const fieldSet = new Set(
-            this.dumArray
-                .filter(row=>row.field)
-                .map(row=>row.field)
+            this.selectedFieldOptions
+                .map(fld => fld.value)
         );
         return Array.from(fieldSet).join(',');
                 
@@ -398,6 +407,26 @@ export default class FieldSelector extends LightningElement {
         // this.objects = records;
       console.log("Line 49",JSON.stringify(this.objects));
     }
+
+    get dataTableColumns() {
+    return this.selectedFieldOptions.map(field => ({
+        label: field.label,
+        fieldName: field.value,
+        type: this.getDatatableType(field.type)
+    }));
+}
+
+getDatatableType(apiType) {
+    switch (apiType) {
+        case 'CURRENCY': return 'currency';
+        case 'PICKLIST': return 'text';
+        case 'STRING': return 'text';
+        case 'DOUBLE': return 'number';
+        case 'DATE': return 'date';
+        default: return 'text';
+    }
+}
+
 
     //end madhur
 
