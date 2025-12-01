@@ -1,0 +1,39 @@
+.hello{
+    color: blue;
+}
+.boxes{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.box{
+    width: 25%;
+}
+.logic-operator{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+.btn{
+    margin: 10px 0px;
+}
+.bin{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.buttons{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 10px;
+}
+.page-size{
+    width: 10rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
