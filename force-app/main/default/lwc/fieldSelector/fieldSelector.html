@@ -1,6 +1,8 @@
 <template>
     <template if:true={selectedObject}>
-        <div class="slds-grid slds-p-around_medium slds-grid_align-spread">
+
+        
+        <div class="field-row">
 
             <!-- LEFT BOX -->
             <div class="listbox-container">
@@ -15,7 +17,11 @@
             <!-- BUTTONS -->
             <div class="button-container">
                 <lightning-button label=">" onclick={moveRight}></lightning-button>
-                <lightning-button label="<" onclick={moveLeft} class="slds-m-top_small"></lightning-button>
+                <lightning-button 
+                    label="<" 
+                    onclick={moveLeft} 
+                    class="slds-m-top_small">
+                </lightning-button>
             </div>
 
             <!-- RIGHT BOX -->
@@ -29,11 +35,14 @@
             </div>
 
         </div>
+        <!-- END FIELD ROW -->
+
     </template>
 
     <template if:false={selectedObject}>
         <p class="slds-p-around_medium">Select an SObject to view fields.</p>
     </template>
+
     <template if:true={selectedFieldOptions.length}>
         <lightning-combobox
             class="slds-m-around_medium"
@@ -41,24 +50,25 @@
             label="select"
             value={selectedOption}
             options={selectOptions}
-            onchange={handleSecond}></lightning-combobox>
+            onchange={handleSecond}>
+        </lightning-combobox>
     </template>
 
-    <!-- <lightning-button variant="brand" label="Submit" onclick={handleClick} disabled={disabled} class="slds-m-left_x-small slds-m-around_medium padding-top-1"></lightning-button> -->
-
-    <template if:true={booleanFlag} >
-            <template for:each={dumArray} for:item="dum" for:index="index">
-                <div key={dum.Id} class="boxes slds-m-around_medium">
+    <template if:true={booleanFlag}>
+        <template for:each={dumArray} for:item="dum" for:index="index">
+            <div key={dum.Id} class="boxes slds-m-around_medium">
+                
                 <div class="box">
                     <lightning-combobox
-                    name="field"
-                    label="field"
-                    data-index={index}
-                    value={dum.field}
-                    options={fieldOptions}
-                    onchange={handleFieldChange}
-                    ></lightning-combobox>
+                        name="field"
+                        label="field"
+                        data-index={index}
+                        value={dum.field}
+                        options={allFieldsForQuery}
+                        onchange={handleFieldChange}>
+                    </lightning-combobox>
                 </div>
+
                 <div class="box">
                     <lightning-combobox 
                         name="operator"
@@ -66,12 +76,22 @@
                         data-index={index}
                         value={dum.operator}
                         options={operatorOptions}
-                        onchange={handleOptionChange}
-                    ></lightning-combobox>
+                        onchange={handleOptionChange}>
+                    </lightning-combobox>
                 </div>
+
                 <div class="box">
-                    <lightning-input name="value" title="Value" data-index={index} value={dum.value} placeholder="Enter value" onchange={handleInput}></lightning-input>
+                    <lightning-input 
+                        name="value"
+                        label="value"
+                        title="Value"
+                        data-index={index}
+                        value={dum.value}
+                        placeholder="Enter value"
+                        onchange={handleInput}>
+                    </lightning-input>
                 </div>
+
                 <div class="logic-operator">
                     <lightning-combobox 
                         name="logicOperator"
@@ -79,23 +99,46 @@
                         data-index={index}
                         value={dum.logicOperator}
                         options={logicOperatorOptions}
-                        onchange={handleLogicOperatorChange}
-                        default-value="AND"
-                    ></lightning-combobox>
+                        onchange={handleLogicOperatorChange}>
+                    </lightning-combobox>
                 </div>
-                <div class="bin">
-                    <lightning-button-icon icon-name="utility:delete" alternative-text="delete" title="delete"  data-index={index} onclick={handleDelete} class="slds-m-top_medium"></lightning-button-icon>
-                </div>
-                
-                </div>
-            </template>
-            
-            <div class="btn">
-                <lightning-button type="submit" class="slds-m-around_medium" label="Add Condition" onclick={handleAddCondition} ></lightning-button>
-            </div>
-            <lightning-button type="submit" class="slds-m-around_medium" label="get Accounts" onclick={handleFilterAccounts} ></lightning-button>
 
-            <c-dynamic-data-table data={paginatedData} columns={filteredAccountColumns} key-field="Id" class="slds-m-around_medium" ></c-dynamic-data-table>
+                <div class="bin">
+                    <lightning-button-icon 
+                        icon-name="utility:delete" 
+                        alternative-text="delete" 
+                        title="delete"
+                        data-index={index}
+                        onclick={handleDelete}
+                        class="slds-m-top_medium">
+                    </lightning-button-icon>
+                </div>
+
+            </div>
         </template>
-        
+
+        <div class="btn">
+            <lightning-button 
+                type="submit"
+                class="slds-m-around_medium"
+                label="Add Condition"
+                onclick={handleAddCondition}>
+            </lightning-button>
+        </div>
+
+        <lightning-button 
+            type="submit"
+            class="slds-m-around_medium"
+            label="get Accounts"
+            onclick={handleFilterAccounts}>
+        </lightning-button>
+
+        <c-dynamic-data-table
+            data={paginatedData}
+            columns={filteredAccountColumns}
+            key-field="Id"
+            class="slds-m-around_medium">
+        </c-dynamic-data-table>
+
+    </template>
 </template>

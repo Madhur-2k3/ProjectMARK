@@ -1,46 +1,47 @@
 import { LightningElement, track, wire } from 'lwc';
-import getSOBjectNames from '@salesforce/apex/ObjectController.getSObjectNames';
+import getAllSObjectNames from '@salesforce/apex/sObjectsController.getAllSObjectNames';
 import ModeOptionsLabel from '@salesforce/label/c.ModeOptions';
 
 export default class ObjectAndFieldComboboxSelection extends LightningElement {
     @track objectOptions = [];
     @track selectedSObject = '';
     @track selectedMode = '';
-    @track modeOptions =[];
+    @track modeOptions = [];
 
-    connectedCallback(){
-        this.loadMode();
-    }
     objectBooleanFlag = false;
 
-    @wire(getSOBjectNames)
-    wiredSObjectNames({ error, data }) {
+    connectedCallback() {
+        this.loadMode();
+    }
+
+    // ---------------------------
+    //   WIRE USING YOUR CLASS
+    // ---------------------------
+    @wire(getAllSObjectNames)
+    wiredSObjects({ error, data }) {
         if (data) {
-            this.objectOptions = data.map(objName => ({
-                label: objName.label,
-                value: objName.apiName
+            this.objectOptions = data.map(obj => ({
+                label: obj.label,      // wrapper label
+                value: obj.apiName     // wrapper apiName
             }));
-            
-        }
-        else if (error) {
+        } else if (error) {
             console.error('Error fetching SObject names:', error);
         }
-
     }
 
     handleObjectChange(event) {
         this.selectedSObject = event.detail.value;
-        if(this.selectedSObject){
-            this.objectBooleanFlag = true;
-        }
-    }  
-    
-    loadMode(){
-        this.modeOptions = ModeOptionsLabel.split(',').map(option => ({
-            label: option.trim(),
-            value: option.trim()
-        }));
+        this.objectBooleanFlag = !!this.selectedSObject;
     }
+
+    loadMode() {
+        this.modeOptions = ModeOptionsLabel.split(',')
+            .map(opt => ({
+                label: opt.trim(),
+                value: opt.trim()
+            }));
+    }
+
     handleModeChange(event) {
         this.selectedMode = event.detail.value;
     }

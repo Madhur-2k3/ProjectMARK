@@ -1,5 +1,4 @@
 public with sharing class sObjectsController {
-
     // Wrapper for SObject names
     public class SObjectInfo {
         @AuraEnabled public String label { get; set; }
@@ -24,21 +23,28 @@ public with sharing class sObjectsController {
         }
     }
 
-    // Fetch all SObject names
+    // Fetch all SObject names - SORTED by label
     @AuraEnabled(cacheable=true)
     public static List<SObjectInfo> getAllSObjectNames() {
         List<SObjectInfo> sObjectList = new List<SObjectInfo>();
         Map<String, Schema.SObjectType> globalDescribeMap = Schema.getGlobalDescribe();
 
-        for (String objectApiName : globalDescribeMap.keySet()) {
-            Schema.DescribeSObjectResult describeResult = globalDescribeMap.get(objectApiName).getDescribe();
-            sObjectList.add(new SObjectInfo(describeResult.getLabel(), objectApiName));
+        // Step 1: Convert keys to list
+        List<String> apiNames = new List<String>(globalDescribeMap.keySet());
+
+        // Step 2: Sort API names alphabetically
+        apiNames.sort();
+
+        // Step 3: Build wrapper list in sorted order
+        for (String apiName : apiNames) {
+            Schema.DescribeSObjectResult describeResult = globalDescribeMap.get(apiName).getDescribe();
+            sObjectList.add(new SObjectInfo(describeResult.getLabel(), apiName));
         }
 
         return sObjectList;
     }
 
-    // Fetch all fields of a given SObject including field type
+    // Fetch all fields of a given SObject - SORTED by label
     @AuraEnabled(cacheable=true)
     public static List<FieldInfo> getFieldsBySObject(String sObjectApiName) {
         List<FieldInfo> fieldInfoList = new List<FieldInfo>();
@@ -48,17 +54,22 @@ public with sharing class sObjectsController {
 
         Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
 
-        for (String fieldApiName : fieldMap.keySet()) {
+        // Step 1: Convert field API names to a list
+        List<String> fieldApiNames = new List<String>(fieldMap.keySet());
+
+        // Step 2: Sort alphabetically
+        fieldApiNames.sort();
+
+        // Step 3: Build wrapper list in sorted order
+        for (String fieldApiName : fieldApiNames) {
             Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldApiName).getDescribe();
             String fieldTypeString = String.valueOf(fieldDescribe.getType());
-
             fieldInfoList.add(new FieldInfo(
                 fieldDescribe.getLabel(),
                 fieldApiName,
                 fieldTypeString
             ));
         }
-
         return fieldInfoList;
     }
 }

@@ -17,10 +17,10 @@ export default class ParentComponent extends LightningElement {
             });
 
            
-            let processedColumns = data.columns.map(column => {
-                if (column.fieldName === 'Name') {
+            let processedColumns = data.columns.map(columns => {
+                if (columns.fieldName === 'Name') {
                     return {
-                        label: column.label,
+                        label: columns.label,
                         fieldName: 'nameUrl',     
                         type: 'url',
                         typeAttributes: {
@@ -29,7 +29,7 @@ export default class ParentComponent extends LightningElement {
                         }
                     };
                 }
-                return column;
+                return columns;
             });
 
             

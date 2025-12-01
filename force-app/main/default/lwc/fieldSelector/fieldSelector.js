@@ -12,7 +12,7 @@ export default class FieldSelector extends LightningElement {
     @track selectedFieldOptions = [];
     leftSelected = [];
     rightSelected = [];
-
+    @track masterFieldOptions = [];
     //from madhur
     @api selectedObject;
     @api selectedOption;
@@ -47,18 +47,20 @@ export default class FieldSelector extends LightningElement {
     // Wire with dynamic parameter
     @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
     wiredFields({ data, error }) {
-        if (data) {
-            this.fieldOptions = data.map(f => ({
-                label: f.label,
-                value: f.apiName,
-                type:f.fieldType
-            }));
-            this.selectedFieldOptions = []; // Reset when object changes
-        } 
-        else if (error) {
-            console.error('Error loading fields:', error);
-        }
-    }
+    if (data) {
+
+        // Store all fields permanently
+        this.masterFieldOptions = data.map(f => ({
+            label: f.label,
+            value: f.apiName,
+            type: f.fieldType
+        }));
+        // Reset the dual list left side with fresh copy
+        this.fieldOptions = [...this.masterFieldOptions];
+        // Reset the selected list
+        this.selectedFieldOptions = [];
+    } 
+}
 
     
 
@@ -112,12 +114,10 @@ export default class FieldSelector extends LightningElement {
         }else{
             this.booleanFlag = false;
         }
-         if(this.selectedOption==='All' && this.selectedObject){
-        this.disabled = false;
-    }
+         
     }
 
-     rebuildConditions() {
+    rebuildConditions() {
     const rows = this.dumArray.filter(
         row => row.field && row.operator && row.value
     );
@@ -170,10 +170,7 @@ export default class FieldSelector extends LightningElement {
     this.conditions = grouped;
 }
 
-
-
     handleAddCondition(){
-
         this.rebuildConditions();
 
         //add a empty condition row
@@ -203,12 +200,12 @@ export default class FieldSelector extends LightningElement {
             {label:'Query',value:'Query'},
         ]
     }
-    get fieldOptions(){
-        return [
-            {label:"Annual Revenue",value:"AnnualRevenue"},
-            {label:"Name",value:"Name"}
-        ]
-    }
+    // get fieldOptions(){
+    //     return this.masterFieldOptions;
+    // }
+    get allFieldsForQuery() {
+    return this.masterFieldOptions;
+}
     get operatorOptions(){
         return[
             {label:"Greater Than",value:">"},
@@ -244,6 +241,7 @@ export default class FieldSelector extends LightningElement {
         {label:'Id',fieldName:'Id'},
     ];
     filteredAccountColumns=[
+        
         {label:'Name',fieldName:'Name'},
         {label:'Annual Revenue',fieldName:'AnnualRevenue'},
     ];
@@ -257,14 +255,12 @@ export default class FieldSelector extends LightningElement {
     }
     handleSecond(event){
         this.selectedOption = event.detail.value;
-        if(this.selectedOption){
+        if(this.selectedOption==='Query'){
             this.booleanFlag = true;
         }else{
             this.booleanFlag = false;
         }
-         if(this.selectedOption==='All' && this.selectedObject){
-        this.disabled = false;
-    }
+        
     }
 
     handleFieldChange(event){
@@ -402,6 +398,5 @@ export default class FieldSelector extends LightningElement {
     }
 
     //end madhur
-
 
 }
