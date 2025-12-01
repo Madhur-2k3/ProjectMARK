@@ -32,6 +32,7 @@ export default class FieldSelector extends LightningElement {
     @track pageSize = 5;
     @track paginatedData = [];
     @track conditions = '';
+    @track showDatatable = false;
 
     disabled=true
     booleanFlag = false;
@@ -312,6 +313,7 @@ export default class FieldSelector extends LightningElement {
             this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
             this.currentPage = 1;
             this.updatePaginatedData();
+            this.showDatatable = true;
         } catch (error) {
             console.error('Error fetching filtered accounts:', error);
         }

@@ -50,6 +50,7 @@
    ============================ */
 .field-row {
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 1rem;        /* small gap between listboxes + buttons */
 }
@@ -61,8 +62,11 @@
 }
 
 .listbox {
+    border: 4px solid #ccc;
+    padding: 12px;
     width: 220px;
     height: 220px;
+    border-radius: 20px;
 }
 
 /* Keep original button container */
@@ -70,4 +74,11 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+.filter{
+    width: 30%;
+}
+.hide-scrollbar::-webkit-scrollbar {
+    display: none; /* or width: 0; */
 }

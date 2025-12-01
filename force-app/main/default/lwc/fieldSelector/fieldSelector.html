@@ -7,7 +7,7 @@
             <!-- LEFT BOX -->
             <div class="listbox-container">
                 <label>Available Fields</label>
-                <select size="12" class="listbox" onchange={handleLeftSelection}>
+                <select size="12" class="listbox hide-scrollbar" onchange={handleLeftSelection}>
                     <template for:each={fieldOptions} for:item="fld">
                         <option key={fld.value} value={fld.value}>{fld.label}</option>
                     </template>
@@ -25,9 +25,9 @@
             </div>
 
             <!-- RIGHT BOX -->
-            <div class="listbox-container">
+            <div class="listbox-container ">
                 <label>Selected Fields</label>
-                <select size="12" class="listbox" onchange={handleRightSelection}>
+                <select size="12" class="listbox hide-scrollbar" onchange={handleRightSelection}>
                     <template for:each={selectedFieldOptions} for:item="fld">
                         <option key={fld.value} value={fld.value}>{fld.label}</option>
                     </template>
@@ -44,14 +44,17 @@
     </template>
 
     <template if:true={selectedFieldOptions.length}>
-        <lightning-combobox
-            class="slds-m-around_medium"
-            name=""
-            label="select"
+        <div class="filter">
+            <lightning-combobox
+            class="slds-m-around_medium "
+            name="filter"
+            label="Filter"
             value={selectedOption}
             options={selectOptions}
             onchange={handleSecond}>
         </lightning-combobox>
+        </div>
+        
     </template>
 
     <template if:true={booleanFlag}>
@@ -129,16 +132,19 @@
         <lightning-button 
             type="submit"
             class="slds-m-around_medium"
-            label="get Accounts"
+            label="Submit"
             onclick={handleFilterAccounts}>
         </lightning-button>
 
-        <c-dynamic-data-table
-            data={paginatedData}
-            columns={filteredAccountColumns}
-            key-field="Id"
-            class="slds-m-around_medium">
-        </c-dynamic-data-table>
+        <template if:true={showDatatable}>
+            <!-- <lightning-datatable
+                key-field="Id"
+                data={paginatedData}
+                columns={columns}>
+            </lightning-datatable> -->
+             <c-dynamic-data-table data={paginatedData} columns={filteredAccountColumns} key-field="Id" class="slds-m-around_medium" ></c-dynamic-data-table>
+        </template>
+        
 
     </template>
 </template>
