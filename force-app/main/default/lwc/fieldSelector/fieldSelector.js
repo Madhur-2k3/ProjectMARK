@@ -4,10 +4,15 @@ import getObjData from '@salesforce/apex/objectDataHandler.getObjData';
 import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
 import updateRecords from '@salesforce/apex/objectDataHandler.updateRecords';
 import deleteRecords from '@salesforce/apex/objectDataHandler.deleteRecords';
+import archiveRecords from '@salesforce/apex/ArchiveController.archiveRecords';
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
 
 export default class FieldSelector extends LightningElement {
 
-
+    // selection store: only IDs (lightweight)
+    selectedIds = new Set();
+    @track _selectedRowsForTable = [];
     @track fieldOptions = [];
     @track selectedFieldOptions = [];
     leftSelected = [];
@@ -23,7 +28,7 @@ export default class FieldSelector extends LightningElement {
     @track records;
     @track filteredAccounts;
     @track draftValues = [];
-    @track selectedRows = [];
+    
     @track isPreviousDisabled = true;
     @track isNextDisabled = false;
     @track currentPage = 1;
@@ -63,6 +68,9 @@ export default class FieldSelector extends LightningElement {
         this.selectedFieldOptions = [];
     } 
 }
+renderedCallback() {
+        console.log('Child received:', this.selectedObject);
+    }
 
     
 
@@ -296,22 +304,11 @@ export default class FieldSelector extends LightningElement {
     }
 
     //convert fields to set
-    get selectedFields(){
-        
-        // const fieldSet = new Set(
-        //     this.dumArray
-        //         .filter(row=>row.field)
-        //         .map(row=>row.field)
-        // );
-        // return Array.from(fieldSet).join(',');
-        const fieldSet = new Set(
-            this.selectedFieldOptions
-                .map(fld => fld.value)
-        );
-        return Array.from(fieldSet).join(',');
-                
+    get selectedFields() {
+    // returns comma-separated API names like "Id,Name,Phone"
+    return this.selectedFieldOptions.map(f => f.value).join(',');
+}
 
-    }
 
     async handleFilterAccounts(){
 
@@ -327,13 +324,22 @@ export default class FieldSelector extends LightningElement {
             console.error('Error fetching filtered accounts:', error);
         }
     }
-    updatePaginatedData(){
-        const startIndex = (this.currentPage - 1) * this.pageSize;
-        const endIndex = startIndex + this.pageSize;
-        this.paginatedData = this.filteredAccounts.slice(startIndex, endIndex);
-        this.isPreviousDisabled = this.currentPage === 1;
-        this.isNextDisabled = this.currentPage === this.totalPages;
-    }
+    updatePaginatedData() {
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const endIndex = startIndex + this.pageSize;
+
+    this.paginatedData = this.filteredAccounts.slice(startIndex, endIndex);
+
+    this.isPreviousDisabled = this.currentPage === 1;
+    this.isNextDisabled = this.currentPage === this.totalPages;
+
+    this._selectedRowsForTable = this.paginatedData
+        .filter(rec => this.selectedIds.has(rec.Id))
+        .map(rec => rec.Id);
+}
+
+
+
     
     handlePrevious(){
         if(this.currentPage > 1){
@@ -372,10 +378,6 @@ export default class FieldSelector extends LightningElement {
         }
     }
 
-    handleRowSelection(event){
-        this.selectedRows = event.detail.selectedRows;
-        console.log("Selected Rows:",JSON.stringify(this.selectedRows));
-    }
 
     async handleDeleteRecords(){
         console.log("Inside handle del")
@@ -426,6 +428,114 @@ getDatatableType(apiType) {
         default: return 'text';
     }
 }
+// Disable Archive button when no records selected
+get isArchiveDisabled() {
+    return this.selectedIds.size === 0;
+}
+
+get selectedRows() {
+    // Datatable expects an array; our Set contains IDs
+    return [...this.selectedIds];
+}
+
+handleRowSelection(event) {
+    const currentSelectedRows = event.detail.selectedRows || [];
+    const currentPageIds = this.paginatedData.map(rec => rec.Id);
+
+    const newlySelectedIds = currentSelectedRows.map(r => r.Id);
+
+    // Add all selected rows from current page
+    newlySelectedIds.forEach(id => this.selectedIds.add(id));
+
+    // Remove deselected rows from current page
+    currentPageIds.forEach(id => {
+        if (!newlySelectedIds.includes(id)) {
+            this.selectedIds.delete(id);
+        }
+    });
+
+    // Refresh visible page selection
+    this._selectedRowsForTable = [...this.paginatedData
+        .filter(rec => this.selectedIds.has(rec.Id))
+        .map(rec => rec.Id)];
+
+    console.log("Selected IDs across pages:", [...this.selectedIds]);
+}
+
+handleArchive() {
+
+    if (!this.selectedObject) {
+        this.showToast('Error', 'Select an object first', 'error');
+        return;
+    }
+
+    const ids = [...this.selectedIds];
+
+    if (!ids.length) {
+        this.showToast('Error', 'No records selected to archive', 'error');
+        return;
+    }
+
+    const fieldsCsv = this.selectedFields;
+    if (!fieldsCsv) {
+        this.showToast('Error', 'Select at least one field to archive', 'error');
+        return;
+    }
+
+    // Call Apex
+    archiveRecords({
+        objectName: this.selectedObject,
+        recordIds: ids,
+        fieldsCsv: fieldsCsv
+    })
+    .then(() => {
+
+        this.showToast('Success', `${ids.length} records archived`, 'success');
+
+        const archivedSet = new Set(ids);
+        this.filteredAccounts = this.filteredAccounts.filter(
+            rec => !archivedSet.has(rec.Id)
+        );
+
+        // Reset selection
+        this.selectedIds = new Set();
+        this._selectedRowsForTable = [];
+
+        // Recalculate pagination
+        this.totalRecords = this.filteredAccounts.length;
+        this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.pageSize));
+
+        if (this.currentPage > this.totalPages) {
+            this.currentPage = this.totalPages;
+        }
+
+        this.updatePaginatedData();
+    })
+    .catch(error => {
+        console.error('ARCHIVE ERROR → ', JSON.stringify(error));
+
+        const msg =
+            error?.body?.message ||
+            error?.body?.exceptionMessage ||
+            error?.message ||
+            'Unknown Error';
+
+        this.showToast('Archive failed: ' + msg, 'error');
+    });
+}
+
+showToast(title, message, variant = 'info') {
+    const evt = new ShowToastEvent({
+        title: title,
+        message: message,
+        variant: variant,
+        mode: 'dismissable'
+    });
+    this.dispatchEvent(evt);
+}
+
+
+
 
 
     //end madhur

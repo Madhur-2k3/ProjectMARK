@@ -1,10 +1,11 @@
-import { LightningElement,wire} from 'lwc';
-import getAllSobjectsNames from '@salesforce/apex/sObjectsController.getAllSObjectNames';
+import { LightningElement, wire } from 'lwc';
+import getAllSObjectNames from '@salesforce/apex/sObjectsController.getAllSObjectNames';
+
 export default class SObjectCombox extends LightningElement {
     sobjectOptions = [];
     selectedSObject = '';
 
-    @wire(getAllSobjectsNames)
+    @wire(getAllSObjectNames)
     wiredSObjects({ error, data }) {
         if (data) {
             this.sobjectOptions = data.map(item => ({
@@ -18,5 +19,6 @@ export default class SObjectCombox extends LightningElement {
 
     handleSObjectChange(event) {
         this.selectedSObject = event.detail.value;
+        console.log('Selected SObject API Name:', this.selectedSObject);
     }
 }

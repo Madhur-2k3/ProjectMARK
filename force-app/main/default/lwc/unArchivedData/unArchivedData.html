@@ -1,6 +1,15 @@
 <template>
     <c-dynamic-data-table
         data={archiveRecords}
-        columns={archiveColumns}>
+        columns={archiveColumns}
+        onrowselection={handleSelection}>
+        
     </c-dynamic-data-table>
+
+    <lightning-button
+        label="Submit"
+        variant="brand"
+        onclick={handleSubmit}
+        class="slds-m-top_medium">
+    </lightning-button>
 </template>

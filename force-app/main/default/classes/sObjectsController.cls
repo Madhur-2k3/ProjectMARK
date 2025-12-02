@@ -24,25 +24,31 @@ public with sharing class sObjectsController {
     }
 
     // Fetch all SObject names - SORTED by label
-    @AuraEnabled(cacheable=true)
-    public static List<SObjectInfo> getAllSObjectNames() {
-        List<SObjectInfo> sObjectList = new List<SObjectInfo>();
-        Map<String, Schema.SObjectType> globalDescribeMap = Schema.getGlobalDescribe();
+   @AuraEnabled(cacheable=true)
+public static List<SObjectInfo> getAllSObjectNames() {
+    List<SObjectInfo> sObjectList = new List<SObjectInfo>();
+    Map<String, Schema.SObjectType> globalDescribeMap = Schema.getGlobalDescribe();
 
-        // Step 1: Convert keys to list
-        List<String> apiNames = new List<String>(globalDescribeMap.keySet());
+    // Step 1: Convert keys to list
+    List<String> apiNames = new List<String>(globalDescribeMap.keySet());
 
-        // Step 2: Sort API names alphabetically
-        apiNames.sort();
+    // Step 2: Sort alphabetically
+    apiNames.sort();
 
-        // Step 3: Build wrapper list in sorted order
-        for (String apiName : apiNames) {
-            Schema.DescribeSObjectResult describeResult = globalDescribeMap.get(apiName).getDescribe();
-            sObjectList.add(new SObjectInfo(describeResult.getLabel(), apiName));
-        }
+    // Step 3: Build wrapper list with EXACT API NAME
+    for (String apiName : apiNames) {
+        Schema.DescribeSObjectResult describeResult =
+            globalDescribeMap.get(apiName).getDescribe();
 
-        return sObjectList;
+        // Use getName() instead of apiName from map
+        sObjectList.add(new SObjectInfo(
+            describeResult.getLabel(),
+            describeResult.getName()   // <-- TRUE API NAME
+        ));
     }
+
+    return sObjectList;
+}
 
     // Fetch all fields of a given SObject - SORTED by label
     @AuraEnabled(cacheable=true)

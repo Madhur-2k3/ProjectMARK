@@ -45,7 +45,7 @@
 
     <template if:true={selectedFieldOptions.length}>
         <div class="filter">
-            <lightning-combobox
+        <lightning-combobox
             class="slds-m-around_medium "
             name="filter"
             label="Filter"
@@ -142,9 +142,78 @@
                 data={paginatedData}
                 columns={columns}>
             </lightning-datatable> -->
-             <c-dynamic-data-table data={filteredAccounts} columns={dataTableColumns} key-field="Id" class="slds-m-around_medium" ></c-dynamic-data-table>
-        </template>
-        
+            <!-- Page Size Selector -->
+    <div class="slds-m-around_medium">
+        <lightning-combobox
+            label="Records Per Page"
+            value={pageSize}
+            options={pageSizeOptions}
+            onchange={handlePageSizeChange}>
+        </lightning-combobox>
+    </div>
 
+        
+    <lightning-datatable 
+    key-field="Id"
+    data={paginatedData}
+    columns={dataTableColumns}
+
+    onrowselection={handleRowSelection}
+    selected-rows={_selectedRowsForTable}>
+</lightning-datatable>
+
+
+
+       
+
+            <!-- <lightning-datatable
+            key-field="Id"
+            class="slds-m-around_medium">
+        </c-dynamic-data-table>
+        <! PILL-BASED PAGINATION -->
+<div class="slds-m-around_medium slds-align_absolute-center">
+
+    <div class="slds-pill_container">
+
+        <!-- Previous Page Pill -->
+        <span class="slds-pill slds-p-horizontal_small slds-m-right_small">
+            <lightning-button 
+                variant="base"
+                label="Previous"
+                onclick={handlePrevious}
+                disabled={isPreviousDisabled}
+                class="pill-button">
+            </lightning-button>
+        </span>
+
+        <!-- Current Page Indicator Pill -->
+        <span class="slds-pill slds-theme_info slds-p-horizontal_small slds-m-right_small">
+            <span class="slds-pill__label">
+                Page {currentPage} of {totalPages}
+            </span>
+        </span>
+
+        <!-- Next Page Pill -->
+        <span class="slds-pill slds-p-horizontal_small">
+            <lightning-button 
+                variant="base"
+                label="Next"
+                onclick={handleNext}
+                disabled={isNextDisabled}
+                class="pill-button">
+            </lightning-button>
+        </span>
+
+    </div>
+</div>
+    <div class="slds-align_absolute-center">
+    <lightning-button 
+        label="Archive Selected"
+        variant="brand"
+        onclick={handleArchive}
+        disabled={isArchiveDisabled}>
+    </lightning-button>
+</div>
+ </template>
     </template>
 </template>

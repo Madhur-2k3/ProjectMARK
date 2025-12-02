@@ -24,6 +24,8 @@ export default class ObjectAndFieldComboboxSelection extends LightningElement {
                 label: obj.label,      // wrapper label
                 value: obj.apiName     // wrapper apiName
             }));
+            console.log(JSON.stringify(this.objectOptions));
+            
         } else if (error) {
             console.error('Error fetching SObject names:', error);
         }
@@ -32,6 +34,8 @@ export default class ObjectAndFieldComboboxSelection extends LightningElement {
     handleObjectChange(event) {
         this.selectedSObject = event.detail.value;
         this.objectBooleanFlag = !!this.selectedSObject;
+        console.log(JSON.stringify(this.selectedSObject));
+        
     }
 
     loadMode() {
