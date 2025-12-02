@@ -219,6 +219,10 @@ renderedCallback() {
     // return this.masterFieldOptions;
     return this.selectedFieldOptions;
 }
+    get datatableSelectedFields() {
+    // returns comma-separated API names like "Id,Name,Phone"
+    return this.selectedFieldOptions.map(f => f.value).join(',');
+    }
     get operatorOptions(){
         return[
             {label:"Greater Than",value:">"},
@@ -314,7 +318,7 @@ renderedCallback() {
     async handleFilterAccounts(){
 
         try {
-            this.filteredAccounts = await getFilteredAccounts({objectName:this.selectedObject,fields:this.selectedFields,conditions:this.conditions});
+            this.filteredAccounts = await getFilteredAccounts({objectName:this.selectedObject,fields:this.datatableSelectedFields,conditions:this.conditions});
             console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
             this.totalRecords = this.filteredAccounts.length;
             this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
