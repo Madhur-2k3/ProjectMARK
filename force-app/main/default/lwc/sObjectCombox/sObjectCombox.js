@@ -1,8 +1,9 @@
-import { LightningElement, wire } from 'lwc';
+import { LightningElement, track, wire } from 'lwc';
 import getAllSObjectNames from '@salesforce/apex/sObjectsController.getAllSObjectNames';
 
 export default class SObjectCombox extends LightningElement {
     sobjectOptions = [];
+    @track filteredOptions;
     selectedSObject = '';
 
     @wire(getAllSObjectNames)
@@ -17,8 +18,21 @@ export default class SObjectCombox extends LightningElement {
         }
     }
 
-    handleSObjectChange(event) {
-        this.selectedSObject = event.detail.value;
-        console.log('Selected SObject API Name:', this.selectedSObject);
+    handleSearch(event) {
+
+        const searchKey = event.target.value.toLowerCase();
+
+        this.filteredOptions = this.sobjectOptions.filter(opt =>
+            opt.label.toLowerCase().includes(searchKey) ||
+            opt.value.toLowerCase().includes(searchKey)
+        );
+        console.log("Filtered options",JSON.stringify(this.filteredOptions));
+    }
+
+    handleSelect(event) {
+        this.selectedSObject = event.currentTarget.dataset.value;
+        console.log('Selected:', this.selectedSObject);
+        this.searchTerm = this.selectedSObject;
+        this.filteredOptions = null; // Clear the filtered options after selection
     }
 }

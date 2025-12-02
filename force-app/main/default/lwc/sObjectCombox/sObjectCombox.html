@@ -1,20 +1,33 @@
 <template>
-    <lightning-card title="Select an Object">
+  <lightning-card title="Select an Object">
 
-        <div class="slds-p-around_medium">
-            <lightning-combobox
-                label="Choose Object"
-                value={selectedSObject}
-                options={sobjectOptions}
-                placeholder="Select Object"
-                onchange={handleSObjectChange}>
-            </lightning-combobox>
-        </div>
+    <!-- Search Box -->
+    <div class="slds-p-around_medium">
+        <lightning-input
+            type="search"
+            label="Search Object"
+            onchange={handleSearch}
+            value={searchTerm}
+            placeholder="Search SObject...">
+        </lightning-input>
+    </div>
 
-        <!-- Child Component -->
-        <c-field-selector 
-            selected-object={selectedSObject}>
-        </c-field-selector>
+    <!-- Dropdown List -->
+    <template if:true={filteredOptions}>
+        <ul class="slds-box slds-m-left_medium slds-m-right_medium" style="max-height: 200px; overflow-y: auto;">
+            <template for:each={filteredOptions} for:item="opt">
+                <li key={opt.value}
+                    class="slds-p-around_small slds-border_bottom clickable"
+                    data-value={opt.value}
+                    onclick={handleSelect}>
+                    {opt.label}
+                </li>
+            </template>
+        </ul>
+    </template>
 
-    </lightning-card>
+    <!-- Child Component -->
+    <c-field-selector selected-object={selectedSObject}></c-field-selector>
+
+  </lightning-card>
 </template>

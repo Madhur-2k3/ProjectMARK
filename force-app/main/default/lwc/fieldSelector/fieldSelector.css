@@ -49,6 +49,7 @@
    (No disturbance to other CSS)
    ============================ */
 .field-row {
+    width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -59,12 +60,14 @@
 .listbox-container {
     display: flex;
     flex-direction: column;
+    width: 40%;
 }
 
 .listbox {
     border: 4px solid #ccc;
     padding: 12px;
-    width: 220px;
+    /* width: 220px; */
+    /* width: 30%; */
     height: 220px;
     border-radius: 20px;
 }
@@ -73,7 +76,10 @@
 .button-container {
     display: flex;
     flex-direction: column;
+    width: 20%;
     gap: 0.5rem;
+    justify-content: center;
+    align-items: center;
 }
 
 .filter{
