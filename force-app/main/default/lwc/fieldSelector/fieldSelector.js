@@ -300,6 +300,7 @@ renderedCallback() {
         const index = event.target.dataset.index;
         this.dumArray[index].logicOperator = event.detail.value;
         this.dumArray = [...this.dumArray];
+        this.handleAddCondition();
         this.rebuildConditions();
     }
 
