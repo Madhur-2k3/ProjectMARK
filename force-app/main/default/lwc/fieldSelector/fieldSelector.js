@@ -1,5 +1,6 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import getFieldsBySObject from '@salesforce/apex/sObjectsController.getFieldsBySObject';
+import getAllRecordsOfSelectedObject from '@salesforce/apex/objectDataHandler.getAllRecordsOfSelectedObject';
 import getObjData from '@salesforce/apex/objectDataHandler.getObjData';
 import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
 import updateRecords from '@salesforce/apex/objectDataHandler.updateRecords';
@@ -40,7 +41,8 @@ export default class FieldSelector extends LightningElement {
     @track showDatatable = false;
 
     disabled=true
-    booleanFlag = false;
+    queryflag = false;
+    allflag = false;
 
     dumArray=[
         {id:1,field:"",operator:"",value:"",logicOperator:"" },
@@ -117,15 +119,18 @@ renderedCallback() {
         ]
     }
 
-    handleSecond(event){
-        this.selectedOption = event.detail.value;
-        if(this.selectedOption){
-            this.booleanFlag = true;
-        }else{
-            this.booleanFlag = false;
-        }
-         
+    handlefilter(event) {
+    this.selectedOption = event.detail.value;
+
+    if (this.selectedOption === 'Query') {
+        this.queryflag = true;
+        this.allflag = false;
+    } else if (this.selectedOption === 'All') {
+        this.allflag = true;
+        this.queryflag = false;
     }
+}
+
 
     rebuildConditions() {
         console.log("selectedFieldOptions:", JSON.stringify(this.selectedFieldOptions));
@@ -206,12 +211,7 @@ renderedCallback() {
             {label:'Opportunity',value:'Opportunity'}
         ]
     }
-    get selectOptions(){
-        return [
-            {label:'All',value:'All'},
-            {label:'Query',value:'Query'},
-        ]
-    }
+    
     // get fieldOptions(){
     //     return this.masterFieldOptions;
     // }
@@ -265,19 +265,10 @@ renderedCallback() {
     handleChange(event){
         this.selectedObject = event.detail.value;
         if(this.selectedObject){
-            this.booleanFlag = true;
+            this.queryflag = true;
         }else{
-            this.booleanFlag = false;
+            this.queryflag = false;
         }
-    }
-    handleSecond(event){
-        this.selectedOption = event.detail.value;
-        if(this.selectedOption==='Query'){
-            this.booleanFlag = true;
-        }else{
-            this.booleanFlag = false;
-        }
-        
     }
 
     handleFieldChange(event){
@@ -315,20 +306,65 @@ renderedCallback() {
 }
 
 
-    async handleFilterAccounts(){
+    async handleFilterAccounts() {
+    try {
+        let result;
 
-        try {
-            this.filteredAccounts = await getFilteredAccounts({objectName:this.selectedObject,fields:this.datatableSelectedFields,conditions:this.conditions});
-            console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
-            this.totalRecords = this.filteredAccounts.length;
-            this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
-            this.currentPage = 1;
-            this.updatePaginatedData();
-            this.showDatatable = true;
-        } catch (error) {
-            console.error('Error fetching filtered accounts:', error);
+        // ----------------------------
+        // CASE 1: "ALL" BUTTON SELECTED
+        // ----------------------------
+        if (this.selectedOption === 'All') {
+
+            result = await getAllRecordsOfSelectedObject({
+                    objectName: this.selectedObject,
+                    fieldNames: this.selectedFieldOptions.map(f => f.value)});
+
+
+            console.log('ALL mode records:', JSON.stringify(result));
         }
+
+        // ----------------------------
+        // CASE 2: "QUERY" BUTTON SELECTED
+        // ----------------------------
+        else if (this.selectedOption === 'Query') {
+
+            result = await getFilteredAccounts({
+                objectName: this.selectedObject,
+                fields: this.datatableSelectedFields,
+                conditions: this.conditions
+            });
+
+            console.log('QUERY mode records:', JSON.stringify(result));
+        }
+
+        // If no records returned
+        if (!result) {
+            this.filteredAccounts = [];
+            this.showDatatable = false;
+            return;
+        }
+
+        // Add Record Link
+        this.filteredAccounts = result.map(r => ({
+            ...r,
+            recordLink_Id: '/' + r.Id,
+            recordLink_Name: '/' + r.Id
+        }));
+
+        this.totalRecords = this.filteredAccounts.length;
+        this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
+        this.currentPage = 1;
+
+        this.updatePaginatedData();
+        this.showDatatable = true;
+
+    } catch (error) {
+        console.error('Error in handleFilterAccounts:', JSON.stringify(error));
+        this.showToast('Error', error.body?.message || 'Unknown Error', 'error');
     }
+}
+
+
     updatePaginatedData() {
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
@@ -416,23 +452,40 @@ renderedCallback() {
     }
 
     get dataTableColumns() {
-    return this.selectedFieldOptions.map(field => ({
-        label: field.label,
-        fieldName: field.value,
-        type: this.getDatatableType(field.type)
-    }));
+    return this.selectedFieldOptions.map(field => {
+        const api = field.value;
+
+        // Make Id and Name clickable, but DO NOT override fieldName
+        if (api === 'Id' || api === 'Name') {
+            return {
+                label: field.label,
+                fieldName: api,          // ✅ keep actual field value
+                type: 'url',
+                typeAttributes: {
+                    label: { fieldName: api },   // text shown in table
+                    target: '_blank'
+                }
+            };
+        }
+
+        // Other fields remain default
+        return {
+            label: field.label,
+            fieldName: api,
+            type: field.type
+        };
+    })
+    // Inject recordLink dynamically for Id/Name columns
+    .map(col => {
+        if (col.type === 'url') {
+            col.fieldName = 'recordLink_' + col.fieldName;
+        }
+        return col;
+    });
 }
 
-getDatatableType(apiType) {
-    switch (apiType) {
-        case 'CURRENCY': return 'currency';
-        case 'PICKLIST': return 'text';
-        case 'STRING': return 'text';
-        case 'DOUBLE': return 'number';
-        case 'DATE': return 'date';
-        default: return 'text';
-    }
-}
+
+
 // Disable Archive button when no records selected
 get isArchiveDisabled() {
     return this.selectedIds.size === 0;

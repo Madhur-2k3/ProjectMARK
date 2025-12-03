@@ -1,15 +1,22 @@
 <template>
-    <c-dynamic-data-table
-        data={archiveRecords}
-        columns={archiveColumns}
-        onrowselection={handleSelection}>
-        
-    </c-dynamic-data-table>
+    <lightning-card>
 
-    <lightning-button
-        label="Submit"
-        variant="brand"
-        onclick={handleSubmit}
-        class="slds-m-top_medium">
-    </lightning-button>
+       
+        <c-dynamic-data-table 
+            data={archiveRecords}
+            columns={archiveColumns}
+            onrowselection={handleSelection}>
+        </c-dynamic-data-table>
+
+        
+        <div class="slds-m-top_medium slds-m-left_small">
+            <lightning-button 
+                label="Unarchive"
+                variant="brand"
+                disabled={isButtonDisabled}
+                onclick={handleUnarchive}>
+            </lightning-button>
+        </div>
+
+    </lightning-card>
 </template>

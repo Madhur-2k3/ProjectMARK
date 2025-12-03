@@ -5,6 +5,25 @@ public with sharing class objectDataHandler {
         List<SObject> records = Database.query(query);
         return records;
     }
+    @AuraEnabled
+public static List<SObject> getAllRecordsOfSelectedObject(String objectName, List<String> fieldNames) {
+
+    // --- SAFEGUARD: fieldNames must never be empty ---
+    if (fieldNames == null || fieldNames.isEmpty()) {
+        fieldNames = new List<String>{ 'Id' };  // Default field
+    }
+
+    String soql =
+        'SELECT ' + String.join(fieldNames, ',') +
+        ' FROM ' + objectName;
+
+    try {
+        return Database.query(soql);
+    } catch (Exception e) {
+        throw new AuraHandledException('SOQL FAILED: ' + e.getMessage());
+    }
+}
+
     // @AuraEnabled(cacheable=true)
     // public static List<SObject> getFilteredAccounts(String objectName,List<String> field,String operator,String value){
     //     String fieldStr = String.join(field,',');

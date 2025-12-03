@@ -1,55 +1,55 @@
-import { LightningElement, track, wire } from 'lwc';
+import { LightningElement, wire, track } from 'lwc';
 import getDataArchive from '@salesforce/apex/DataArchiveObjectController.getArchivedObject';
 import insertArchivedRecordsBulk from '@salesforce/apex/DataArchiveObjectController.insertArchivedRecordsBulk';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { refreshApex } from '@salesforce/apex';
 
 export default class ParentComponent extends LightningElement {
     @track archiveRecords = [];
     @track archiveColumns = [];
     selectedRows = [];
+    wiredResult;
+    isButtonDisabled = true;   // Initially disabled
 
+    // Load archive data
     @wire(getDataArchive)
-    wiredArchiveData({ error, data }) {
-        if (data) {
-            // Deep clone to avoid LWC proxy errors
-            this.archiveRecords = data.data ? JSON.parse(JSON.stringify(data.data)) : [];
-            this.archiveColumns = data.columns ? JSON.parse(JSON.stringify(data.columns)) : [];
-        } else if (error) {
-            console.error('Error loading archive data:', error);
+    wiredArchive(result) {
+        this.wiredResult = result;
+
+        if (result.data) {
+            this.archiveRecords = result.data.data;
+            this.archiveColumns = result.data.columns;
+        } else if (result.error) {
+            console.error(result.error);
         }
     }
 
+    // Capture selected rows
     handleSelection(event) {
         this.selectedRows = event.detail;
+
+        // Enable button only if exactly one row selected
+        this.isButtonDisabled = this.selectedRows.length === 1 ? false : true;
     }
 
-    handleSubmit() {
-        // Validation: Ensure exactly ONE record is selected
-        if (this.selectedRows.length === 0) {
-            this.showToast('Error', 'Please select one record before submitting', 'error');
-            return;
-        }
-        if (this.selectedRows.length > 1) {
-            this.showToast('Error', 'You can select only one record at a time', 'error');
-            return;
-        }
-
-        const archiveIds = this.selectedRows.map(row => row.Id);
+    // Unarchive logic
+    handleUnarchive() {
+        const archiveIds = this.selectedRows.map(r => r.Id);
 
         insertArchivedRecordsBulk({ archiveRecordIds: archiveIds })
             .then(result => {
                 this.showToast('Success', result, 'success');
-                console.log('Insert Result:', result);
+                this.isButtonDisabled = true; // Disable again after action
+                return refreshApex(this.wiredResult);
             })
             .catch(error => {
-                this.showToast('Error', error.body ? error.body.message : error.message, 'error');
-                console.log('Insert Error:', JSON.stringify(error));
+                console.error(error);
+                this.showToast('Error', error.body?.message, 'error');
             });
     }
 
-    showToast(title, message, variant){
-        this.dispatchEvent(
-            new ShowToastEvent({ title, message, variant })
-        );
+    // Toast utility
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 }

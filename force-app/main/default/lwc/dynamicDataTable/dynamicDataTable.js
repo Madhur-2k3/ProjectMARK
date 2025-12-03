@@ -6,6 +6,11 @@ export default class DynamicDataTable extends LightningElement {
 
     handleRowSelection(event) {
         const selectedRows = event.detail.selectedRows;
-        this.dispatchEvent(new CustomEvent('rowselection', { detail: selectedRows }));
+
+        this.dispatchEvent(
+            new CustomEvent('rowselection', {
+                detail: selectedRows
+            })
+        );
     }
 }

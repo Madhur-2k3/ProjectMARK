@@ -1,7 +1,9 @@
 <template>
+
+    <!-- Show only when object is selected -->
     <template if:true={selectedObject}>
 
-        
+        <!-- FIELD SELECTOR SECTION -->
         <div class="field-row">
 
             <!-- LEFT BOX -->
@@ -25,7 +27,7 @@
             </div>
 
             <!-- RIGHT BOX -->
-            <div class="listbox-container ">
+            <div class="listbox-container">
                 <label>Selected Fields</label>
                 <select size="12" class="listbox hide-scrollbar" onchange={handleRightSelection}>
                     <template for:each={selectedFieldOptions} for:item="fld">
@@ -35,32 +37,35 @@
             </div>
 
         </div>
-        <!-- END FIELD ROW -->
 
     </template>
 
+    <!-- If no object selected -->
     <template if:false={selectedObject}>
-        <p class="slds-p-around_medium">Select an SObject to view fields.</p>
+        <p class="slds-p-around_medium">Select an Object to view fields.</p>
     </template>
 
+    <!-- FILTER DROPDOWN -->
     <template if:true={selectedFieldOptions.length}>
         <div class="filter">
-        <lightning-combobox
-            class="slds-m-around_medium "
-            name="filter"
-            label="Filter"
-            value={selectedOption}
-            options={selectOptions}
-            onchange={handleSecond}>
-        </lightning-combobox>
+            <lightning-combobox
+                class="slds-m-around_medium"
+                label="Filter"
+                value={selectedOption}
+                options={selectOptions}
+                onchange={handlefilter}>
+            </lightning-combobox>
         </div>
-        
     </template>
 
-    <template if:true={booleanFlag}>
+
+    <!-- QUERY BUILDER SECTION -->
+    <template if:true={queryflag}>
+
         <template for:each={dumArray} for:item="dum" for:index="index">
             <div key={dum.Id} class="boxes slds-m-around_medium">
-                
+
+                <!-- FIELD -->
                 <div class="box">
                     <lightning-combobox
                         name="field"
@@ -72,6 +77,7 @@
                     </lightning-combobox>
                 </div>
 
+                <!-- OPERATOR -->
                 <div class="box">
                     <lightning-combobox 
                         name="operator"
@@ -83,11 +89,11 @@
                     </lightning-combobox>
                 </div>
 
+                <!-- VALUE -->
                 <div class="box">
                     <lightning-input 
                         name="value"
                         label="value"
-                        title="Value"
                         data-index={index}
                         value={dum.value}
                         placeholder="Enter value"
@@ -95,6 +101,7 @@
                     </lightning-input>
                 </div>
 
+                <!-- LOGIC OPERATOR -->
                 <div class="logic-operator">
                     <lightning-combobox 
                         name="logicOperator"
@@ -106,11 +113,11 @@
                     </lightning-combobox>
                 </div>
 
+                <!-- DELETE -->
                 <div class="bin">
                     <lightning-button-icon 
                         icon-name="utility:delete" 
-                        alternative-text="delete" 
-                        title="delete"
+                        alternative-text="delete"
                         data-index={index}
                         onclick={handleDelete}
                         class="slds-m-top_medium">
@@ -120,100 +127,90 @@
             </div>
         </template>
 
-        <!-- <div class="btn">
-            <lightning-button 
-                type="submit"
-                class="slds-m-around_medium"
-                label="Add Condition"
-                onclick={handleAddCondition}>
-            </lightning-button>
-        </div> -->
-
+        <!-- SUBMIT BUTTON -->
         <lightning-button 
-            type="submit"
             class="slds-m-around_medium"
             label="Submit"
             onclick={handleFilterAccounts}>
         </lightning-button>
 
-        <template if:true={showDatatable}>
-            <!-- <lightning-datatable
-                key-field="Id"
-                data={paginatedData}
-                columns={columns}>
-            </lightning-datatable> -->
-            <!-- Page Size Selector -->
-    <div class="slds-m-around_medium">
-        <lightning-combobox
-            label="Records Per Page"
-            value={pageSize}
-            options={pageSizeOptions}
-            onchange={handlePageSizeChange}>
-        </lightning-combobox>
-    </div>
-
-        
-    <lightning-datatable 
-    key-field="Id"
-    data={paginatedData}
-    columns={dataTableColumns}
-
-    onrowselection={handleRowSelection}
-    selected-rows={_selectedRowsForTable}>
-</lightning-datatable>
-
-
-
-       
-
-            <!-- <lightning-datatable
-            key-field="Id"
-            class="slds-m-around_medium">
-        </c-dynamic-data-table>
-        <! PILL-BASED PAGINATION -->
-<div class="slds-m-around_medium slds-align_absolute-center">
-
-    <div class="slds-pill_container">
-
-        <!-- Previous Page Pill -->
-        <span class="slds-pill slds-p-horizontal_small slds-m-right_small">
-            <lightning-button 
-                variant="base"
-                label="Previous"
-                onclick={handlePrevious}
-                disabled={isPreviousDisabled}
-                class="pill-button">
-            </lightning-button>
-        </span>
-
-        <!-- Current Page Indicator Pill -->
-        <span class="slds-pill slds-theme_info slds-p-horizontal_small slds-m-right_small">
-            <span class="slds-pill__label">
-                Page {currentPage} of {totalPages}
-            </span>
-        </span>
-
-        <!-- Next Page Pill -->
-        <span class="slds-pill slds-p-horizontal_small">
-            <lightning-button 
-                variant="base"
-                label="Next"
-                onclick={handleNext}
-                disabled={isNextDisabled}
-                class="pill-button">
-            </lightning-button>
-        </span>
-
-    </div>
-</div>
-    <div class="slds-align_absolute-center">
-    <lightning-button 
-        label="Archive Selected"
-        variant="brand"
-        onclick={handleArchive}
-        disabled={isArchiveDisabled}>
-    </lightning-button>
-</div>
- </template>
     </template>
+
+
+    <!-- ALL MODE SUBMIT BUTTON -->
+    <template if:true={allflag}>
+        <lightning-button 
+            class="slds-m-around_medium"
+            label="Submit"
+            onclick={handleFilterAccounts}>
+        </lightning-button>
+    </template>
+
+
+    <!-- DATATABLE + PAGINATION SECTION -->
+    <template if:true={showDatatable}>
+
+        <!-- Page Size -->
+        <div class="slds-m-around_medium">
+            <lightning-combobox
+                label="Records Per Page"
+                value={pageSize}
+                options={pageSizeOptions}
+                onchange={handlePageSizeChange}>
+            </lightning-combobox>
+        </div>
+
+        <!-- DATATABLE -->
+        <lightning-datatable 
+            key-field="Id"
+            data={paginatedData}
+            columns={dataTableColumns}
+            onrowselection={handleRowSelection}
+            selected-rows={_selectedRowsForTable}>
+        </lightning-datatable>
+
+        <!-- PAGINATION -->
+        <div class="slds-m-around_medium slds-align_absolute-center">
+            <div class="slds-pill_container">
+
+                <!-- Previous -->
+                <span class="slds-pill slds-p-horizontal_small slds-m-right_small">
+                    <lightning-button 
+                        variant="base"
+                        label="Previous"
+                        onclick={handlePrevious}
+                        disabled={isPreviousDisabled}>
+                    </lightning-button>
+                </span>
+
+                <!-- Page Info -->
+                <span class="slds-pill slds-theme_info slds-p-horizontal_small slds-m-right_small">
+                    Page {currentPage} of {totalPages}
+                </span>
+
+                <!-- Next -->
+                <span class="slds-pill slds-p-horizontal_small">
+                    <lightning-button 
+                        variant="base"
+                        label="Next"
+                        onclick={handleNext}
+                        disabled={isNextDisabled}>
+                    </lightning-button>
+                </span>
+
+            </div>
+        </div>
+
+        <!-- ARCHIVE BUTTON -->
+        <div class="slds-align_absolute-center">
+            <lightning-button 
+                label="Archive Selected"
+                variant="brand"
+                onclick={handleArchive}
+                disabled={isArchiveDisabled}>
+            </lightning-button>
+        </div>
+
+    </template>
+
 </template>
