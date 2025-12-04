@@ -1,15 +1,50 @@
 <template>
-    <lightning-card title="DATA ARCHIVES" class = "slds-m-around_medium">
+    <div class="header-bar">
 
-        <lightning-radio-group class="slds-m-around_medium" name="radioGroup" label="Data Archives" options={options} value={value} type="radio"
-            onchange={handleChange}></lightning-radio-group>
-            <template lwc:if ={booleanFlag}>
-                <c-s-object-combox></c-s-object-combox>
-                
-            </template>
-            <template lwc:elseif={unArchiveFlag}>
-                <c-un-archived-data></c-un-archived-data>
-            </template>
-    </lightning-card>
+        <!-- LEFT → Icon + Title -->
+        <div class="header-left">
+            <div class="app-logo">DA</div>
+
+            <div class="header-text">
+                <h1>Data Archive Console</h1>
+                <p>Move records in and out of archive with a clean, guided flow.</p>
+            </div>
+        </div>
+
+        <!-- CENTER → Custom Toggle -->
+        <div class="toggle-wrapper">
+            <div class="toggle-container">
+
+                <button class={archiveClass}
+                        onclick={activateArchive}>
+                    <span class="dot"></span>
+                    Archive
+                </button>
+
+                <button class={unArchiveClass}
+                        onclick={activateUnArchive}>
+                    <span class="dot"></span>
+                    Un-Archive
+                </button>
+
+            </div>
+        </div>
+
+        <!-- RIGHT → Status Pill -->
+        <div class="status-pill">
+            <span class="green-dot"></span>
+            Preview only — no changes until you confirm
+        </div>
+
+    </div>
+
+    <!-- BODY COMPONENTS -->
+    <template lwc:if={booleanFlag}>
+        <c-s-object-combox></c-s-object-combox>
+    </template>
+
+    <template lwc:if={unArchiveFlag}>
+        <c-un-archived-data class="header-unArchive"></c-un-archived-data>
+    </template>
 
 </template>

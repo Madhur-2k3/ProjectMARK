@@ -1,22 +1,66 @@
 <template>
-    <lightning-card>
+    <div class="card">
+        <lightning-card>
 
-       
-        <c-dynamic-data-table 
-            data={archiveRecords}
-            columns={archiveColumns}
-            onrowselection={handleSelection}>
-        </c-dynamic-data-table>
+            <div class="header">
+                <h2>Un-archive Preview</h2>
 
-        
-        <div class="slds-m-top_medium slds-m-left_small">
-            <lightning-button 
-                label="Unarchive"
-                variant="brand"
-                disabled={isButtonDisabled}
-                onclick={handleUnarchive}>
-            </lightning-button>
-        </div>
+                <lightning-combobox
+                    name="pageSize"
+                    label="Rows per page"
+                    value={pageSize}
+                    options={pageSizeOptions}
+                    onchange={handlePageSizeChange}
+                    class="slds-m-right_small">
+                </lightning-combobox>
+            </div>
 
-    </lightning-card>
+            <div class="slds-p-horizontal_small slds-p-top_x-small">
+                <c-dynamic-data-table
+                    unarchivemode="true"
+                    data={archiveRecords}
+                    columns={archiveColumns}
+                    max-row-selection="1"
+                    onrowselection={handleSelection}>
+                </c-dynamic-data-table>
+            </div>
+
+            <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+
+                    <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
+
+                        <lightning-button
+                            label="Previous"
+                            onclick={handlePrevious}
+                            disabled={isPreviousDisabled}
+                            class="slds-m-right_small">
+                        </lightning-button>
+
+                        <span class="slds-text-body_small slds-m-right_small">
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <lightning-button
+                            label="Next"
+                            onclick={handleNext}
+                            disabled={isNextDisabled}>
+                        </lightning-button>
+
+                    </div>
+
+                    <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
+                        <lightning-button
+                            label="Un-archive selected"
+                            variant="brand"
+                            disabled={isButtonDisabled}
+                            onclick={handleUnarchive}>
+                        </lightning-button>
+                    </div>
+
+                </div>
+            </div>
+
+        </lightning-card>
+    </div>
 </template>

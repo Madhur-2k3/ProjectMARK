@@ -1,43 +1,11 @@
 public with sharing class objectDataHandler {
+
     @AuraEnabled(cacheable=true)
-    public static List<SObject> getObjData(String searchKey) {
-        String query = 'SELECT Id, Name FROM ' + searchKey + ' LIMIT 10';
-        List<SObject> records = Database.query(query);
-        return records;
-    }
-    @AuraEnabled
-public static List<SObject> getAllRecordsOfSelectedObject(String objectName, List<String> fieldNames) {
+    public static List<SObject> getFilteredAccounts(String objectName, String fields, String conditions, Integer offsetSize, Integer pageSize){
+        if (pageSize == null) pageSize = 10;
+        if (offsetSize == null) offsetSize = 0;
 
-    // --- SAFEGUARD: fieldNames must never be empty ---
-    if (fieldNames == null || fieldNames.isEmpty()) {
-        fieldNames = new List<String>{ 'Id' };  // Default field
-    }
-
-    String soql =
-        'SELECT ' + String.join(fieldNames, ',') +
-        ' FROM ' + objectName;
-
-    try {
-        return Database.query(soql);
-    } catch (Exception e) {
-        throw new AuraHandledException('SOQL FAILED: ' + e.getMessage());
-    }
-}
-
-    // @AuraEnabled(cacheable=true)
-    // public static List<SObject> getFilteredAccounts(String objectName,List<String> field,String operator,String value){
-    //     String fieldStr = String.join(field,',');
-    //     String query = 'select Id,Name,'+fieldStr+' from '+objectName+' where '+field[0]+operator+value;
-    //     List<SObject> accRecords = Database.query(query);
-    //     return accRecords;
-    // }
-    @AuraEnabled(cacheable=true)
-    public static List<SObject> getFilteredAccounts(String objectName,String fields,String conditions){
-        try{
-            
-        // If no fields given, default to Id only
         String selectedFields = 'Id';
-
         if (String.isNotBlank(fields)) {
             selectedFields += ',' + fields;
         }
@@ -48,29 +16,18 @@ public static List<SObject> getAllRecordsOfSelectedObject(String objectName, Lis
             query += ' WHERE ' + conditions;
         }
 
-        System.debug('FINAL QUERY: ' + query);
+        query += ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
+        System.debug('FINAL QUERY (paginated): ' + query);
 
         return Database.query(query);
-        }catch(Exception ex){
-            System.debug('Error fetching filtered accounts: ' + ex.getMessage());
-            throw new AuraHandledException('Error fetching filtered accounts: '+ex.getMessage());
-        }
     }
-    @AuraEnabled
-    public static void updateRecords(List<SObject> recordsToUpdate){
-        try{
-            update recordsToUpdate;
-        }catch(Exception ex){
-            throw new AuraHandledException('Error updating records: '+ex.getMessage());
+
+    @AuraEnabled(cacheable=true)
+    public static Integer getRecordCount(String objectName, String conditions){
+        String query = 'SELECT COUNT() FROM ' + objectName;
+        if (String.isNotBlank(conditions)) {
+            query += ' WHERE ' + conditions;
         }
-    }
-    @AuraEnabled
-    public static void deleteRecords(List<Id> recordIds){
-        try{
-            List<SObject> recordsToDelete = [SELECT Id FROM Account WHERE Id IN :recordIds];
-            delete recordsToDelete;
-        }catch(Exception ex){
-            throw new AuraHandledException('Error deleting records: '+ex.getMessage());
-        }
+        return Database.countQuery(query);
     }
 }

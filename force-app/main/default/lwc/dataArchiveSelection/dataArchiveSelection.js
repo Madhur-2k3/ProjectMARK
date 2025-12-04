@@ -1,33 +1,29 @@
-import { LightningElement, track } from 'lwc';
-import radioOptionsLabel from '@salesforce/label/c.Radio_Button_options';
+import { LightningElement } from 'lwc';
 
 export default class DataArchiveSelection extends LightningElement {
-    value = '';
-    booleanFlag =false;
+
+    booleanFlag = true;     // Archive default ON
     unArchiveFlag = false;
-    @track options = [];
 
-    connectedCallback(){
-        this.loadOptions();
+    get archiveClass() {
+        return this.booleanFlag
+            ? 'toggle-btn active'
+            : 'toggle-btn';
     }
 
-    loadOptions(){
-        this.options = radioOptionsLabel.split(',').map(option => ({
-            label: option.trim(),
-            value: option.trim()
-        }));
+    get unArchiveClass() {
+        return this.unArchiveFlag
+            ? 'toggle-btn active'
+            : 'toggle-btn';
     }
 
+    activateArchive() {
+        this.booleanFlag = true;
+        this.unArchiveFlag = false;
+    }
 
-    handleChange(event){
-        this.value = event.detail.value;
-        if(this.value === 'Archive'){
-            this.booleanFlag = true;
-            this.unArchiveFlag = false;
-        }
-        else if(this.value === 'Un-Archive'){
-            this.unArchiveFlag = true;
-            this.booleanFlag = false;
-        }
+    activateUnArchive() {
+        this.booleanFlag = false;
+        this.unArchiveFlag = true;
     }
 }

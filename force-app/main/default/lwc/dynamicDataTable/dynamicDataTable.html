@@ -1,9 +1,36 @@
-<template>
+<!-- <template>
     <lightning-datatable
-        key-field="Id"
+        key-field={keyField}
         data={data}
         columns={columns}
-        max-row-selection="1"
+        max-row-selection={maxRowSelection}
+        selected-rows={selectedRows}  
         onrowselection={handleRowSelection}>
     </lightning-datatable>
+</template> -->
+<template>
+
+    <!-- ********** UNARCHIVE DATATABLE (UNCHANGED) ********** -->
+    <template if:true={unarchivemode}>
+        <lightning-datatable
+            key-field={keyField}
+            data={data}
+            columns={columns}
+            max-row-selection={maxRowSelection}
+            selected-rows={selectedRows}
+            onrowselection={handleRowSelection}>
+        </lightning-datatable>
+    </template>
+
+    <!-- ********** ARCHIVE DATATABLE (NO MAX SELECTION) ********** -->
+    <template if:true={showArchiveTable}>
+        <lightning-datatable
+            key-field={keyField}
+            data={archiveData}
+            columns={archiveColumns}
+            selected-rows={archiveSelectedRows}
+            onrowselection={handleArchiveSelection}>
+        </lightning-datatable>
+    </template>
+
 </template>

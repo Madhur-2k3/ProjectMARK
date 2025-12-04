@@ -1,0 +1,115 @@
+/* HEADER BAR */
+.header-bar {
+    background: #0176d3;
+    padding: 16px 22px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: white;
+    gap: 14px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+/* LEFT SIDE */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.app-logo {
+    width: 40px;
+    height: 40px;
+    background: #005fb2;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+
+.header-text h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 16px;
+}
+
+.header-text p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.95;
+}
+
+/* CUSTOM TOGGLE */
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-container {
+    display: flex;
+    background: #ffffff;
+    padding: 4px;
+    border-radius: 40px;
+    gap: 4px;
+}
+
+.toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s ease;
+}
+
+/* Small gray dot */
+.toggle-btn .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #c9c7c5;
+}
+
+/* ACTIVE STATE (dark blue) */
+.toggle-btn.active {
+    background: #014486;
+    color: #ffffff;
+}
+
+.toggle-btn.active .dot {
+    background: #ffffff;
+}
+
+/* RIGHT SIDE PILL */
+.status-pill {
+    background: rgba(255,255,255,0.2);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(255,255,255,0.4);
+    white-space: nowrap;
+}
+
+.green-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #3adb76;
+}
+.header-unArchive{
+    margin: 20px;
+    color: #c9c7c5;
+}

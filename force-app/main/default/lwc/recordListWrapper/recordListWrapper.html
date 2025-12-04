@@ -1,0 +1,33 @@
+<template>
+    <div class="slds-p-around_small">
+        <lightning-combobox label="Rows per page" value={pageSize}
+            options={pageSizeOptions} onchange={handlePageSizeChange}>
+        </lightning-combobox>
+    </div>
+
+    <template if:true={records.length}>
+        <c-dynamic-data-table
+            data={records}
+            columns={columns}
+            selected-rows={selectedRowIds}
+            onrowselection={handleRowSelect}>
+        </c-dynamic-data-table>
+
+        <div class="slds-m-around_small slds-text-title_bold">
+            Page {currentPage} of {totalPages}
+        </div>
+
+        <div class="slds-m-around_medium">
+            <lightning-button label="Prev" onclick={previousPage} disabled={isPrevDisabled}></lightning-button>
+            <lightning-button label="Next" onclick={nextPage} disabled={isNextDisabled}></lightning-button>
+        </div>
+    </template>
+
+    <template if:false={records.length}>
+        <p class="slds-p-around_medium">No records found…</p>
+    </template>
+
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Loading..."></lightning-spinner>
+    </template>
+</template>

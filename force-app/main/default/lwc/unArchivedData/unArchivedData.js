@@ -1,54 +1,96 @@
-import { LightningElement, wire, track } from 'lwc';
-import getDataArchive from '@salesforce/apex/DataArchiveObjectController.getArchivedObject';
+import { LightningElement, track } from 'lwc';
+import getArchivedObjectPaginated from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
 import insertArchivedRecordsBulk from '@salesforce/apex/DataArchiveObjectController.insertArchivedRecordsBulk';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { refreshApex } from '@salesforce/apex';
 
-export default class ParentComponent extends LightningElement {
+export default class UnArchivedData extends LightningElement {
+
     @track archiveRecords = [];
     @track archiveColumns = [];
     selectedRows = [];
-    wiredResult;
-    isButtonDisabled = true;   // Initially disabled
 
-    // Load archive data
-    @wire(getDataArchive)
-    wiredArchive(result) {
-        this.wiredResult = result;
+    // Pagination
+    @track pageSize = '1';
+    pageSizeOptions = [
+        { label: '1', value: '1' },
+        { label: '2', value: '2' },
+        { label: '15', value: '15' },
+        { label: '20', value: '20' }
+    ];
 
-        if (result.data) {
-            this.archiveRecords = result.data.data;
-            this.archiveColumns = result.data.columns;
-        } else if (result.error) {
-            console.error(result.error);
-        }
+    @track currentPage = 1;
+    totalPages = 1;
+    totalRecords = 0;
+
+    isButtonDisabled = true;
+
+    connectedCallback() {
+        this.loadRecords();
     }
 
-    // Capture selected rows
+    loadRecords() {
+        getArchivedObjectPaginated({
+            pageNumber: this.currentPage,
+            pageSize: Number(this.pageSize)
+        })
+        .then(result => {
+            this.archiveColumns = result.columns;
+            this.archiveRecords = result.data;
+            this.totalRecords = result.totalRecords;
+            this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+    }
+
     handleSelection(event) {
         this.selectedRows = event.detail;
-
-        // Enable button only if exactly one row selected
-        this.isButtonDisabled = this.selectedRows.length === 1 ? false : true;
+        this.isButtonDisabled = this.selectedRows.length !== 1;
     }
 
-    // Unarchive logic
     handleUnarchive() {
-        const archiveIds = this.selectedRows.map(r => r.Id);
+        const ids = this.selectedRows.map(r => r.Id);
 
-        insertArchivedRecordsBulk({ archiveRecordIds: archiveIds })
+        insertArchivedRecordsBulk({ archiveRecordIds: ids })
             .then(result => {
                 this.showToast('Success', result, 'success');
-                this.isButtonDisabled = true; // Disable again after action
-                return refreshApex(this.wiredResult);
+                this.isButtonDisabled = true;
+                this.loadRecords();
             })
             .catch(error => {
-                console.error(error);
                 this.showToast('Error', error.body?.message, 'error');
             });
     }
 
-    // Toast utility
+    handleNext() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.loadRecords();
+        }
+    }
+
+    handlePrevious() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadRecords();
+        }
+    }
+
+    handlePageSizeChange(event) {
+        this.pageSize = event.detail.value;
+        this.currentPage = 1;
+        this.loadRecords();
+    }
+
+    get isPreviousDisabled() {
+        return this.currentPage === 1;
+    }
+
+    get isNextDisabled() {
+        return this.currentPage === this.totalPages;
+    }
+
     showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }

@@ -1,0 +1,28 @@
+:host {
+    display: block;
+}
+
+
+.custom-grid {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center; /* Optional, if you still want vertical centering */
+}
+.header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-left: 10px;
+    margin-right: 10px;
+    
+}
+.demo{
+    display: flex;
+    justify-content:flex-end;
+    align-items: center;
+}
+.card{
+    margin: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    border-radius: 12px;
+}

@@ -4,29 +4,42 @@ public with sharing class DataArchiveObjectController {
     public class ArchiveWrapper {
         @AuraEnabled public List<Map<String, Object>> columns { get; set; }
         @AuraEnabled public List<Map<String, Object>> data { get; set; }
+        @AuraEnabled public Integer totalRecords { get; set; }
     }
 
     // ============================================================
-    // 1) GET ARCHIVED OBJECTS
+    // 1) SERVER-SIDE PAGINATION
     // ============================================================
     @AuraEnabled(cacheable=true)
-    public static ArchiveWrapper getArchivedObject() {
+    public static ArchiveWrapper getArchivedObjectPaginated(Integer pageNumber, Integer pageSize) {
 
+        if (pageNumber == null) pageNumber = 1;
+        if (pageSize == null) pageSize = 10;
+
+        Integer offsetValue = (pageNumber - 1) * pageSize;
+
+        // Total record count
+        Integer totalCount = [SELECT COUNT() FROM Data_Archive__c];
+
+        // Fetch only requested page
         List<Data_Archive__c> records = [
             SELECT Id, Name, Fields__c, Parent_Object__c, CreatedDate
             FROM Data_Archive__c
             ORDER BY CreatedDate DESC
+            LIMIT :pageSize
+            OFFSET :offsetValue
         ];
 
+        // Fields for table
         List<String> selectedFields = new List<String>{
             'Name', 'Fields__c', 'Parent_Object__c', 'CreatedDate'
         };
 
+        // Build columns dynamically
         List<Map<String, Object>> columns = new List<Map<String, Object>>();
         Map<String, Schema.SObjectField> fieldMap =
             Data_Archive__c.SObjectType.getDescribe().fields.getMap();
 
-        // Dynamic Columns
         for (String apiName : selectedFields) {
             Schema.DescribeFieldResult f = fieldMap.get(apiName).getDescribe();
 
@@ -49,6 +62,7 @@ public with sharing class DataArchiveObjectController {
             }
         }
 
+        // Create data rows
         List<Map<String, Object>> processed = new List<Map<String, Object>>();
 
         for (Data_Archive__c rec : records) {
@@ -59,19 +73,19 @@ public with sharing class DataArchiveObjectController {
             row.put('Parent_Object__c', rec.Parent_Object__c);
             row.put('CreatedDate', rec.CreatedDate);
             row.put('nameUrl', '/' + rec.Id);
-
             processed.add(row);
         }
 
+        // Return wrapper
         ArchiveWrapper wrapper = new ArchiveWrapper();
         wrapper.columns = columns;
         wrapper.data = processed;
-
+        wrapper.totalRecords = totalCount;
         return wrapper;
     }
 
     // ============================================================
-    // 2) INSERT + DELETE ARCHIVE + DELETE CSV FILE
+    // 2) INSERT ARCHIVED RECORDS BACK + DELETE ARCHIVES + DELETE CSV
     // ============================================================
     @AuraEnabled
     public static String insertArchivedRecordsBulk(List<Id> archiveRecordIds) {
@@ -88,7 +102,6 @@ public with sharing class DataArchiveObjectController {
 
         for (Data_Archive__c archive : archives) {
 
-            // Fetch CSV File
             List<ContentVersion> cvs = [
                 SELECT Id, VersionData, ContentDocumentId
                 FROM ContentVersion
@@ -105,7 +118,6 @@ public with sharing class DataArchiveObjectController {
 
             String csvContent = cv.VersionData.toString();
             List<String> lines = csvContent.split('\n');
-
             if (lines.size() < 2) continue;
 
             List<String> fieldNames = archive.Fields__c.split(',');
@@ -169,22 +181,12 @@ public with sharing class DataArchiveObjectController {
 
         insert newRecords;
 
-        // ✅ FIXED DELETE BLOCK
         if (!archivesToDelete.isEmpty()) {
-            List<Data_Archive__c> toDelete = [
-                SELECT Id FROM Data_Archive__c
-                WHERE Id IN :archivesToDelete
-            ];
-            delete toDelete;
+            delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archivesToDelete];
         }
 
-        // Delete CSV ContentDocuments
         if (!contentDocIds.isEmpty()) {
-            List<ContentDocument> docs = [
-                SELECT Id FROM ContentDocument
-                WHERE Id IN :contentDocIds
-            ];
-            delete docs;
+            delete [SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds];
         }
 
         return 'Inserted ' + newRecords.size() + ' records and deleted archive + CSV file';

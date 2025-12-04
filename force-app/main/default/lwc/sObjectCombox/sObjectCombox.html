@@ -1,33 +1,57 @@
 <template>
-  <lightning-card title="Select an Object">
+    <lightning-card title="Select an Object">
 
-    <!-- Search Box -->
-    <div class="slds-p-around_medium">
-        <lightning-input
-            type="search"
-            label="Search Object"
-            onchange={handleSearch}
-            value={searchTerm}
-            placeholder="Search Object...">
-        </lightning-input>
-    </div>
+        <!-- Search -->
+        <div class="slds-p-around_medium">
+            <lightning-input 
+                type="search"
+                label="Search Object"
+                onchange={handleSearch}
+                value={searchTerm}
+                placeholder="Search Object...">
+            </lightning-input>
+        </div>
 
-    <!-- Dropdown List -->
-    <template if:true={filteredOptions}>
-        <ul class="slds-box slds-m-left_medium slds-m-right_medium" style="max-height: 200px; overflow-y: auto;">
-            <template for:each={filteredOptions} for:item="opt">
-                <li key={opt.value}
-                    class="slds-p-around_small slds-border_bottom clickable"
-                    data-value={opt.value}
-                    onclick={handleSelect}>
-                    {opt.label}
-                </li>
-            </template>
-        </ul>
-    </template>
+        <!-- Object List -->
+        <template if:true={filteredOptions}>
+            <ul class="slds-box slds-m-horizontal_medium"
+                style="max-height:200px; overflow-y:auto;">
+                
+                <template for:each={filteredOptions} for:item="opt">
+                    <li key={opt.value}
+                        class="slds-p-around_small slds-border_bottom clickable"
+                        data-value={opt.value}
+                        onclick={handleSelect}>
+                        {opt.label}
+                    </li>
+                </template>
 
-    <!-- Child Component -->
-    <c-field-selector selected-object={selectedSObject}></c-field-selector>
+            </ul>
+        </template>
 
-  </lightning-card>
+        <!-- Child 1: Field Selector -->
+        <template if:true={selectedSObject}>
+            <c-field-selector
+                selected-object={selectedSObject}
+                onfieldchange={handleFieldChange}>
+            </c-field-selector>
+        </template>
+
+        <!-- Child 2: Filter Builder -->
+        <template if:true={finalFieldsForApex.length}>
+            <c-filter-builder
+                fields={finalFieldsForApex}
+                onwherechange={handleWhereClauseChange}>
+            </c-filter-builder>
+        </template>
+
+        <!-- FINAL QUERY PREVIEW -->
+        <template if:true={finalQuery}>
+            <div class="slds-p-around_medium">
+                <p><strong>Final SOQL Query:</strong></p>
+                <code>{finalQuery}</code>
+            </div>
+        </template>
+
+    </lightning-card>
 </template>

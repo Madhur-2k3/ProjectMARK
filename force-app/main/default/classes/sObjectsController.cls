@@ -1,5 +1,8 @@
 public with sharing class sObjectsController {
-    // Wrapper for SObject names
+
+    // -------------------------------
+    // Wrapper for SObject Names
+    // -------------------------------
     public class SObjectInfo {
         @AuraEnabled public String label { get; set; }
         @AuraEnabled public String apiName { get; set; }
@@ -10,74 +13,74 @@ public with sharing class sObjectsController {
         }
     }
 
-    // Wrapper for Field info including type
-    public class FieldInfo {
-        @AuraEnabled public String label { get; set; }
-        @AuraEnabled public String apiName { get; set; }
-        @AuraEnabled public String fieldType { get; set; }
-
-        public FieldInfo(String label, String apiName, String fieldType) {
-            this.label = label;
-            this.apiName = apiName;
-            this.fieldType = fieldType;
-        }
-    }
-
-    // Fetch all SObject names - SORTED by label
-   @AuraEnabled(cacheable=true)
-public static List<SObjectInfo> getAllSObjectNames() {
-    List<SObjectInfo> sObjectList = new List<SObjectInfo>();
-    Map<String, Schema.SObjectType> globalDescribeMap = Schema.getGlobalDescribe();
-
-    // Step 1: Convert keys to list
-    List<String> apiNames = new List<String>(globalDescribeMap.keySet());
-
-    // Step 2: Sort alphabetically
-    apiNames.sort();
-
-    // Step 3: Build wrapper list with EXACT API NAME
-    for (String apiName : apiNames) {
-        Schema.DescribeSObjectResult describeResult =
-            globalDescribeMap.get(apiName).getDescribe();
-
-        // Use getName() instead of apiName from map
-        sObjectList.add(new SObjectInfo(
-            describeResult.getLabel(),
-            describeResult.getName()   // <-- TRUE API NAME
-        ));
-    }
-
-    return sObjectList;
-}
-
-    // Fetch all fields of a given SObject - SORTED by label
+    // -------------------------------
+    // Get ALL SObjects sorted by label
+    // -------------------------------
     @AuraEnabled(cacheable=true)
-    public static List<FieldInfo> getFieldsBySObject(String sObjectApiName) {
-        List<FieldInfo> fieldInfoList = new List<FieldInfo>();
+    public static List<SObjectInfo> getAllSObjectNames() {
+        List<SObjectInfo> sObjectList = new List<SObjectInfo>();
+        Map<String, Schema.SObjectType> globalDescribeMap = Schema.getGlobalDescribe();
 
-        Schema.SObjectType sObjectType = Schema.getGlobalDescribe().get(sObjectApiName);
-        if (sObjectType == null) return fieldInfoList;
+        List<String> apiNames = new List<String>(globalDescribeMap.keySet());
+        apiNames.sort();
 
-        Map<String, Schema.SObjectField> fieldMap = sObjectType.getDescribe().fields.getMap();
+        for (String apiName : apiNames) {
+            Schema.DescribeSObjectResult d = globalDescribeMap.get(apiName).getDescribe();
 
-        // Step 1: Convert field API names to a list
-        List<String> fieldApiNames = new List<String>(fieldMap.keySet());
-
-        // Step 2: Sort alphabetically
-        fieldApiNames.sort();
-
-        // Step 3: Build wrapper list in sorted order
-        for (String fieldApiName : fieldApiNames) {
-            Schema.DescribeFieldResult fieldDescribe = fieldMap.get(fieldApiName).getDescribe();
-            System.debug('Field API Name: ' + fieldDescribe.getName());
-            String fieldTypeString = String.valueOf(fieldDescribe.getType());
-            fieldInfoList.add(new FieldInfo(
-                fieldDescribe.getLabel(),
-                fieldDescribe.getName(),
-                fieldTypeString
+            sObjectList.add(new SObjectInfo(
+                d.getLabel(),
+                d.getName() // TRUE API NAME
             ));
         }
-        // System.debug('Field Info List: ' + fieldInfoList);
-        return fieldInfoList;
+        return sObjectList;
+    }
+
+    // ---------------------------------------------------
+    // Get ALL fields from SObject + required field logic
+    // ---------------------------------------------------
+    @AuraEnabled(cacheable=true)
+    public static List<FieldInfoWrapper> getFieldsBySObject(String sObjectApiName) {
+
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get(sObjectApiName);
+        Schema.DescribeSObjectResult describe = objType.getDescribe();
+        Map<String, Schema.SObjectField> fields = describe.fields.getMap();
+
+        List<FieldInfoWrapper> result = new List<FieldInfoWrapper>();
+
+        for (String api : fields.keySet()) {
+            Schema.DescribeFieldResult f = fields.get(api).getDescribe();
+
+            Boolean isRequired =
+                f.isNillable() == false &&
+                f.isDefaultedOnCreate() == false &&
+                f.isCalculated() == false &&
+                api != 'Id';   // exclude Id
+
+            result.add(new FieldInfoWrapper(
+                f.getLabel(),
+                api,
+                String.valueOf(f.getType()),
+                isRequired
+            ));
+        }
+
+        return result;
+    }
+
+    // ---------------------------------------------------
+    // Wrapper for fields
+    // ---------------------------------------------------
+    public class FieldInfoWrapper {
+        @AuraEnabled public String label;
+        @AuraEnabled public String apiName;
+        @AuraEnabled public String fieldType;
+        @AuraEnabled public Boolean isRequired;
+
+        public FieldInfoWrapper(String l, String a, String t, Boolean r) {
+            label = l;
+            apiName = a;
+            fieldType = t;
+            isRequired = r;
+        }
     }
 }

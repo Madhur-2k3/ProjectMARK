@@ -1,0 +1,86 @@
+<template>
+    <div class="header">
+        <lightning-button-group>
+            <lightning-button
+                label="All records"
+                variant={allRecordsVariant}
+                onclick={showAllRecords}>
+            </lightning-button>
+
+            <lightning-button
+                label="Filter records"
+                variant={filterRecordsVariant}
+                onclick={showFilterRecords}>
+            </lightning-button>
+        </lightning-button-group>
+    </div>
+
+    <template if:true={isFilterMode}>
+        <div class="filter-container">
+
+            <template for:each={filters} for:item="flt">
+                <div key={flt.id} class="filter-row">
+
+                    <!-- JOIN -->
+                    <template if:true={flt.showJoin}>
+                        <lightning-combobox
+                            value={flt.joinType}
+                            data-id={flt.id}
+                            options={joinOptions}
+                            onchange={handleJoinChange}>
+                        </lightning-combobox>
+                    </template>
+
+                    <!-- FIELD -->
+                    <lightning-combobox
+                        value={flt.field}
+                        data-id={flt.id}
+                        options={fieldOptions}
+                        onchange={handleFieldChange}>
+                    </lightning-combobox>
+
+                    <!-- OPERATOR -->
+                    <lightning-combobox
+                        value={flt.operator}
+                        data-id={flt.id}
+                        options={flt.operatorOptions}
+                        onchange={handleOperatorChange}>
+                    </lightning-combobox>
+
+                    <!-- VALUE (Dynamic: textbox or date picker) -->
+                    <template if:true={flt.isDate}>
+                        <lightning-input
+                            type="date"
+                            value={flt.value}
+                            data-id={flt.id}
+                            onchange={handleValueChange}>
+                        </lightning-input>
+                    </template>
+
+                    <template if:false={flt.isDate}>
+                        <lightning-input
+                            type="text"
+                            value={flt.value}
+                            data-id={flt.id}
+                            onchange={handleValueChange}>
+                        </lightning-input>
+                    </template>
+
+                    <lightning-button-icon
+                        icon-name="utility:close"
+                        data-id={flt.id}
+                        onclick={removeFilter}>
+                    </lightning-button-icon>
+
+                </div>
+            </template>
+
+            <lightning-button label="Add filter" onclick={addFilter}></lightning-button>
+        </div>
+
+        <div class="soql-preview">
+            <p><strong>WHERE Clause Preview:</strong></p>
+            <code>{whereClause}</code>
+        </div>
+    </template>
+</template>
