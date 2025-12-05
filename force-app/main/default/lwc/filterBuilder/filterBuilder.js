@@ -12,6 +12,7 @@ export default class FilterBuilder extends LightningElement {
     @track filteredAccounts;
     // Pagination
     @track pageSize = '1';
+    @track allRecords=true;
 
     pageSizeOptions = [
         { label: '1 / page', value: '1' },
@@ -36,6 +37,7 @@ export default class FilterBuilder extends LightningElement {
         this.isFilterMode = !this.isFilterMode;
         this.filters = [];
         this.filteredAccounts = null;
+        this.allRecords=!this.allRecords;
     }
 
     showFilterRecords() {
@@ -43,6 +45,7 @@ export default class FilterBuilder extends LightningElement {
         if (!this.filters.length) {
             this.addFilter();
         }
+        this.allRecords=!this.allRecords;
     }
 
     joinOptions = [
@@ -118,6 +121,7 @@ export default class FilterBuilder extends LightningElement {
         const id = Number(event.currentTarget.dataset.id);
         this.filters = this.filters.filter(f => f.id !== id);
         if (this.filters.length) this.filters[0].showJoin = false;
+        if( this.filters.length === 0 ) this.showAllRecords();
     }
 
     handleJoinChange(e) { this.updateFilter(e, "joinType"); }

@@ -20,19 +20,13 @@
 
             <template for:each={filters} for:item="flt">
                 <div key={flt.id} class="filter-row">
-
-                    <!-- JOIN -->
-                    <template if:true={flt.showJoin}>
-                        <lightning-combobox
+                    <lightning-combobox
                             value={flt.joinType}
                             data-id={flt.id}
                             options={joinOptions}
                             onchange={handleJoinChange}>
-                        </lightning-combobox>
-                    </template>
+                    </lightning-combobox>
 
-                    <!-- FIELD -->
-                     <!-- FIELD -->
                     <div class="box">
                         <lightning-combobox
                             value={flt.field}
@@ -42,17 +36,7 @@
                         </lightning-combobox>
                     </div>
 
-                     <!-- <div class="box">
-                        <lightning-combobox
-                            value={flt.field}
-                            data-id={flt.id}
-                            options={flt.fieldOptions}
-                            onchange={handleFieldChange}>
-                        </lightning-combobox>
-                     </div> -->
-                    
 
-                    <!-- OPERATOR -->
                      <div class="box">
                             <lightning-combobox
                             value={flt.operator}
@@ -63,7 +47,6 @@
                      </div>
                     
 
-                    <!-- VALUE (Dynamic: textbox or date picker) -->
                     <template if:true={flt.isDate}>
                         <div class="box">
                         <lightning-input
@@ -97,14 +80,26 @@
 
                 </div>
             </template>
-
-            <lightning-button label="Add filter" onclick={addFilter}></lightning-button>
+            <div class="add-filter">
+                <lightning-button label="Add filter" onclick={addFilter}></lightning-button>
+            </div>
+            
         </div>
-         <lightning-button 
-            class="slds-m-around_medium"
+        <template if:false={allRecords}>
+            <lightning-button 
+            class="slds-m-around_medium add-filter"
             label="Submit"
             onclick={handleFilterAccounts}>
-        </lightning-button>
+            </lightning-button>
+        </template>
+         
+            <template if:true={allRecords}>
+            <lightning-button 
+            class="slds-m-around_medium add-filter"
+            label="Get all Records"
+            onclick={handleFilterAccounts}>
+            </lightning-button>
+        </template>
 
         <template if:true={filteredAccounts}>
             <c-capsule-dropdown

@@ -12,6 +12,7 @@ export default class SObjectCombox extends LightningElement {
     @track requiredFields = [];
     @track finalFieldsForApex = [];  
     @track whereClause = '';
+    @track objectLabel = '';
 
     searchTerm = '';
 
@@ -33,16 +34,23 @@ export default class SObjectCombox extends LightningElement {
             opt.label.toLowerCase().includes(key) ||
             opt.value.toLowerCase().includes(key)
         );
+        
+        
     }
 
     handleSelect(event) {
         this.selectedSObject = event.currentTarget.dataset.value;
+        this.objectLabel=event.currentTarget.dataset.label;
+        
+        this.objectLabel = event.currentTarget.dataset.label;
+        
         this.filteredOptions = null;
 
         // reset state
         this.selectedFields = [];
         this.finalFieldsForApex = [];
         this.whereClause = '';
+        this.searchTerm=this.objectLabel;
     }
 
     // RECEIVE FIELDS FROM FIELD SELECTOR

@@ -19,8 +19,10 @@
                 
                 <template for:each={filteredOptions} for:item="opt">
                     <li key={opt.value}
+                        value={opt.label}
                         class="slds-p-around_small slds-border_bottom clickable"
                         data-value={opt.value}
+                        data-label={opt.label}
                         onclick={handleSelect}>
                         {opt.label}
                     </li>
