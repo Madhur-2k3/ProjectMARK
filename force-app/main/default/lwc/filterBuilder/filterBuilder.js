@@ -6,6 +6,7 @@ export default class FilterBuilder extends LightningElement {
     @api selectobject;
     @api query;
     @api conditions;
+    @api objectname;
     @api tablecolumnsname=[];
     @track filteredAccounts;
     // @api archiveColumns;
@@ -175,32 +176,39 @@ export default class FilterBuilder extends LightningElement {
         return val;
     }
 
-    async handleFilterAccounts(){
-        try{
-           this.filteredAccounts = await getFilteredAccounts({query: this.query, conditions: this.conditions, offsetSize: 0, pageSize: 10});
-              console.log('Filtered Accounts:', JSON.stringify(this.filteredAccounts));
-              console.log("fields",JSON.stringify(this.fields));
-              console.log("table columns", JSON.stringify(this.tablecolumnsname));
-        }
-        catch(error){
-            console.error('Error fetching filtered accounts:', error);
-        }
+    // async handleFilterAccounts(){
+    //     try{
+            
+    //        this.filteredAccounts = await getFilteredAccounts({query: this.query, conditions: this.conditions, offsetSize: 0, pageSize: 10});
+    //           console.log('Filtered Accounts:', JSON.stringify(this.filteredAccounts));
+    //           console.log("fields",JSON.stringify(this.fields));
+    //           console.log("table columns", JSON.stringify(this.tablecolumnsname));
+    //     }
+    //     catch(error){
+    //         console.error('Error fetching filtered accounts:', error);
+    //     }
         
-    }
+    // }
+    handleFilterAccounts() {
+    this.currentPage = 1;
+    this.loadRecords();
+}
 
-     handleNext() {
-        if (this.currentPage < this.totalPages) {
-            this.currentPage++;
-            this.loadRecords();
-        }
-    }
 
-    handlePrevious() {
-        if (this.currentPage > 1) {
-            this.currentPage--;
-            this.loadRecords();
-        }
+    handleNext() {
+    if (this.currentPage < this.totalPages) {
+        this.currentPage++;
+        this.loadRecords();
     }
+}
+
+handlePrevious() {
+    if (this.currentPage > 1) {
+        this.currentPage--;
+        this.loadRecords();
+    }
+}
+
      get isPreviousDisabled() {
         return this.currentPage === 1;
     }
@@ -208,6 +216,27 @@ export default class FilterBuilder extends LightningElement {
     get isNextDisabled() {
         return this.currentPage === this.totalPages;
     }
+    async loadRecords() {
+    try {
+        const offsetValue = (this.currentPage - 1) * 10;
+
+        const result = await getFilteredAccounts({
+            query: this.query,
+            conditions: this.whereClause === "/* No WHERE clause */" ? "" : " WHERE " + this.whereClause,
+            offsetSize: offsetValue,
+            pageSize: 10,
+            objectName: this.objectname      // <==== IMPORTANT
+        });
+
+        this.filteredAccounts = result.records;
+        this.totalRecords = result.totalCount;
+        this.totalPages = Math.ceil(this.totalRecords / 10);
+
+    } catch (error) {
+        console.error("Error Loading Records:", error);
+    }
+}
+
     // get tableColumns(){
     //     return this.fields.map(f => ({label: f.label, fieldName: f.apiName}));
     // }
