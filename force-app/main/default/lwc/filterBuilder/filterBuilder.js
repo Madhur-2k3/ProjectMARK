@@ -33,12 +33,13 @@ export default class FilterBuilder extends LightningElement {
     get filterRecordsVariant() { return this.isFilterMode ? "brand" : "neutral"; }
 
     showAllRecords() {
-        this.isFilterMode = false;
+        this.isFilterMode = !this.isFilterMode;
         this.filters = [];
+        this.filteredAccounts = null;
     }
 
     showFilterRecords() {
-        this.isFilterMode = true;
+        this.isFilterMode = !this.isFilterMode;
         if (!this.filters.length) {
             this.addFilter();
         }
