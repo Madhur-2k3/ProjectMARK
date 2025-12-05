@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from 'lwc';
 import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
+import { refreshApex } from '@salesforce/apex';
 
 export default class FilterBuilder extends LightningElement {
     @api fields = [];
@@ -9,6 +10,15 @@ export default class FilterBuilder extends LightningElement {
     @api objectname;
     @api tablecolumnsname=[];
     @track filteredAccounts;
+    // Pagination
+    @track pageSize = '1';
+
+    pageSizeOptions = [
+        { label: '1 / page', value: '1' },
+        { label: '2 / page', value: '2' },
+        { label: '15 / page', value: '15' },
+        { label: '20 / page', value: '20' }
+    ];
     // @api archiveColumns;
 
      @track currentPage = 1;
@@ -218,24 +228,31 @@ handlePrevious() {
     }
     async loadRecords() {
     try {
-        const offsetValue = (this.currentPage - 1) * 10;
+        const offsetValue = (this.currentPage - 1) * Number(this.pageSize);
 
         const result = await getFilteredAccounts({
             query: this.query,
             conditions: this.whereClause === "/* No WHERE clause */" ? "" : " WHERE " + this.whereClause,
             offsetSize: offsetValue,
-            pageSize: 10,
+            pageSize: this.pageSize,
             objectName: this.objectname      // <==== IMPORTANT
         });
 
         this.filteredAccounts = result.records;
         this.totalRecords = result.totalCount;
-        this.totalPages = Math.ceil(this.totalRecords / 10);
+        this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
 
     } catch (error) {
         console.error("Error Loading Records:", error);
     }
 }
+handlePageSizeChange(event) {
+        this.pageSize = event.detail.value;
+        this.currentPage = 1;
+
+        // 🔄 Refresh on page size update
+        this.loadRecords();
+    }
 
     // get tableColumns(){
     //     return this.fields.map(f => ({label: f.label, fieldName: f.apiName}));

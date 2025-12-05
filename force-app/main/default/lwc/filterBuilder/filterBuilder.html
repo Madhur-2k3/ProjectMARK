@@ -107,6 +107,11 @@
         </lightning-button>
 
         <template if:true={filteredAccounts}>
+            <c-capsule-dropdown
+                    value={pageSize}
+                    options={pageSizeOptions}
+                    onchange={handlePageSizeChange}>
+                </c-capsule-dropdown>
             <c-dynamic-data-table
                 show-archive-table="true"
                 archivedata={filteredAccounts}

@@ -1,18 +1,15 @@
 <template>
     <div class="card">
         <lightning-card>
-
             <div class="header">
                 <h2>Un-archive Preview</h2>
 
-                <!-- CAPSULE COMBOBOX -->
-                <lightning-combobox
-                    name="pageSize"
+                <!-- Capsule Dropdown Replaces lightning-combobox -->
+                <c-capsule-dropdown
                     value={pageSize}
                     options={pageSizeOptions}
-                    onchange={handlePageSizeChange}
-                    class="capsule-combobox slds-m-right_small">
-                </lightning-combobox>
+                    onchange={handlePageSizeChange}>
+                </c-capsule-dropdown>
             </div>
 
             <div class="slds-p-horizontal_small slds-p-top_x-small">
