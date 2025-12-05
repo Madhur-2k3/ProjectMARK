@@ -3,7 +3,7 @@ import getFieldsBySObject from '@salesforce/apex/sObjectsController.getFieldsByS
 
 export default class FieldSelector extends LightningElement {
     @api selectedObject;
-
+    @track userSelectedFields=[]
     @track fieldOptions = [];   // ONLY non-required visible in UI
     @track selectedValues = []; // user + required hidden fields included
 
@@ -22,7 +22,11 @@ export default class FieldSelector extends LightningElement {
                 const isRequired = f.isRequired;
 
                 // Always store type
-                this.fieldTypeMap[f.apiName] = f.fieldType;
+                this.fieldTypeMap[f.apiName] = {
+    type: f.fieldType,
+    label: f.label
+};
+
 
                 if (isRequired) {
                     // Collect required but DO NOT show in UI
@@ -49,30 +53,63 @@ export default class FieldSelector extends LightningElement {
     }
 
     handleChange(event) {
-        const userSelected = event.detail.value;
+    const userSelected = event.detail.value;
 
-        // Combine user-selected visible fields + hidden required fields
-        this.selectedValues = [
-            ...this.requiredFields,
-            ...userSelected
-        ];
+    // Combine user-selected visible fields + hidden required fields
+    this.selectedValues = [
+        ...this.requiredFields,
+        ...userSelected
+    ];
+    this.userSelectedFields = userSelected.map(apiName => ({
+        label: this.fieldTypeMap[apiName].label,
+        value: apiName
+    }));
 
-        this.sendUpdatedFields();
-    }
+    console.log('🎯 User Selected Only:',(JSON.stringify(this.userSelectedFields)));
+
+    this.sendUpdatedFields();
+}
+
 
     sendUpdatedFields() {
-        const finalFields = this.selectedValues.map(apiName => ({
+    // Fields selected (including required ones)
+    const finalFields = this.selectedValues.map(apiName => ({
+        apiName,
+        label: this.fieldTypeMap[apiName].label,
+        type: this.fieldTypeMap[apiName].type,
+        required: this.requiredFields.includes(apiName)
+    }));
+
+    // ALL fields (required + optional)
+    const allFields = [
+        ...this.fieldOptions.map(opt => ({
+            apiName: opt.value,
+            label: this.fieldTypeMap[opt.value].label,
+            type: this.fieldTypeMap[opt.value].type,
+            required: false
+        })),
+        ...this.requiredFields.map(apiName => ({
             apiName,
-            type: this.fieldTypeMap[apiName],
-            required: this.requiredFields.includes(apiName)
-        }));
+            label: this.fieldTypeMap[apiName].label,
+            type: this.fieldTypeMap[apiName].type,
+            required: true
+        }))
+    ];
 
-        console.log('🔥 Final Fields Sent to Parent:', JSON.stringify(finalFields));
+    // Debug
+    console.log('📌 All Fields:', JSON.parse(JSON.stringify(allFields)));
+    console.log('📌 Selected/Final Fields:', JSON.parse(JSON.stringify(finalFields)));
 
-        this.dispatchEvent(
-            new CustomEvent('fieldchange', {
-                detail: finalFields
-            })
-        );
+    // Send to parent
+    this.dispatchEvent(
+        new CustomEvent('fieldchange', {
+            detail: {
+                finalFields,
+                allFields,
+                userSelectedField: this.userSelectedFields 
+            }
+        })
+    );
     }
+
 }

@@ -1,0 +1,18 @@
+.filter-row{
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    justify-content: space-between;
+    gap: 2rem;
+    width: 95%;
+    margin: 0 auto;
+}
+.box{
+    width: 25%;
+    
+}
+.btn{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}

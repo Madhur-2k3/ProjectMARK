@@ -2,27 +2,54 @@
     display: block;
 }
 
-
-.custom-grid {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center; /* Optional, if you still want vertical centering */
+.card {
+    margin: 5px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    border-radius: 12px;
 }
-.header{
+
+.header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-left: 10px;
     margin-right: 10px;
-    
 }
-.demo{
+
+.demo {
     display: flex;
-    justify-content:flex-end;
+    justify-content: flex-end;
     align-items: center;
 }
-.card{
-    margin: 5px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    border-radius: 12px;
+
+/* ---------------- CAPSULE COMBOBOX ---------------- */
+.capsule-combobox .slds-combobox__input {
+    border-radius: 30px !important;            /* Capsule shape */
+    padding: 6px 18px !important;
+    height: 38px !important;
+    border: 1.6px solid #c9c9c9 !important;
+    background: white;
+}
+
+/* Hover effect */
+.capsule-combobox .slds-combobox__input:hover {
+    border-color: #5b9dff !important;
+    box-shadow: 0 0 6px rgba(0,112,210,0.25);
+}
+
+/* Focus effect */
+.capsule-combobox .slds-combobox__input:focus {
+    border-color: #0070d2 !important;
+    box-shadow: 0 0 6px rgba(0,112,210,0.45);
+}
+
+/* When dropdown list opens */
+.capsule-combobox .slds-is-open .slds-combobox__input {
+    border-radius: 30px 30px 0 0 !important;
+}
+
+/* Rounded dropdown list bottom */
+.capsule-combobox .slds-listbox.slds-listbox_vertical {
+    border-radius: 0 0 30px 30px !important;
+    overflow: hidden;
 }

@@ -40,10 +40,15 @@
         <!-- Child 2: Filter Builder -->
         <template if:true={finalFieldsForApex.length}>
             <c-filter-builder
-                fields={finalFieldsForApex}
-                onwherechange={handleWhereClauseChange}>
-            </c-filter-builder>
+                tablecolumnsname={datatablecolumns}
+                fields={allFieldsForFilter}
+                onwherechange={handleWhereClauseChange}
+                selectobject={selectedSObject}
+                query={finalQuery}
+                conditions={whereClause}></c-filter-builder>
         </template>
+
+        
 
         <!-- FINAL QUERY PREVIEW -->
         <template if:true={finalQuery}>

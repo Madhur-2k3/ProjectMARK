@@ -1,8 +1,19 @@
 import { LightningElement, api, track } from 'lwc';
+import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
 
 export default class FilterBuilder extends LightningElement {
     @api fields = [];
+    @api selectobject;
+    @api query;
+    @api conditions;
+    @api tablecolumnsname=[];
+    @track filteredAccounts;
+    // @api archiveColumns;
 
+     @track currentPage = 1;
+    totalPages = 1;
+    totalRecords = 0;
+    
     @track filters = [];
     isFilterMode = false;
 
@@ -59,12 +70,18 @@ export default class FilterBuilder extends LightningElement {
             { label: "equals", value: "=" },
             { label: "greater than", value: ">" },
             { label: "less than", value: "<" }
-        ]
+        ],
+        CURRENCY: [
+    { label: "equals", value: "=" },
+    { label: "greater than", value: ">" },
+    { label: "less than", value: "<" }
+]
+
     };
 
     get fieldOptions() {
         return this.fields.map(f => ({
-            label: f.apiName,
+            label: f.label,
             value: f.apiName
         }));
     }
@@ -157,4 +174,47 @@ export default class FilterBuilder extends LightningElement {
 
         return val;
     }
+
+    async handleFilterAccounts(){
+        try{
+           this.filteredAccounts = await getFilteredAccounts({query: this.query, conditions: this.conditions, offsetSize: 0, pageSize: 10});
+              console.log('Filtered Accounts:', JSON.stringify(this.filteredAccounts));
+              console.log("fields",JSON.stringify(this.fields));
+              console.log("table columns", JSON.stringify(this.tablecolumnsname));
+        }
+        catch(error){
+            console.error('Error fetching filtered accounts:', error);
+        }
+        
+    }
+
+     handleNext() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.loadRecords();
+        }
+    }
+
+    handlePrevious() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadRecords();
+        }
+    }
+     get isPreviousDisabled() {
+        return this.currentPage === 1;
+    }
+
+    get isNextDisabled() {
+        return this.currentPage === this.totalPages;
+    }
+    // get tableColumns(){
+    //     return this.fields.map(f => ({label: f.label, fieldName: f.apiName}));
+    // }
+
+    // tableColumns = [
+    //     { label: 'Name', fieldName: 'Name' },
+    //     { label: 'Industry', fieldName: 'Industry' },
+    //     { label: 'Annual Revenue', fieldName: 'AnnualRevenue' }
+    // ];
 }

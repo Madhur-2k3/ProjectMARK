@@ -9,8 +9,8 @@ export default class DynamicDataTable extends LightningElement {
     @api maxRowSelection;           // LIMIT selection for unarchive ONLY
     @api unarchivemode = false;    // Enable multi-row selection for unarchive ONLY
     // ---------------- ARCHIVE TABLE (SEPARATE VARIABLES) -------------------
-    @api archiveData = [];          // Records for archive
-    @api archiveColumns = [];       // Columns for archive
+    @api archivedata = [];          // Records for archive
+    @api archivecolumns = [];       // Columns for archive
     @api archiveSelectedRows = [];  // Selected rows for archive
 
     // ---------------- SWITCH CONTROL -------------------

@@ -9,13 +9,12 @@ export default class UnArchivedData extends LightningElement {
     @track archiveColumns = [];
     selectedRows = [];
 
-    // Pagination
     @track pageSize = '1';
     pageSizeOptions = [
-        { label: '1', value: '1' },
-        { label: '2', value: '2' },
-        { label: '15', value: '15' },
-        { label: '20', value: '20' }
+        { label: '1/page', value: '1' },
+        { label: '2/page', value: '2' },
+        { label: '15/page', value: '15' },
+        { label: '20/page', value: '20' }
     ];
 
     @track currentPage = 1;

@@ -1,25 +1,34 @@
 public with sharing class objectDataHandler {
 
     @AuraEnabled(cacheable=true)
-    public static List<SObject> getFilteredAccounts(String objectName, String fields, String conditions, Integer offsetSize, Integer pageSize){
-        if (pageSize == null) pageSize = 10;
-        if (offsetSize == null) offsetSize = 0;
+    public static List<SObject> getFilteredAccounts(String query, String conditions, Integer offsetSize, Integer pageSize){
+        // if (pageSize == null) pageSize = 10;
+        // if (offsetSize == null) offsetSize = 0;
 
-        String selectedFields = 'Id';
-        if (String.isNotBlank(fields)) {
-            selectedFields += ',' + fields;
+        // String selectedFields = 'Id';
+        // if (String.isNotBlank(fields)) {
+        //     selectedFields += ',' + fields;
+        // }
+
+        // String query = 'SELECT ' + selectedFields + ' FROM ' + objectName;
+
+        // if (String.isNotBlank(conditions)) {
+        //     query += ' WHERE ' + conditions;
+        // }
+
+        // query += ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
+        // System.debug('FINAL QUERY (paginated): ' + query);
+
+        // return Database.query(query);
+        String paginatedQuery = '';
+        try{
+            paginatedQuery = query+' '+conditions + ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
+            //  return Database.query(paginatedQuery);
         }
-
-        String query = 'SELECT ' + selectedFields + ' FROM ' + objectName;
-
-        if (String.isNotBlank(conditions)) {
-            query += ' WHERE ' + conditions;
+        catch(Exception e){
+            System.debug('Error in query formation: ' + e.getMessage());
         }
-
-        query += ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
-        System.debug('FINAL QUERY (paginated): ' + query);
-
-        return Database.query(query);
+        return Database.query(paginatedQuery);
     }
 
     @AuraEnabled(cacheable=true)

@@ -6,7 +6,8 @@ export default class SObjectCombox extends LightningElement {
     sobjectOptions = [];
     filteredOptions;
     selectedSObject = '';
-
+    @track datatablecolumns=[];
+    @track allFieldsForFilter = [];
     @track selectedFields = [];      
     @track requiredFields = [];
     @track finalFieldsForApex = [];  
@@ -46,16 +47,19 @@ export default class SObjectCombox extends LightningElement {
 
     // RECEIVE FIELDS FROM FIELD SELECTOR
     handleFieldChange(event) {
-        const fromChild = event.detail;
+    const { finalFields, allFields,userSelectedField } = event.detail;
 
-        this.selectedFields = fromChild;
+    this.finalFieldsForApex = finalFields;  // SELECT fields
+    this.allFieldsForFilter = allFields;
+    this.datatablecolumns=userSelectedField.map(field => ({
+        label: field.label,
+        fieldName: field.value
+    })); // User selected fields for datatable
+    console.log('All Fields for Filter:', (JSON.stringify(this.allFieldsForFilter))); 
+    console.log('SELECT Fields:', (JSON.stringify(this.finalFieldsForApex)));
+    console.log('User Selected Fields:', (JSON.stringify(this.datatablecolumns)));
+}
 
-        this.requiredFields = fromChild
-            .filter(f => f.required)
-            .map(f => f.apiName);
-
-        this.finalFieldsForApex = [...fromChild];
-    }
 
     // RECEIVE WHERE CLAUSE FROM FILTER BUILDER
     handleWhereClauseChange(event) {

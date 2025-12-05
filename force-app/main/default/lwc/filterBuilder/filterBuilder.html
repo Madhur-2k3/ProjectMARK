@@ -32,51 +32,123 @@
                     </template>
 
                     <!-- FIELD -->
-                    <lightning-combobox
-                        value={flt.field}
-                        data-id={flt.id}
-                        options={fieldOptions}
-                        onchange={handleFieldChange}>
-                    </lightning-combobox>
+                     <!-- FIELD -->
+                    <div class="box">
+                        <lightning-combobox
+                            value={flt.field}
+                            data-id={flt.id}
+                            options={fieldOptions}
+                            onchange={handleFieldChange}>
+                        </lightning-combobox>
+                    </div>
+
+                     <!-- <div class="box">
+                        <lightning-combobox
+                            value={flt.field}
+                            data-id={flt.id}
+                            options={flt.fieldOptions}
+                            onchange={handleFieldChange}>
+                        </lightning-combobox>
+                     </div> -->
+                    
 
                     <!-- OPERATOR -->
-                    <lightning-combobox
-                        value={flt.operator}
-                        data-id={flt.id}
-                        options={flt.operatorOptions}
-                        onchange={handleOperatorChange}>
-                    </lightning-combobox>
+                     <div class="box">
+                            <lightning-combobox
+                            value={flt.operator}
+                            data-id={flt.id}
+                            options={flt.operatorOptions}
+                            onchange={handleOperatorChange}>
+                            </lightning-combobox>
+                     </div>
+                    
 
                     <!-- VALUE (Dynamic: textbox or date picker) -->
                     <template if:true={flt.isDate}>
+                        <div class="box">
                         <lightning-input
                             type="date"
                             value={flt.value}
                             data-id={flt.id}
                             onchange={handleValueChange}>
                         </lightning-input>
+                        </div>
                     </template>
 
                     <template if:false={flt.isDate}>
+                        <div class="box">
                         <lightning-input
                             type="text"
                             value={flt.value}
                             data-id={flt.id}
                             onchange={handleValueChange}>
                         </lightning-input>
+                        </div>
                     </template>
 
-                    <lightning-button-icon
-                        icon-name="utility:close"
-                        data-id={flt.id}
-                        onclick={removeFilter}>
-                    </lightning-button-icon>
+                    <div class="btn">
+                        <lightning-button-icon
+                            icon-name="utility:close"
+                            data-id={flt.id}
+                            onclick={removeFilter}>
+                        </lightning-button-icon>
+                    </div>
+                    
 
                 </div>
             </template>
 
             <lightning-button label="Add filter" onclick={addFilter}></lightning-button>
         </div>
+         <lightning-button 
+            class="slds-m-around_medium"
+            label="Submit"
+            onclick={handleFilterAccounts}>
+        </lightning-button>
+
+        <template if:true={filteredAccounts}>
+            <c-dynamic-data-table
+                show-archive-table="true"
+                archivedata={filteredAccounts}
+                archivecolumns={tablecolumnsname}
+                >
+            </c-dynamic-data-table>
+            <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+
+                    <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
+
+                        <lightning-button
+                            label="Previous"
+                            onclick={handlePrevious}
+                            disabled={isPreviousDisabled}
+                            class="slds-m-right_small">
+                        </lightning-button>
+
+                        <span class="slds-text-body_small slds-m-right_small">
+                            Page {currentPage} of {totalPages}
+                        </span>
+
+                        <lightning-button
+                            label="Next"
+                            onclick={handleNext}
+                            disabled={isNextDisabled}>
+                        </lightning-button>
+
+                    </div>
+
+                    <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
+                        <lightning-button
+                            label="Un-archive selected"
+                            variant="brand"
+                            disabled={isButtonDisabled}
+                            onclick={handleUnarchive}>
+                        </lightning-button>
+                    </div>
+
+                </div>
+            </div>
+        </template>
 
         <div class="soql-preview">
             <p><strong>WHERE Clause Preview:</strong></p>
