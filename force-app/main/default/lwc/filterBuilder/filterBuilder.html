@@ -20,12 +20,16 @@
 
             <template for:each={filters} for:item="flt">
                 <div key={flt.id} class="filter-row">
-                    <lightning-combobox
+                    <!-- if first show div with class name as filter-box-first else filter-box -->
+                    <div class={flt.showJoin}>
+                        <lightning-combobox
                             value={flt.joinType}
                             data-id={flt.id}
                             options={joinOptions}
                             onchange={handleJoinChange}>
-                    </lightning-combobox>
+                        </lightning-combobox>
+                    </div>
+                    
 
                     <div class="box">
                         <lightning-combobox
@@ -108,11 +112,13 @@
                     onchange={handlePageSizeChange}>
                 </c-capsule-dropdown>
             <c-dynamic-data-table
-                show-archive-table="true"
-                archivedata={filteredAccounts}
-                archivecolumns={tablecolumnsname}
-                >
-            </c-dynamic-data-table>
+                    show-archive-table="true"
+                    archivedata={filteredAccounts}
+                    archivecolumns={tablecolumnsname}
+                    archive-selected-rows={archiveSelectedRows}
+                    onarchiverowselection={handleArchiveRowSelections}>
+</c-dynamic-data-table>
+
             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
                 <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
 
@@ -155,4 +161,8 @@
             <code>{whereClause}</code>
         </div>
     </template>
+    <template if:false={isFilterMode}>
+        <template if:true={allRecords}>
+               
+</template>
 </template>

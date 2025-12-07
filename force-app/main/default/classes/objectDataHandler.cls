@@ -32,31 +32,38 @@ public with sharing class objectDataHandler {
     // }
 
     @AuraEnabled
-    public static Map<String, Object> getFilteredAccounts(
-        String query,
-        String conditions,
-        Integer offsetSize,
-        Integer pageSize,
-        String objectName
-    ){
-        Map<String, Object> result = new Map<String, Object>();
-        
-        // Build data query
-        String dataQuery = query + ' ' + conditions + 
-            ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
-        
-        // Build count query
-        String countQuery = 'SELECT COUNT() FROM ' + objectName;
-        if (String.isNotBlank(conditions)) {
-            countQuery +=  conditions;
-        }
+public static Map<String, Object> getFilteredAccounts(
+    String query,
+    Integer offsetSize,
+    Integer pageSize,
+    String objectName
+){
+    Map<String, Object> result = new Map<String, Object>();
 
-        // Put values in result map
-        result.put('records', Database.query(dataQuery));
-        result.put('totalCount', Database.countQuery(countQuery));
+    // Build paginated data query
+    String dataQuery = query + ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
 
-        return result;
+    // Build count query (COUNT() FROM Object WHERE ...)
+    // Extract WHERE clause if present
+    String wherePart = '';
+    if (query.contains('WHERE')) {
+        wherePart = query.substringAfter('WHERE');
+        wherePart = ' WHERE ' + wherePart;
     }
+
+    String countQuery = 'SELECT COUNT() FROM ' + objectName + wherePart;
+
+    // Execute both queries
+    List<SObject> recordsList = Database.query(dataQuery);
+    Integer totalCount = Database.countQuery(countQuery);
+
+    // Put results
+    result.put('records', recordsList);
+    result.put('totalCount', totalCount);
+
+    return result;
+}
+
 
 
     @AuraEnabled(cacheable=true)

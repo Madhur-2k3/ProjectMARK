@@ -1,0 +1,21 @@
+<template>
+    <div class="capsule-wrapper">
+        <div class="capsule-dropdown" onclick={toggleDropdown}>
+            <span>{selectedLabel}</span>
+            <div class="arrow"></div>
+        </div>
+
+        <template if:true={isOpen}>
+            <div class="dropdown-list">
+                <template for:each={options} for:item="opt">
+                    <div class="dropdown-item"
+                         key={opt.value}
+                         data-value={opt.value}
+                         onclick={handleSelect}>
+                        {opt.label}
+                    </div>
+                </template>
+            </div>
+        </template>
+    </div>
+</template>

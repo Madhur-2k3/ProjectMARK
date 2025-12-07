@@ -23,7 +23,10 @@ export default class DynamicDataTable extends LightningElement {
     }
 
     handleArchiveSelection(event) {
-        const selected = event.detail.selectedRows || [];
-        this.dispatchEvent(new CustomEvent('archiverowselection', { detail: selected }));
+        this.archiveSelectedRows = event.detail.selectedRows || [];
+        this.dispatchEvent(new CustomEvent('archiverowselection', {
+    detail: { selectedRows: this.archiveSelectedRows }
+}));
+
     }
 }

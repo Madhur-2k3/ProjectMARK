@@ -38,34 +38,34 @@ public with sharing class sObjectsController {
     // ---------------------------------------------------
     // Get ALL fields from SObject + required field logic
     // ---------------------------------------------------
-    @AuraEnabled(cacheable=true)
-    public static List<FieldInfoWrapper> getFieldsBySObject(String sObjectApiName) {
+@AuraEnabled(cacheable=true)
+public static List<FieldInfoWrapper> getFieldsBySObject(String sObjectApiName) {
 
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(sObjectApiName);
-        Schema.DescribeSObjectResult describe = objType.getDescribe();
-        Map<String, Schema.SObjectField> fields = describe.fields.getMap();
+    Schema.SObjectType objType = Schema.getGlobalDescribe().get(sObjectApiName);
+    Schema.DescribeSObjectResult describe = objType.getDescribe();
+    Map<String, Schema.SObjectField> fields = describe.fields.getMap();
 
-        List<FieldInfoWrapper> result = new List<FieldInfoWrapper>();
+    List<FieldInfoWrapper> result = new List<FieldInfoWrapper>();
 
-        for (String api : fields.keySet()) {
-            Schema.DescribeFieldResult f = fields.get(api).getDescribe();
+    for (String api : fields.keySet()) {
+        Schema.DescribeFieldResult f = fields.get(api).getDescribe();
 
-            Boolean isRequired =
-                f.isNillable() == false &&
-                f.isDefaultedOnCreate() == false &&
-                f.isCalculated() == false &&
-                api != 'Id';   // exclude Id
+        Boolean isRequired =
+            !f.isNillable() &&
+            !f.isDefaultedOnCreate() &&
+            !f.isCalculated() &&
+            api != 'Id';
 
-            result.add(new FieldInfoWrapper(
-                f.getLabel(),
-                api,
-                String.valueOf(f.getType()),
-                isRequired
-            ));
-        }
-
-        return result;
+        result.add(new FieldInfoWrapper(
+            f.getLabel(),
+            f.getName(),        // ✔ exact field API name
+            f.getType().name(), // ✔ exact API field type (String, DateTime, Currency, Reference, etc.)
+            isRequired
+        ));
     }
+
+    return result;
+}
 
     // ---------------------------------------------------
     // Wrapper for fields

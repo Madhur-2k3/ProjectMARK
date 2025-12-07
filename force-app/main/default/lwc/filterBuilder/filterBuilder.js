@@ -3,6 +3,9 @@ import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredA
 import { refreshApex } from '@salesforce/apex';
 
 export default class FilterBuilder extends LightningElement {
+    masterSelectedIds = new Set();
+    archiveSelectedRows = [];
+
     @api fields = [];
     @api selectobject;
     @api query;
@@ -13,7 +16,7 @@ export default class FilterBuilder extends LightningElement {
     // Pagination
     @track pageSize = '1';
     @track allRecords=true;
-
+    @track selectedRows=[];
     pageSizeOptions = [
         { label: '1 / page', value: '1' },
         { label: '2 / page', value: '2' },
@@ -33,20 +36,38 @@ export default class FilterBuilder extends LightningElement {
     get allRecordsVariant() { return this.isFilterMode ? "neutral" : "brand"; }
     get filterRecordsVariant() { return this.isFilterMode ? "brand" : "neutral"; }
 
+    // showAllRecords() {
+    //     this.isFilterMode = !this.isFilterMode;
+    //     this.filters = [];
+    //     this.filteredAccounts = null;
+    //     this.allRecords=!this.allRecords;
+    // }
     showAllRecords() {
-        this.isFilterMode = !this.isFilterMode;
-        this.filters = [];
-        this.filteredAccounts = null;
-        this.allRecords=!this.allRecords;
-    }
+    this.isFilterMode = false;     // switch toggle button
+    this.allRecords = true;
+    this.filters = [];             // clear filters
+    this.filteredAccounts = null;
+    
+    this.notifyWhereClauseChange();
+}
 
+
+    // showFilterRecords() {
+    //     this.isFilterMode = !this.isFilterMode;
+    //     if (!this.filters.length) {
+    //         this.addFilter();
+    //     }
+    //     this.allRecords=!this.allRecords;
+    // }
     showFilterRecords() {
-        this.isFilterMode = !this.isFilterMode;
-        if (!this.filters.length) {
-            this.addFilter();
-        }
-        this.allRecords=!this.allRecords;
+    this.isFilterMode = true;
+    this.allRecords = false;
+
+    if (!this.filters.length) {
+        this.addFilter();
     }
+}
+
 
     joinOptions = [
         { label: "AND", value: "AND" },
@@ -101,76 +122,166 @@ export default class FilterBuilder extends LightningElement {
         }));
     }
 
+    // addFilter() {
+    //     this.filters = [
+    //         ...this.filters,
+    //         {
+    //             id: Date.now(),
+    //             joinType: "AND",
+    //             showJoin: this.filters.length > 0,
+    //             field: null,
+    //             operator: "=",
+    //             operatorOptions: [],
+    //             value: "",
+    //             isDate: false  // NEW FLAG
+    //         }
+    //     ];
+    // }
     addFilter() {
-        this.filters = [
-            ...this.filters,
-            {
-                id: Date.now(),
-                joinType: "AND",
-                showJoin: this.filters.length > 0,
-                field: null,
-                operator: "=",
-                operatorOptions: [],
-                value: "",
-                isDate: false  // NEW FLAG
-            }
-        ];
+    this.filters = [
+        ...this.filters,
+        {
+            id: Date.now(),
+            joinType: "AND",
+            showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
+            field: null,
+            operator: "=",
+            operatorOptions: [],
+            value: "",
+            isDate: false
+        }
+    ];
+
+    this.notifyWhereClauseChange();   // 🔥
+}
+
+
+    // removeFilter(event) {
+    //     const id = Number(event.currentTarget.dataset.id);
+    //     this.filters = this.filters.filter(f => f.id !== id);
+    //     if (this.filters.length) this.filters[0].showJoin = false;
+    //     if( this.filters.length === 0 ) this.showAllRecords();
+    // }
+//     removeFilter(event) {
+//     const id = Number(event.currentTarget.dataset.id);
+//     this.filters = this.filters.filter(f => f.id !== id);
+//     if (this.filters.length) this.filters[0].showJoin = false;
+
+//     this.notifyWhereClauseChange();   // 🔥
+// }
+    removeFilter(event) {
+    const id = Number(event.currentTarget.dataset.id);
+    this.filters = this.filters.filter(f => f.id !== id);
+    console.log("Filters Array length:",this.filters.length);
+    this.filters[0].showJoin = 'filter-box-first';
+    this.filters = [...this.filters];
+
+
+    // 🔥 If NO filters left → switch to All Records mode
+    if (this.filters.length === 0) {
+        this.isFilterMode = false;   // switch toggle
+        this.allRecords = true;
+                       // clear filters
+        this.filteredAccounts = null;
+
     }
 
-    removeFilter(event) {
-        const id = Number(event.currentTarget.dataset.id);
-        this.filters = this.filters.filter(f => f.id !== id);
-        if (this.filters.length) this.filters[0].showJoin = false;
-        if( this.filters.length === 0 ) this.showAllRecords();
-    }
+    this.notifyWhereClauseChange();   // update parent
+}
+
+
 
     handleJoinChange(e) { this.updateFilter(e, "joinType"); }
     handleOperatorChange(e) { this.updateFilter(e, "operator"); }
     handleValueChange(e) { this.updateFilter(e, "value"); }
 
+    // handleFieldChange(event) {
+    //     const id = Number(event.target.dataset.id);
+    //     const selectedField = event.detail.value;
+
+    //     const fieldMeta = this.fields.find(f => f.apiName === selectedField);
+    //     const ops = this.operatorMap[fieldMeta.type] || this.operatorMap.STRING;
+
+    //     this.filters = this.filters.map(f => {
+    //         if (f.id === id) {
+    //             return {
+    //                 ...f,
+    //                 field: selectedField,
+    //                 operatorOptions: ops,
+    //                 operator: ops[0].value,
+    //                 isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME"
+    //             };
+    //         }
+    //         return f;
+    //     });
+    // }
     handleFieldChange(event) {
-        const id = Number(event.target.dataset.id);
-        const selectedField = event.detail.value;
+    const id = Number(event.target.dataset.id);
+    const selectedField = event.detail.value;
 
-        const fieldMeta = this.fields.find(f => f.apiName === selectedField);
-        const ops = this.operatorMap[fieldMeta.type] || this.operatorMap.STRING;
+    const fieldMeta = this.fields.find(f => f.apiName === selectedField);
+    const ops = this.operatorMap[fieldMeta.type] || this.operatorMap.STRING;
 
-        this.filters = this.filters.map(f => {
-            if (f.id === id) {
-                return {
-                    ...f,
-                    field: selectedField,
-                    operatorOptions: ops,
-                    operator: ops[0].value,
-                    isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME"
-                };
-            }
-            return f;
-        });
-    }
+    this.filters = this.filters.map(f => {
+        if (f.id === id) {
+            return {
+                ...f,
+                field: selectedField,
+                operatorOptions: ops,
+                operator: ops[0].value,
+                isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME"
+            };
+        }
+        return f;
+    });
 
+    this.notifyWhereClauseChange();   // 🔥
+}
+
+
+    // updateFilter(event, prop) {
+    //     const id = Number(event.target.dataset.id);
+    //     const value = event.detail.value;
+
+    //     this.filters = this.filters.map(f =>
+    //         f.id === id ? { ...f, [prop]: value } : f
+    //     );
+    // }
     updateFilter(event, prop) {
-        const id = Number(event.target.dataset.id);
-        const value = event.detail.value;
+    const id = Number(event.target.dataset.id);
+    const value = event.detail.value;
 
-        this.filters = this.filters.map(f =>
-            f.id === id ? { ...f, [prop]: value } : f
-        );
-    }
+    this.filters = this.filters.map(f =>
+        f.id === id ? { ...f, [prop]: value } : f
+    );
+
+    this.notifyWhereClauseChange();   // 🔥
+}
+
 
     get whereClause() {
-        if (!this.isFilterMode || this.filters.length === 0) {
-            return "/* No WHERE clause */";
+    if (!this.isFilterMode || !this.filters.length) {
+        return '';
+    }
+
+    const validParts = [];
+
+    this.filters.forEach((f, index) => {
+        // ❌ Skip filter if field/operator/value empty
+        if (!f.field || !f.operator || f.value === '' || f.value === null || f.value === undefined) {
+            return;
         }
 
-        return this.filters
-            .map((f, index) => {
-                const join = index > 0 ? ` ${f.joinType} ` : "";
-                const val = this.formatValue(f);
-                return `${join}${f.field} ${f.operator} ${val}`;
-            })
-            .join("");
-    }
+        const join = index > 0 ? ` ${f.joinType} ` : '';
+        const val = this.formatValue(f);
+
+        validParts.push(`${join}${f.field} ${f.operator} ${val}`);
+    });
+
+    return validParts.join('');
+}
+
+
 
     formatValue(filter) {
         const fieldMeta = this.fields.find(f => f.apiName === filter.field);
@@ -217,11 +328,11 @@ export default class FilterBuilder extends LightningElement {
     }
 }
 
-handlePrevious() {
-    if (this.currentPage > 1) {
-        this.currentPage--;
-        this.loadRecords();
-    }
+    handlePrevious() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadRecords();
+        }
 }
 
      get isPreviousDisabled() {
@@ -237,7 +348,7 @@ handlePrevious() {
 
         const result = await getFilteredAccounts({
             query: this.query,
-            conditions: this.whereClause === "/* No WHERE clause */" ? "" : " WHERE " + this.whereClause,
+            // conditions: this.whereClause === "/* No WHERE clause */" ? "" : " WHERE " + this.whereClause,
             offsetSize: offsetValue,
             pageSize: this.pageSize,
             objectName: this.objectname      // <==== IMPORTANT
@@ -246,6 +357,10 @@ handlePrevious() {
         this.filteredAccounts = result.records;
         this.totalRecords = result.totalCount;
         this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
+
+// 🔥 VERY IMPORTANT — restore selection after page change
+        this.archiveSelectedRows = [...this.masterSelectedIds];
+
 
     } catch (error) {
         console.error("Error Loading Records:", error);
@@ -258,14 +373,32 @@ handlePageSizeChange(event) {
         // 🔄 Refresh on page size update
         this.loadRecords();
     }
+        
+    handleArchiveRowSelections(event) {
+    const rows = event.detail.selectedRows;   // correct property
 
-    // get tableColumns(){
-    //     return this.fields.map(f => ({label: f.label, fieldName: f.apiName}));
-    // }
+    // 1. Add newly selected rows
+    rows.forEach(r => this.masterSelectedIds.add(r.Id));
 
-    // tableColumns = [
-    //     { label: 'Name', fieldName: 'Name' },
-    //     { label: 'Industry', fieldName: 'Industry' },
-    //     { label: 'Annual Revenue', fieldName: 'AnnualRevenue' }
-    // ];
+    // 2. Remove deselected rows from current page
+    this.filteredAccounts.forEach(r => {
+        if (!rows.find(x => x.Id === r.Id)) {
+            this.masterSelectedIds.delete(r.Id);
+        }
+    });
+
+    // 3. Convert master set to array
+    this.archiveSelectedRows = [...this.masterSelectedIds];
+
+    console.log("MASTER Selected IDs:", JSON.stringify(this.archiveSelectedRows));
+}
+notifyWhereClauseChange() {
+    this.dispatchEvent(
+        new CustomEvent("wherechange", {
+            detail: this.whereClause
+        })
+    );
+}
+
+
 }

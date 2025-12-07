@@ -11,6 +11,14 @@
     width: 25%;
     
 }
+.filter-box{
+    width: 5%;
+    
+}
+.filter-box-first{
+    width: 5%;
+    opacity: 0;
+}
 .btn{
     display: flex;
     justify-content: center;

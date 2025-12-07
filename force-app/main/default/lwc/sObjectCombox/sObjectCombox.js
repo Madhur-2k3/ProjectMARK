@@ -76,20 +76,19 @@ export default class SObjectCombox extends LightningElement {
 
     // BUILD FINAL SOQL QUERY
     get finalQuery() {
-        if (!this.selectedSObject || !this.finalFieldsForApex.length) {
-            return '';
-        }
-
-        const fieldList = this.finalFieldsForApex
-            .map(f => f.apiName)
-            .join(', ');
-
-        let q = `SELECT ${fieldList} FROM ${this.selectedSObject}`;
-
-        if (this.whereClause) {
-            q += ` WHERE ${this.whereClause}`;
-        }
-
-        return q;
+    if (!this.selectedSObject || !this.finalFieldsForApex.length) {
+        return '';
     }
+
+    const fieldList = this.finalFieldsForApex.map(f => f.apiName).join(', ');
+
+    let q = `SELECT ${fieldList} FROM ${this.selectedSObject}`;
+
+    if (this.whereClause && this.whereClause.trim() !== '') {
+        q += ` WHERE ${this.whereClause}`;
+    }
+
+    return q;
+}
+
 }

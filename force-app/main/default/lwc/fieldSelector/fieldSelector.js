@@ -19,30 +19,28 @@ export default class FieldSelector extends LightningElement {
             this.fieldTypeMap = {};
 
             data.forEach(f => {
-                const isRequired = f.isRequired;
+    // store type & label
+    this.fieldTypeMap[f.apiName] = {
+        type: f.fieldType,
+        label: f.label
+    };
 
-                // Always store type
-                this.fieldTypeMap[f.apiName] = {
-    type: f.fieldType,
-    label: f.label
-};
+    // store required fields (but DO NOT auto select)
+    if (f.isRequired) {
+        this.requiredFields.push(f.apiName);
+    }
+
+    // ALL fields appear in UI (required + optional)
+    this.fieldOptions.push({
+        label: f.label, // show required with *
+        value: f.apiName
+    });
+});
 
 
-                if (isRequired) {
-                    // Collect required but DO NOT show in UI
-                    this.requiredFields.push(f.apiName);
-                } else {
-                    // Only show optional fields in UI
-                    this.fieldOptions.push({
-                        label: f.label,
-                        value: f.apiName
-                    });
-                }
-            });
-
-            // Auto include required fields in selection
+            
             this.selectedValues = [
-                ...this.requiredFields
+                
             ];
 
             this.sendUpdatedFields();
@@ -53,63 +51,62 @@ export default class FieldSelector extends LightningElement {
     }
 
     handleChange(event) {
-    const userSelected = event.detail.value;
+    let selectedValues = event.detail.value;
 
-    // Combine user-selected visible fields + hidden required fields
-    this.selectedValues = [
-        ...this.requiredFields,
-        ...userSelected
-    ];
-    this.userSelectedFields = userSelected.map(apiName => ({
+    // Remove duplicates using Set
+    this.selectedValues = [...new Set(selectedValues)];
+
+    // Build user-readable selected fields
+    this.userSelectedFields = this.selectedValues.map(apiName => ({
         label: this.fieldTypeMap[apiName].label,
-        value: apiName
+        value: apiName,
+        required: this.requiredFields.includes(apiName)
     }));
 
-    console.log('🎯 User Selected Only:',(JSON.stringify(this.userSelectedFields)));
+    console.log("Selected Fields:", JSON.stringify(this.userSelectedFields));
 
     this.sendUpdatedFields();
 }
 
 
+
     sendUpdatedFields() {
-    // Fields selected (including required ones)
-    const finalFields = this.selectedValues.map(apiName => ({
+    // 1️⃣ Combine required + user-selected fields
+    const uniqueApiNames = Array.from(
+        new Set([...this.requiredFields, ...this.selectedValues])
+    );
+
+    // 2️⃣ Build final fields list (sent to Apex)
+    const finalFields = uniqueApiNames.map(apiName => ({
         apiName,
         label: this.fieldTypeMap[apiName].label,
         type: this.fieldTypeMap[apiName].type,
         required: this.requiredFields.includes(apiName)
     }));
 
-    // ALL fields (required + optional)
-    const allFields = [
-        ...this.fieldOptions.map(opt => ({
-            apiName: opt.value,
-            label: this.fieldTypeMap[opt.value].label,
-            type: this.fieldTypeMap[opt.value].type,
-            required: false
-        })),
-        ...this.requiredFields.map(apiName => ({
-            apiName,
-            label: this.fieldTypeMap[apiName].label,
-            type: this.fieldTypeMap[apiName].type,
-            required: true
-        }))
-    ];
+    // 3️⃣ Build ALL fields list (NO duplicates)
+    const allFields = Array.from(
+        new Set(Object.keys(this.fieldTypeMap))
+    ).map(apiName => ({
+        apiName,
+        label: this.fieldTypeMap[apiName].label,
+        type: this.fieldTypeMap[apiName].type,
+        required: this.requiredFields.includes(apiName)
+    }));
 
-    // Debug
-    console.log('📌 All Fields:', JSON.parse(JSON.stringify(allFields)));
-    console.log('📌 Selected/Final Fields:', JSON.parse(JSON.stringify(finalFields)));
+    console.log("📌 Final Fields (sent to Apex):", JSON.parse(JSON.stringify(finalFields)));
+    console.log("📌 All Fields:", JSON.parse(JSON.stringify(allFields)));
 
-    // Send to parent
+    // 4️⃣ Send to parent
     this.dispatchEvent(
         new CustomEvent('fieldchange', {
             detail: {
-                finalFields,
-                allFields,
-                userSelectedField: this.userSelectedFields 
+                finalFields,       // will be used for Apex SOQL
+                allFields,         // full list for table generation
+                userSelectedField: this.userSelectedFields
             }
         })
     );
-    }
+}
 
 }
