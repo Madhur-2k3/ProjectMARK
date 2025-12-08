@@ -8,15 +8,19 @@
     margin: 0 auto;
 }
 .box{
-    width: 25%;
+    width: 27%;
     
 }
-.filter-box{
-    width: 5%;
+.filter-box {
+    width: 7%;
     
+}
+.add-filter{
+    width: 7%;
+    margin-top: 10px;
 }
 .filter-box-first{
-    width: 5%;
+    width: 7%;
     opacity: 0;
 }
 .btn{
@@ -27,6 +31,22 @@
 .header{
     margin-top: 20px;
 }
-.add-filter{
+
+.submit-btn{
+    margin-top: 10px;
+}
+.conditions-builder-container{
+    border: 1px solid #d8dde6;
+    border-radius: 20px;
+    padding: 1rem;
+    background-color: #f4f6f9;
     margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-right: 10px;
+}
+.demo{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
 }

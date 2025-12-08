@@ -1,5 +1,6 @@
 <template>
-    <div class="header">
+    <div class="slds-p-horizontal_large conditions-builder-container">
+        <div class="header">
         <lightning-button-group>
             <lightning-button
                 label="All records"
@@ -13,9 +14,9 @@
                 onclick={showFilterRecords}>
             </lightning-button>
         </lightning-button-group>
-    </div>
+        </div>
 
-    <template if:true={isFilterMode}>
+        <template if:true={isFilterMode}>
         <div class="filter-container">
 
             <template for:each={filters} for:item="flt">
@@ -89,21 +90,31 @@
             </div>
             
         </div>
-        <template if:false={allRecords}>
-            <lightning-button 
-            class="slds-m-around_medium add-filter"
-            label="Submit"
-            onclick={handleFilterAccounts}>
-            </lightning-button>
+        <template if:true={isFilterMode}>
+            <div class="submit-btn">
+                <lightning-button 
+                    class=""
+                    label="Submit"
+                    onclick={handleFilterAccounts}>
+                </lightning-button>
+            </div>
+            
         </template>
+        </template>
+    
          
-            <template if:true={allRecords}>
-            <lightning-button 
-            class="slds-m-around_medium add-filter"
-            label="Get all Records"
-            onclick={handleFilterAccounts}>
-            </lightning-button>
+        <template if:false={isFilterMode}>
+            <div class="submit-btn">
+                <lightning-button 
+                    class=""
+                    label="Get all Records"
+                    disabled={isButtonDisabled}
+                    onclick={handleFilterAccounts}>
+                </lightning-button>
+            </div>
+            
         </template>
+    </div>
 
         <template if:true={filteredAccounts}>
             <c-capsule-dropdown
@@ -160,9 +171,6 @@
             <p><strong>WHERE Clause Preview:</strong></p>
             <code>{whereClause}</code>
         </div>
-    </template>
-    <template if:false={isFilterMode}>
-        <template if:true={allRecords}>
-               
-</template>
+  
+    
 </template>

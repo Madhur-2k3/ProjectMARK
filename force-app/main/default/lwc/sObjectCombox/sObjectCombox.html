@@ -1,8 +1,8 @@
 <template>
     <lightning-card title="Select an Object">
-
-        <!-- Search -->
-        <div class="slds-p-around_medium">
+        <div class="object-and-field-container">
+                <!-- Search -->
+            <div class="slds-p-around_medium">
             <lightning-input 
                 type="search"
                 label="Search Object"
@@ -10,10 +10,10 @@
                 value={searchTerm}
                 placeholder="Search Object...">
             </lightning-input>
-        </div>
+            </div>
 
-        <!-- Object List -->
-        <template if:true={filteredOptions}>
+            <!-- Object List -->
+            <template if:true={filteredOptions}>
             <ul class="slds-box slds-m-horizontal_medium"
                 style="max-height:200px; overflow-y:auto;">
                 
@@ -29,15 +29,17 @@
                 </template>
 
             </ul>
-        </template>
+            </template>
 
-        <!-- Child 1: Field Selector -->
-        <template if:true={selectedSObject}>
+            <!-- Child 1: Field Selector -->
+            <template if:true={selectedSObject}>
             <c-field-selector
                 selected-object={selectedSObject}
                 onfieldchange={handleFieldChange}>
             </c-field-selector>
-        </template>
+            </template>
+        </div>
+        
 
         <!-- Child 2: Filter Builder -->
         <template if:true={finalFieldsForApex.length}>

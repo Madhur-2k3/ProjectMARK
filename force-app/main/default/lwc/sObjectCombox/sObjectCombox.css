@@ -1,0 +1,10 @@
+.object-and-field-container{
+    border: 1px solid #d8dde6;
+    border-radius: 20px;
+    padding: 1rem;
+    background-color: #f4f6f9;
+    margin-top: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    margin-right: 10px;
+}

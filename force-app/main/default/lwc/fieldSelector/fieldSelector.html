@@ -1,14 +1,20 @@
 <template>
     <template if:true={fieldOptions}>
-        <lightning-dual-listbox
-            name="fields"
-            label="Select Fields"
-            source-label="Available Fields"
-            selected-label="Selected Fields"
-            field-level-help="Required fields are auto-selected and locked"
-            options={fieldOptions}
-            value={selectedValues}
-            onchange={handleChange}>
-        </lightning-dual-listbox>
+        <lightning-card class="slds-p-around_medium" >
+            <div class="slds-p-horizontal_medium">
+                <lightning-dual-listbox
+                    name="fields"
+                    label="Select Fields"
+                    source-label="Available Fields"
+                    selected-label="Selected Fields"
+                    field-level-help="Required fields are auto-selected and locked"
+                    options={fieldOptions}
+                    value={selectedValues}
+                    onchange={handleChange}>
+                </lightning-dual-listbox>
+            </div>
+            
+        </lightning-card>
+        
     </template>
 </template>

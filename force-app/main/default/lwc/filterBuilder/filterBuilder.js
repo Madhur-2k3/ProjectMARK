@@ -31,17 +31,14 @@ export default class FilterBuilder extends LightningElement {
     
     @track filters = [];
     isFilterMode = false;
+    get isButtonDisabled() {
+        return this.tablecolumnsname.length === 0;
+    }
 
     // Toggle Buttons
     get allRecordsVariant() { return this.isFilterMode ? "neutral" : "brand"; }
     get filterRecordsVariant() { return this.isFilterMode ? "brand" : "neutral"; }
 
-    // showAllRecords() {
-    //     this.isFilterMode = !this.isFilterMode;
-    //     this.filters = [];
-    //     this.filteredAccounts = null;
-    //     this.allRecords=!this.allRecords;
-    // }
     showAllRecords() {
     this.isFilterMode = false;     // switch toggle button
     this.allRecords = true;
@@ -52,13 +49,6 @@ export default class FilterBuilder extends LightningElement {
 }
 
 
-    // showFilterRecords() {
-    //     this.isFilterMode = !this.isFilterMode;
-    //     if (!this.filters.length) {
-    //         this.addFilter();
-    //     }
-    //     this.allRecords=!this.allRecords;
-    // }
     showFilterRecords() {
     this.isFilterMode = true;
     this.allRecords = false;
@@ -122,21 +112,6 @@ export default class FilterBuilder extends LightningElement {
         }));
     }
 
-    // addFilter() {
-    //     this.filters = [
-    //         ...this.filters,
-    //         {
-    //             id: Date.now(),
-    //             joinType: "AND",
-    //             showJoin: this.filters.length > 0,
-    //             field: null,
-    //             operator: "=",
-    //             operatorOptions: [],
-    //             value: "",
-    //             isDate: false  // NEW FLAG
-    //         }
-    //     ];
-    // }
     addFilter() {
     this.filters = [
         ...this.filters,
@@ -156,33 +131,18 @@ export default class FilterBuilder extends LightningElement {
 }
 
 
-    // removeFilter(event) {
-    //     const id = Number(event.currentTarget.dataset.id);
-    //     this.filters = this.filters.filter(f => f.id !== id);
-    //     if (this.filters.length) this.filters[0].showJoin = false;
-    //     if( this.filters.length === 0 ) this.showAllRecords();
-    // }
-//     removeFilter(event) {
-//     const id = Number(event.currentTarget.dataset.id);
-//     this.filters = this.filters.filter(f => f.id !== id);
-//     if (this.filters.length) this.filters[0].showJoin = false;
-
-//     this.notifyWhereClauseChange();   // 🔥
-// }
     removeFilter(event) {
     const id = Number(event.currentTarget.dataset.id);
     this.filters = this.filters.filter(f => f.id !== id);
-    console.log("Filters Array length:",this.filters.length);
-    this.filters[0].showJoin = 'filter-box-first';
-    this.filters = [...this.filters];
-
+    console.log("Filterss Array length:",this.filters.length);
+    if(this.filters.length>0){
+        this.filters[0].showJoin = 'filter-box-first';
+        this.filters = [...this.filters];
+    }
 
     // 🔥 If NO filters left → switch to All Records mode
     if (this.filters.length === 0) {
-        this.isFilterMode = false;   // switch toggle
-        this.allRecords = true;
-                       // clear filters
-        this.filteredAccounts = null;
+        this.showAllRecords();
 
     }
 
@@ -195,26 +155,7 @@ export default class FilterBuilder extends LightningElement {
     handleOperatorChange(e) { this.updateFilter(e, "operator"); }
     handleValueChange(e) { this.updateFilter(e, "value"); }
 
-    // handleFieldChange(event) {
-    //     const id = Number(event.target.dataset.id);
-    //     const selectedField = event.detail.value;
-
-    //     const fieldMeta = this.fields.find(f => f.apiName === selectedField);
-    //     const ops = this.operatorMap[fieldMeta.type] || this.operatorMap.STRING;
-
-    //     this.filters = this.filters.map(f => {
-    //         if (f.id === id) {
-    //             return {
-    //                 ...f,
-    //                 field: selectedField,
-    //                 operatorOptions: ops,
-    //                 operator: ops[0].value,
-    //                 isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME"
-    //             };
-    //         }
-    //         return f;
-    //     });
-    // }
+    
     handleFieldChange(event) {
     const id = Number(event.target.dataset.id);
     const selectedField = event.detail.value;
@@ -238,15 +179,6 @@ export default class FilterBuilder extends LightningElement {
     this.notifyWhereClauseChange();   // 🔥
 }
 
-
-    // updateFilter(event, prop) {
-    //     const id = Number(event.target.dataset.id);
-    //     const value = event.detail.value;
-
-    //     this.filters = this.filters.map(f =>
-    //         f.id === id ? { ...f, [prop]: value } : f
-    //     );
-    // }
     updateFilter(event, prop) {
     const id = Number(event.target.dataset.id);
     const value = event.detail.value;
@@ -302,19 +234,6 @@ export default class FilterBuilder extends LightningElement {
         return val;
     }
 
-    // async handleFilterAccounts(){
-    //     try{
-            
-    //        this.filteredAccounts = await getFilteredAccounts({query: this.query, conditions: this.conditions, offsetSize: 0, pageSize: 10});
-    //           console.log('Filtered Accounts:', JSON.stringify(this.filteredAccounts));
-    //           console.log("fields",JSON.stringify(this.fields));
-    //           console.log("table columns", JSON.stringify(this.tablecolumnsname));
-    //     }
-    //     catch(error){
-    //         console.error('Error fetching filtered accounts:', error);
-    //     }
-        
-    // }
     handleFilterAccounts() {
     this.currentPage = 1;
     this.loadRecords();
