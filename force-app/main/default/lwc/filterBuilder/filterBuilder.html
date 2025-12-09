@@ -117,18 +117,25 @@
     </div>
 
         <template if:true={filteredAccounts}>
-            <c-capsule-dropdown
+            <div class="conditions-builder-container">
+
+            
+            <div class="table-header">
+                <p>Archived Records</p>
+                <c-capsule-dropdown
                     value={pageSize}
                     options={pageSizeOptions}
                     onchange={handlePageSizeChange}>
                 </c-capsule-dropdown>
+            </div>
+            
             <c-dynamic-data-table
                     show-archive-table="true"
                     archivedata={filteredAccounts}
                     archivecolumns={tablecolumnsname}
                     archive-selected-rows={archiveSelectedRows}
                     onarchiverowselection={handleArchiveRowSelections}>
-</c-dynamic-data-table>
+            </c-dynamic-data-table>
 
             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
                 <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
@@ -164,6 +171,7 @@
                     </div>
 
                 </div>
+            </div>
             </div>
         </template>
 

@@ -14,12 +14,12 @@ export default class FilterBuilder extends LightningElement {
     @api tablecolumnsname=[];
     @track filteredAccounts;
     // Pagination
-    @track pageSize = '1';
+    @track pageSize = '5';
     @track allRecords=true;
     @track selectedRows=[];
     pageSizeOptions = [
-        { label: '1 / page', value: '1' },
-        { label: '2 / page', value: '2' },
+        { label: '5 / page', value: '5' },
+        { label: '10 / page', value: '10' },
         { label: '15 / page', value: '15' },
         { label: '20 / page', value: '20' }
     ];
