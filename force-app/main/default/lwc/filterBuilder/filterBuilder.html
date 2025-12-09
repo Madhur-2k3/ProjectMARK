@@ -15,6 +15,23 @@
             </lightning-button>
         </lightning-button-group>
         </div>
+        <template if:true={showModal}>
+            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
+                <div class="slds-modal__container">
+                    <header class="slds-modal__header">
+                        <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Archive Confirmation</h2>
+                    </header>
+                    <div class="slds-modal__content slds-p-around_medium">
+                        <p>{modalMessage}</p>
+                    </div>
+                    <footer class="slds-modal__footer">
+                        <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+                        <lightning-button variant="brand" label="Confirm" onclick={confirmArchive}></lightning-button>
+                    </footer>
+                </div>
+            </section>
+            <div class="slds-backdrop slds-backdrop_open"></div>
+        </template>
 
         <template if:true={isFilterMode}>
             <div class="conditions-combobox">
@@ -34,18 +51,20 @@
 
         <div class="filter-container">
 
-            <template for:each={filters} for:item="flt">
+            <template for:each={filters} for:item="flt" for:index="index">
                 <div key={flt.id} class="filter-row">
-                    <!-- if first show div with class name as filter-box-first else filter-box -->
-                    <div class={flt.showJoin}>
-                        <!-- <lightning-combobox
-                            value={flt.joinType}
-                            data-id={flt.id}
-                            options={joinOptions}
-                            onchange={handleJoinChange}>
-                        </lightning-combobox> -->
-                        <p class="condition">{selectedCondition}</p>
-                    </div>
+                    <!-- if custom then show Array Indices -->
+                     <template if:true={isCustom}>
+                        <p class="condition">{flt.displayIndex}</p>
+                     </template>
+                        
+                    <!-- if first show div with class name as filter-box-first else filter-box --> 
+                     <template if:false={isCustom}>
+                            <div class={flt.showJoin}>
+                                <p class="condition">{selectedCondition}</p>
+                            </div>
+                     </template>
+                    
                     
 
                     <div class="box">
@@ -100,7 +119,7 @@
 
                     <div class="btn">
                         <lightning-button-icon
-                            icon-name="utility:close"
+                            icon-name="utility:delete"
                             data-id={flt.id}
                             onclick={removeFilter}>
                         </lightning-button-icon>

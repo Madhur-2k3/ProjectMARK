@@ -45,6 +45,9 @@ export default class FilterBuilder extends LightningElement {
     get isButtonDisabled() {
         return this.tablecolumnsname.length === 0;
     }
+    showModal = false;
+    customLogic = '';
+    modalMessage=''
 
     // Toggle Buttons
     get allRecordsVariant() { return this.isFilterMode ? "neutral" : "brand"; }
@@ -127,23 +130,6 @@ export default class FilterBuilder extends LightningElement {
         this.notifyWhereClauseChange();
     }
 
-//     addFilter() {
-//     this.filters = [
-//         ...this.filters,
-//         {
-//             id: Date.now(),
-//             joinType: "AND",
-//             showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
-//             field: null,
-//             operator: "=",
-//             operatorOptions: [],
-//             value: "",
-//             isDate: false
-//         }
-//     ];
-
-//     this.notifyWhereClauseChange();   // 🔥
-// }
 addFilter() {
     this.filters = [
         ...this.filters,
@@ -155,7 +141,8 @@ addFilter() {
             value: "",
             isDate: false,
             fieldType: "STRING",
-            showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box'
+            showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
+            displayIndex: this.filters.length + 1
         }
     ];
     this.notifyWhereClauseChange();
@@ -171,6 +158,12 @@ addFilter() {
         this.filters[0].showJoin = 'filter-box-first';
         this.filters = [...this.filters];
     }
+    this.filters=this.filters.map((f, index) => {
+        return {
+            ...f,
+            displayIndex: index + 1
+        };
+    })
 
     // 🔥 If NO filters left → switch to All Records mode
     if (this.filters.length === 0) {
@@ -225,29 +218,6 @@ addFilter() {
     this.notifyWhereClauseChange();   // 🔥
 }
 
-
-    // get whereClause() {
-    // if (!this.isFilterMode || !this.filters.length) {
-    //     return '';
-    // }
-    
-
-    // const validParts = [];
-
-    // this.filters.forEach((f, index) => {
-    //     // ❌ Skip filter if field/operator/value empty
-    //     if (!f.field || !f.operator || f.value === '' || f.value === null || f.value === undefined) {
-    //         return;
-    //     }
-
-    //     const join = index > 0 ? ` ${f.joinType} ` : '';
-    //     const val = this.formatValue(f);
-
-    //     validParts.push(`${join}${f.field} ${f.operator} ${val}`);
-    // });
-
-    // return validParts.join('');
-    // }
 get whereClause() {
     if (!this.isFilterMode || !this.filters.length) {
         return '';
@@ -290,9 +260,17 @@ customWhereLogic(validParts) {
 }
 handleCustomLogic(event) {
     this.customLogic = event.detail.value;
+    
+    // this.filters=this.filters.map((f, index) => {
+    //     return {
+    //         ...f,
+    //         displayIndex: index + 1
+    //     };
+    // })
     this.notifyWhereClauseChange();
 }
 get isCustom() {
+
     return this.selectedCondition === "CUSTOM";
 }
 
@@ -426,10 +404,32 @@ notifyWhereClauseChange() {
 }
  handlearchive() {
         if (this.masterSelectedIds.size > 0) {
-            this.archiveSelected();
+            //show modal for selected
+            this.showModal = true;
+            this.modalMessage = `Are you sure you want to archive the selected ${this.masterSelectedIds.size} records?`;
+            console.log("Modal status",this.showModal);
+            // this.archiveSelected();
         } else {
+             this.showModal = true;
+            this.modalMessage = `Are you sure you want to archive all records?`;
+            // this.archiveAll();
+        }
+    }
+    closeModal(){
+        this.showModal = false;
+        console.log("modal status",this.showModal);
+    }
+    confirmArchive(){
+        if(this.masterSelectedIds.size>0){
+            this.showModal = false;
+            
+        this.archiveSelected();
+        }
+        else{
+            this.showModal = false;
             this.archiveAll();
         }
+        
     }
 
     // ---------------------------

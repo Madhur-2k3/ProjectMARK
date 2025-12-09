@@ -15,7 +15,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 7%;
+    width: 0%;
     
 }
 .add-filter{
@@ -26,7 +26,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 7%;
+    width: 0%;
     opacity: 0;
 }
 .btn{
@@ -39,7 +39,10 @@
 }
 
 .submit-btn{
-    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 98%;
 }
 .conditions-builder-container{
     border: 1px solid #d8dde6;
