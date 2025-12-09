@@ -22,12 +22,18 @@ export default class FilterBuilder extends LightningElement {
     @track pageSize = '5';
     @track allRecords=true;
     @track selectedRows=[];
+    @track selectedCondition='AND';
     pageSizeOptions = [
         { label: '5 / page', value: '5' },
         { label: '10 / page', value: '10' },
         { label: '15 / page', value: '15' },
         { label: '20 / page', value: '20' }
     ];
+    conditionOptions=[
+        { label: 'All Conditions Met (AND)', value: 'AND' },
+        { label: 'Any Condition Met (OR)', value: 'OR' },
+        { label: 'Custom Condition Logic', value: 'CUSTOM' }
+    ]
     // @api archiveColumns;
 
      @track currentPage = 1;
@@ -116,24 +122,44 @@ export default class FilterBuilder extends LightningElement {
             value: f.apiName
         }));
     }
+    handleConditionChange(event){
+        this.selectedCondition = event.detail.value;
+        this.notifyWhereClauseChange();
+    }
 
-    addFilter() {
+//     addFilter() {
+//     this.filters = [
+//         ...this.filters,
+//         {
+//             id: Date.now(),
+//             joinType: "AND",
+//             showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
+//             field: null,
+//             operator: "=",
+//             operatorOptions: [],
+//             value: "",
+//             isDate: false
+//         }
+//     ];
+
+//     this.notifyWhereClauseChange();   // 🔥
+// }
+addFilter() {
     this.filters = [
         ...this.filters,
         {
             id: Date.now(),
-            joinType: "AND",
-            showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
             field: null,
             operator: "=",
             operatorOptions: [],
             value: "",
-            isDate: false
+            isDate: false,
+            showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box'
         }
     ];
-
-    this.notifyWhereClauseChange();   // 🔥
+    this.notifyWhereClauseChange();
 }
+
 
 
     removeFilter(event) {
@@ -159,6 +185,7 @@ export default class FilterBuilder extends LightningElement {
     handleJoinChange(e) { this.updateFilter(e, "joinType"); }
     handleOperatorChange(e) { this.updateFilter(e, "operator"); }
     handleValueChange(e) { this.updateFilter(e, "value"); }
+    // handleConditionChange(e) { this.updateFilter(e, "condition"); }
 
     
     handleFieldChange(event) {
@@ -196,27 +223,77 @@ export default class FilterBuilder extends LightningElement {
 }
 
 
-    get whereClause() {
+    // get whereClause() {
+    // if (!this.isFilterMode || !this.filters.length) {
+    //     return '';
+    // }
+    
+
+    // const validParts = [];
+
+    // this.filters.forEach((f, index) => {
+    //     // ❌ Skip filter if field/operator/value empty
+    //     if (!f.field || !f.operator || f.value === '' || f.value === null || f.value === undefined) {
+    //         return;
+    //     }
+
+    //     const join = index > 0 ? ` ${f.joinType} ` : '';
+    //     const val = this.formatValue(f);
+
+    //     validParts.push(`${join}${f.field} ${f.operator} ${val}`);
+    // });
+
+    // return validParts.join('');
+    // }
+get whereClause() {
     if (!this.isFilterMode || !this.filters.length) {
         return '';
     }
 
-    const validParts = [];
+    const valid = [];
 
-    this.filters.forEach((f, index) => {
-        // ❌ Skip filter if field/operator/value empty
+    this.filters.forEach((f, i) => {
+        // skip incomplete filters
         if (!f.field || !f.operator || f.value === '' || f.value === null || f.value === undefined) {
             return;
         }
 
-        const join = index > 0 ? ` ${f.joinType} ` : '';
-        const val = this.formatValue(f);
-
-        validParts.push(`${join}${f.field} ${f.operator} ${val}`);
+        valid.push(`${f.field} ${f.operator} ${this.formatValue(f)}`);
     });
 
-    return validParts.join('');
+    if (!valid.length) return '';
+
+    // 🔥 GLOBAL CONDITION DROP-DOWN
+    if (this.selectedCondition === "AND") {
+        return valid.join(" AND ");
+    }
+    if (this.selectedCondition === "OR") {
+        return valid.join(" OR ");
+    }
+
+    // 🔥 CUSTOM COMBINATION (user will define manually)
+    return this.customWhereLogic(valid);
 }
+customWhereLogic(validParts) {
+    // Ask user input, e.g: (1 AND 2) OR 3
+    const input = this.customLogic || ""; // store separately
+    if (!input) return validParts.join(" AND "); // fallback
+
+    // Replace numbers with actual conditions
+    return input.replace(/\b\d+\b/g, match => {
+        const idx = parseInt(match, 10) - 1;
+        return validParts[idx] || '';
+    });
+}
+handleCustomLogic(event) {
+    this.customLogic = event.detail.value;
+    this.notifyWhereClauseChange();
+}
+get isCustom() {
+    return this.selectedCondition === "CUSTOM";
+}
+
+
 get selectedFieldApiList() {
     // return this.tablecolumnsname.map(c => c.fieldName);
     return this.selectfields.map(f => f.apiName);
@@ -285,6 +362,7 @@ get selectedFieldApiList() {
         });
 
         this.filteredAccounts = result.records;
+        console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
         this.totalRecords = result.totalCount;
         this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
 

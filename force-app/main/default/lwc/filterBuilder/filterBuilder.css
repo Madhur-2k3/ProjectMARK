@@ -12,6 +12,9 @@
     
 }
 .filter-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 7%;
     
 }
@@ -20,6 +23,9 @@
     margin-top: 10px;
 }
 .filter-box-first{
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 7%;
     opacity: 0;
 }
@@ -58,4 +64,8 @@
     margin: 0 auto;
     margin-bottom: 10px;
     margin-top: 10px;
+}
+.condition{
+    font-weight: bold;
+    font-size: 16px;
 }

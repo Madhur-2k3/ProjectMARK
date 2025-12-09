@@ -17,18 +17,34 @@
         </div>
 
         <template if:true={isFilterMode}>
+            <div class="conditions-combobox">
+                <lightning-combobox
+                    label="Condition Requirements"
+                    value={selectedCondition}
+                    options={conditionOptions}
+                    onchange={handleConditionChange}>
+                </lightning-combobox>
+            </div>
+            <template if:true={isCustom}>
+                <lightning-textarea
+                    label="Custom Condition Logic (e.g. (1 AND 2) OR 3)"
+                    onchange={handleCustomLogic}>
+                </lightning-textarea>
+            </template>
+
         <div class="filter-container">
 
             <template for:each={filters} for:item="flt">
                 <div key={flt.id} class="filter-row">
                     <!-- if first show div with class name as filter-box-first else filter-box -->
                     <div class={flt.showJoin}>
-                        <lightning-combobox
+                        <!-- <lightning-combobox
                             value={flt.joinType}
                             data-id={flt.id}
                             options={joinOptions}
                             onchange={handleJoinChange}>
-                        </lightning-combobox>
+                        </lightning-combobox> -->
+                        <p class="condition">{selectedCondition}</p>
                     </div>
                     
 
