@@ -154,6 +154,7 @@ addFilter() {
             operatorOptions: [],
             value: "",
             isDate: false,
+            fieldType: "STRING",
             showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box'
         }
     ];
@@ -202,7 +203,9 @@ addFilter() {
                 field: selectedField,
                 operatorOptions: ops,
                 operator: ops[0].value,
-                isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME"
+                isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME",
+                fieldType: fieldMeta.type
+                
             };
         }
         return f;
@@ -323,6 +326,19 @@ get selectedFieldApiList() {
     }
 
     handleFilterAccounts() {
+        const validators = [...this.template.querySelectorAll('c-field-validator')];
+    let allValid = true;
+
+    validators.forEach(v => {
+        if (!v.validate()) {
+            allValid = false;
+        }
+    });
+
+    if (!allValid) {
+        this.showToast('Error', 'Please fix validation errors before filtering.', 'error');
+        return;
+    }
     this.currentPage = 1;
     this.loadRecords();
 }

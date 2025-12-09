@@ -76,6 +76,10 @@
                             data-id={flt.id}
                             onchange={handleValueChange}>
                         </lightning-input>
+                        <c-field-validator
+                            value={flt.value}
+                            type="DATE">
+                        </c-field-validator>
                         </div>
                     </template>
 
@@ -87,6 +91,10 @@
                             data-id={flt.id}
                             onchange={handleValueChange}>
                         </lightning-input>
+                        <c-field-validator
+                            value={flt.value}
+                            type={flt.fieldType}>
+                        </c-field-validator>
                         </div>
                     </template>
 
