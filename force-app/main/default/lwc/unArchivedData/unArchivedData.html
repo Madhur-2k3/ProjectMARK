@@ -4,7 +4,6 @@
             <div class="header">
                 <h2>Un-archive Preview</h2>
 
-                <!-- Capsule Dropdown Replaces lightning-combobox -->
                 <c-capsule-dropdown
                     value={pageSize}
                     options={pageSizeOptions}
@@ -18,7 +17,8 @@
                     data={archiveRecords}
                     columns={archiveColumns}
                     max-row-selection="1"
-                    onrowselection={handleSelection}>
+                    onrowselection={handleSelection}
+                    onrowaction={handleRowAction}>   <!-- ⭐ Already correct -->
                 </c-dynamic-data-table>
             </div>
 
@@ -43,7 +43,6 @@
                             onclick={handleNext}
                             disabled={isNextDisabled}>
                         </lightning-button>
-
                     </div>
 
                     <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">

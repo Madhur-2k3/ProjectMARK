@@ -1,15 +1,11 @@
 public with sharing class DataArchiveObjectController {
 
-    // Wrapper class for LWC
     public class ArchiveWrapper {
         @AuraEnabled public List<Map<String, Object>> columns { get; set; }
         @AuraEnabled public List<Map<String, Object>> data { get; set; }
         @AuraEnabled public Integer totalRecords { get; set; }
     }
 
-    // ============================================================
-    // 1) SERVER-SIDE PAGINATION
-    // ============================================================
     @AuraEnabled(cacheable=true)
     public static ArchiveWrapper getArchivedObjectPaginated(Integer pageNumber, Integer pageSize) {
 
@@ -17,11 +13,8 @@ public with sharing class DataArchiveObjectController {
         if (pageSize == null) pageSize = 10;
 
         Integer offsetValue = (pageNumber - 1) * pageSize;
-
-        // Total record count
         Integer totalCount = [SELECT COUNT() FROM Data_Archive__c];
 
-        // Fetch only requested page
         List<Data_Archive__c> records = [
             SELECT Id, Name, Fields__c, Parent_Object__c, CreatedDate
             FROM Data_Archive__c
@@ -30,39 +23,32 @@ public with sharing class DataArchiveObjectController {
             OFFSET :offsetValue
         ];
 
-        // Fields for table
-        List<String> selectedFields = new List<String>{
-            'Name', 'Fields__c', 'Parent_Object__c', 'CreatedDate'
+        List<Map<String, Object>> columns = new List<Map<String, Object>>{
+            new Map<String, Object>{
+                'label' => 'Data Archive Name',
+                'fieldName' => 'nameUrl',
+                'type' => 'url',
+                'typeAttributes' => new Map<String, Object>{
+                    'label' => new Map<String, Object>{ 'fieldName' => 'Name' },
+                    'target' => '_blank'
+                }
+            },
+            new Map<String, Object>{ 'label' => 'Fields', 'fieldName' => 'Fields__c', 'type' => 'text' },
+            new Map<String, Object>{ 'label' => 'Parent Object', 'fieldName' => 'Parent_Object__c', 'type' => 'text' },
+            new Map<String, Object>{ 'label' => 'Created Date', 'fieldName' => 'CreatedDate', 'type' => 'text' },
+            new Map<String, Object>{
+                'type' => 'button-icon',
+                'typeAttributes' => new Map<String, Object>{
+                    'iconName' => 'utility:download',
+                    'name' => 'downloadCsv',
+                    'title' => 'Download CSV',
+                    'variant' => 'border-filled',
+                    'alternativeText' => 'Download CSV'
+                },
+                'initialWidth' => 50
+            }
         };
 
-        // Build columns dynamically
-        List<Map<String, Object>> columns = new List<Map<String, Object>>();
-        Map<String, Schema.SObjectField> fieldMap =
-            Data_Archive__c.SObjectType.getDescribe().fields.getMap();
-
-        for (String apiName : selectedFields) {
-            Schema.DescribeFieldResult f = fieldMap.get(apiName).getDescribe();
-
-            if (apiName == 'Name') {
-                columns.add(new Map<String, Object>{
-                    'label' => f.getLabel(),
-                    'fieldName' => 'nameUrl',
-                    'type' => 'url',
-                    'typeAttributes' => new Map<String, Object>{
-                        'label' => new Map<String, Object>{ 'fieldName' => 'Name' },
-                        'target' => '_blank'
-                    }
-                });
-            } else {
-                columns.add(new Map<String, Object>{
-                    'label' => f.getLabel(),
-                    'fieldName' => apiName,
-                    'type' => 'text'
-                });
-            }
-        }
-
-        // Create data rows
         List<Map<String, Object>> processed = new List<Map<String, Object>>();
 
         for (Data_Archive__c rec : records) {
@@ -76,7 +62,6 @@ public with sharing class DataArchiveObjectController {
             processed.add(row);
         }
 
-        // Return wrapper
         ArchiveWrapper wrapper = new ArchiveWrapper();
         wrapper.columns = columns;
         wrapper.data = processed;
@@ -84,9 +69,18 @@ public with sharing class DataArchiveObjectController {
         return wrapper;
     }
 
-    // ============================================================
-    // 2) INSERT ARCHIVED RECORDS BACK + DELETE ARCHIVES + DELETE CSV
-    // ============================================================
+    @AuraEnabled
+    public static String getArchiveCsvDownloadUrl(Id archiveId) {
+        List<ContentDocumentLink> links = [
+            SELECT ContentDocumentId
+            FROM ContentDocumentLink
+            WHERE LinkedEntityId = :archiveId
+            LIMIT 1
+        ];
+        if (links.isEmpty()) return null;
+        return '/sfc/servlet.shepherd/document/download/' + links[0].ContentDocumentId;
+    }
+
     @AuraEnabled
     public static String insertArchivedRecordsBulk(List<Id> archiveRecordIds) {
 
@@ -102,25 +96,35 @@ public with sharing class DataArchiveObjectController {
 
         for (Data_Archive__c archive : archives) {
 
-            List<ContentVersion> cvs = [
-                SELECT Id, VersionData, ContentDocumentId
+            ContentVersion cv = [
+                SELECT VersionData, ContentDocumentId
                 FROM ContentVersion
                 WHERE Title = :archive.Name
-                AND FileType = 'CSV'
                 ORDER BY CreatedDate DESC
                 LIMIT 1
             ];
 
-            if (cvs.isEmpty()) continue;
-
-            ContentVersion cv = cvs[0];
             contentDocIds.add(cv.ContentDocumentId);
 
             String csvContent = cv.VersionData.toString();
             List<String> lines = csvContent.split('\n');
             if (lines.size() < 2) continue;
 
-            List<String> fieldNames = archive.Fields__c.split(',');
+            // ⭐ Build field list WITHOUT ID
+            List<String> fieldNames = new List<String>();
+            List<String> headerAll = archive.Fields__c.split(',');
+
+            Integer idIndex = -1;
+
+            for (Integer x = 0; x < headerAll.size(); x++) {
+                String hf = headerAll[x].trim();
+                if (hf.toLowerCase() == 'id') {
+                    idIndex = x;
+                } else {
+                    fieldNames.add(hf);
+                }
+            }
+
             Map<String, Schema.SObjectField> fieldMap =
                 Schema.getGlobalDescribe()
                     .get(archive.Parent_Object__c)
@@ -128,45 +132,65 @@ public with sharing class DataArchiveObjectController {
                     .fields.getMap();
 
             for (Integer i = 1; i < lines.size(); i++) {
-
                 if (String.isBlank(lines[i])) continue;
 
-                List<String> values = lines[i].split(',');
+                List<String> values = parseCsvLine(lines[i]);
 
-                SObject sobj = Schema.getGlobalDescribe()
-                    .get(archive.Parent_Object__c)
-                    .newSObject();
+                // ⭐ REMOVE EXACT ID COLUMN (so shifting never happens)
+                if (idIndex >= 0 && idIndex < values.size()) {
+                    values.remove(idIndex);
+                }
+
+                SObject sobj =
+                    Schema.getGlobalDescribe()
+                        .get(archive.Parent_Object__c)
+                        .newSObject();
 
                 for (Integer j = 0; j < fieldNames.size(); j++) {
-
                     if (j >= values.size()) continue;
 
-                    String fieldAPI = fieldNames[j].trim();
-                    String rawVal = values[j].replace('"', '').trim();
+                    String fieldAPI = fieldNames[j];
+                    String rawVal = values[j].trim();
+                    rawVal = rawVal.replace('"','');
 
                     if (!fieldMap.containsKey(fieldAPI)) continue;
 
-                    Schema.DisplayType type = fieldMap.get(fieldAPI).getDescribe().getType();
+                    Schema.DisplayType type =
+                        fieldMap.get(fieldAPI).getDescribe().getType();
 
-                    if (type == Schema.DisplayType.Boolean)
+                    if (type == Schema.DisplayType.Id ||
+                        type == Schema.DisplayType.String ||
+                        type == Schema.DisplayType.Reference) {
+                        sobj.put(fieldAPI, rawVal);
+                    }
+                    else if (type == Schema.DisplayType.Boolean) {
                         sobj.put(fieldAPI, rawVal.toLowerCase() == 'true');
-
-                    else if (type == Schema.DisplayType.Integer)
-                        sobj.put(fieldAPI, rawVal == '' ? null : Integer.valueOf(rawVal));
-
+                    }
+                    else if (type == Schema.DisplayType.Integer) {
+                        try {
+                            sobj.put(fieldAPI, rawVal == '' ? null : Integer.valueOf(rawVal));
+                        } catch (Exception e) {
+                            sobj.put(fieldAPI, null);
+                        }
+                    }
                     else if (type == Schema.DisplayType.Double ||
                              type == Schema.DisplayType.Currency ||
-                             type == Schema.DisplayType.Percent)
-                        sobj.put(fieldAPI, rawVal == '' ? null : Decimal.valueOf(rawVal));
-
-                    else if (type == Schema.DisplayType.Date)
+                             type == Schema.DisplayType.Percent) {
+                        try {
+                            sobj.put(fieldAPI, rawVal == '' ? null : Decimal.valueOf(rawVal));
+                        } catch (Exception e) {
+                            sobj.put(fieldAPI, null);
+                        }
+                    }
+                    else if (type == Schema.DisplayType.Date) {
                         sobj.put(fieldAPI, rawVal == '' ? null : Date.valueOf(rawVal));
-
-                    else if (type == Schema.DisplayType.DateTime)
+                    }
+                    else if (type == Schema.DisplayType.DateTime) {
                         sobj.put(fieldAPI, rawVal == '' ? null : Datetime.valueOf(rawVal));
-
-                    else
+                    }
+                    else {
                         sobj.put(fieldAPI, rawVal);
+                    }
                 }
 
                 newRecords.add(sobj);
@@ -176,19 +200,36 @@ public with sharing class DataArchiveObjectController {
         }
 
         if (newRecords.isEmpty()) {
-            return 'No records to insert';
+            return 'No valid data to insert (ID skipped)';
         }
 
         insert newRecords;
+        delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archivesToDelete];
+        delete [SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds];
 
-        if (!archivesToDelete.isEmpty()) {
-            delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archivesToDelete];
+        return 'Inserted ' + newRecords.size() + ' records successfully.';
+    }
+
+    private static List<String> parseCsvLine(String line) {
+        List<String> result = new List<String>();
+        Boolean insideQuotes = false;
+        String current = '';
+
+        for (Integer i = 0; i < line.length(); i++) {
+            String c = line.substring(i, i + 1);
+
+            if (c == '"') {
+                insideQuotes = !insideQuotes;
+            }
+            else if (c == ',' && !insideQuotes) {
+                result.add(current);
+                current = '';
+            }
+            else {
+                current += c;
+            }
         }
-
-        if (!contentDocIds.isEmpty()) {
-            delete [SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds];
-        }
-
-        return 'Inserted ' + newRecords.size() + ' records and deleted archive + CSV file';
+        result.add(current);
+        return result;
     }
 }

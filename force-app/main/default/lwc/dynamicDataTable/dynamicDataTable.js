@@ -29,4 +29,11 @@ export default class DynamicDataTable extends LightningElement {
 }));
 
     }
+    handleRowAction(event) {
+        const action = event.detail.action;
+        const row = event.detail.row;
+        this.dispatchEvent(new CustomEvent('rowaction', {
+            detail: { action, row }
+        }));
+    }
 }
