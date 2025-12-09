@@ -1,11 +1,16 @@
 import { LightningElement, api, track } from 'lwc';
 import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
 import { refreshApex } from '@salesforce/apex';
+import archiveSelectedRecords from '@salesforce/apex/DataArchiveController.archiveSelectedRecords';
+import archiveAllRecords from '@salesforce/apex/DataArchiveController.archiveAllRecords';
+
+import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+
 
 export default class FilterBuilder extends LightningElement {
     masterSelectedIds = new Set();
     archiveSelectedRows = [];
-
+    @api selectfields=[];
     @api fields = [];
     @api selectobject;
     @api query;
@@ -212,6 +217,12 @@ export default class FilterBuilder extends LightningElement {
 
     return validParts.join('');
 }
+get selectedFieldApiList() {
+    // return this.tablecolumnsname.map(c => c.fieldName);
+    return this.selectfields.map(f => f.apiName);
+    
+}
+
 
 
 
@@ -279,8 +290,6 @@ export default class FilterBuilder extends LightningElement {
 
 // 🔥 VERY IMPORTANT — restore selection after page change
         this.archiveSelectedRows = [...this.masterSelectedIds];
-
-
     } catch (error) {
         console.error("Error Loading Records:", error);
     }
@@ -292,7 +301,6 @@ handlePageSizeChange(event) {
         // 🔄 Refresh on page size update
         this.loadRecords();
     }
-        
     handleArchiveRowSelections(event) {
     const rows = event.detail.selectedRows;   // correct property
 
@@ -300,7 +308,7 @@ handlePageSizeChange(event) {
     rows.forEach(r => this.masterSelectedIds.add(r.Id));
 
     // 2. Remove deselected rows from current page
-    this.filteredAccounts.forEach(r => {
+    this.filteredAccounts.forEach(r => {    
         if (!rows.find(x => x.Id === r.Id)) {
             this.masterSelectedIds.delete(r.Id);
         }
@@ -311,6 +319,10 @@ handlePageSizeChange(event) {
 
     console.log("MASTER Selected IDs:", JSON.stringify(this.archiveSelectedRows));
 }
+get archiveButtonLabel() {
+    return this.masterSelectedIds.size > 0 ? 'Archive Selected' : 'Archive All';
+}
+
 notifyWhereClauseChange() {
     this.dispatchEvent(
         new CustomEvent("wherechange", {
@@ -318,6 +330,69 @@ notifyWhereClauseChange() {
         })
     );
 }
+ handlearchive() {
+        if (this.masterSelectedIds.size > 0) {
+            this.archiveSelected();
+        } else {
+            this.archiveAll();
+        }
+    }
 
+    // ---------------------------
+    // ARCHIVE SELECTED
+    // ---------------------------
+    archiveSelected() {
+        const ids = [...this.masterSelectedIds];
 
+        if (ids.length === 0) {
+            return this.showToast('Error', 'Select at least one row.', 'error');
+        }
+
+        archiveSelectedRecords({
+            objectName: this.objectname,
+            recordIds: ids,
+            fieldsCsv: this.selectedFieldApiList.join(',')
+        })
+            .then(() => {
+                this.showToast('Success', 'Selected records archived.', 'success');
+                this.masterSelectedIds.clear();
+                this.dispatchEvent(new CustomEvent('refreshdata'));
+                this.loadRecords();
+            })
+            .catch(err => this.showError(err));
+    }
+
+    // ---------------------------
+    // ARCHIVE ALL
+    // ---------------------------
+    archiveAll() {
+        if (!this.query) {
+            return this.showToast('Error', 'Full query missing.', 'error');
+        }
+
+        archiveAllRecords({
+            objectName: this.objectname,
+            fieldsCsv: this.selectedFieldApiList.join(','),
+            fullQuery: this.query
+        })
+            .then(() => {
+                this.showToast('Success', 'All records archived.', 'success');
+                this.dispatchEvent(new CustomEvent('refreshdata'));
+                this.loadRecords();
+            })
+            .catch(err => this.showError(err));
+    }
+
+    // ---------------------------
+    // TOOLS
+    // ---------------------------
+    showError(error) {
+        const msg = error?.body?.message || 'Unknown error';
+        this.showToast('Error', msg, 'error');
+        console.error(error);
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
 }

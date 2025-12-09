@@ -39,12 +39,11 @@
             </c-field-selector>
             </template>
         </div>
-        
-
         <!-- Child 2: Filter Builder -->
         <template if:true={finalFieldsForApex.length}>
             <c-filter-builder
                 tablecolumnsname={datatablecolumns}
+                selectfields={finalFieldsForApex}
                 fields={allFieldsForFilter}
                 onwherechange={handleWhereClauseChange}
                 selectobject={selectedSObject}
