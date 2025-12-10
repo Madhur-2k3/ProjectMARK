@@ -8,6 +8,7 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 
 export default class FilterBuilder extends LightningElement {
+    isLoading = false;
     masterSelectedIds = new Set();
     archiveSelectedRows = [];
     @api selectfields=[];
@@ -17,6 +18,7 @@ export default class FilterBuilder extends LightningElement {
     @api conditions;
     @api objectname;
     @api tablecolumnsname=[];
+    @api changed;
     @track filteredAccounts;
     // Pagination
     @track pageSize = '5';
@@ -34,7 +36,13 @@ export default class FilterBuilder extends LightningElement {
         { label: 'Any Condition Met (OR)', value: 'OR' },
         { label: 'Custom Condition Logic', value: 'CUSTOM' }
     ]
-    // @api archiveColumns;
+    connectedCallback(){
+        if(this.changed){
+            // this.loadRecords();
+            this.filteredAccounts=null;
+            // this.filters=[];
+        }
+    }
 
      @track currentPage = 1;
     totalPages = 1;
@@ -99,7 +107,10 @@ export default class FilterBuilder extends LightningElement {
         INTEGER: [
             { label: "equals", value: "=" },
             { label: "greater than", value: ">" },
-            { label: "less than", value: "<" }
+            { label: "less than", value: "<" },
+            { label: "greater than or equals", value: ">=" },
+            { label: "less than or equals", value: "<=" },
+            { label: "not equals", value: "!=" }
         ],
         DATE: [
             { label: "equals", value: "=" },
@@ -140,12 +151,28 @@ addFilter() {
             operatorOptions: [],
             value: "",
             isDate: false,
+            isDateTime: false,
+            showTextInput:true,
             fieldType: "STRING",
             showJoin: this.filters.length === 0 ? 'filter-box-first' : 'filter-box',
             displayIndex: this.filters.length + 1
         }
     ];
     this.notifyWhereClauseChange();
+}
+get isSubmitDisabled() {
+    if (this.tablecolumnsname.length === 0) return true;
+
+    if (!this.filters.length) return true;
+
+    // Disable if any filter is incomplete
+    return this.filters.some(f =>
+        !f.field ||
+        !f.operator ||
+        f.value === "" ||
+        f.value === null ||
+        f.value === undefined
+    );
 }
 
 
@@ -185,10 +212,8 @@ addFilter() {
     handleFieldChange(event) {
     const id = Number(event.target.dataset.id);
     const selectedField = event.detail.value;
-
     const fieldMeta = this.fields.find(f => f.apiName === selectedField);
     const ops = this.operatorMap[fieldMeta.type] || this.operatorMap.STRING;
-
     this.filters = this.filters.map(f => {
         if (f.id === id) {
             return {
@@ -196,8 +221,11 @@ addFilter() {
                 field: selectedField,
                 operatorOptions: ops,
                 operator: ops[0].value,
-                isDate: fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME",
-                fieldType: fieldMeta.type
+                isDate: fieldMeta.type === "DATE",
+                isDateTime: fieldMeta.type === "DATETIME",
+                fieldType: fieldMeta.type,
+                showTextInput:!(fieldMeta.type === "DATE" || fieldMeta.type === "DATETIME")
+
                 
             };
         }
@@ -227,7 +255,7 @@ get whereClause() {
 
     this.filters.forEach((f, i) => {
         // skip incomplete filters
-        if (!f.field || !f.operator || f.value === '' || f.value === null || f.value === undefined) {
+        if (!f.field || !f.operator || f.value === ''  || f.value === undefined) {
             return;
         }
 
@@ -428,8 +456,7 @@ notifyWhereClauseChange() {
         else{
             this.showModal = false;
             this.archiveAll();
-        }
-        
+        }    
     }
 
     // ---------------------------
@@ -441,6 +468,7 @@ notifyWhereClauseChange() {
         if (ids.length === 0) {
             return this.showToast('Error', 'Select at least one row.', 'error');
         }
+        this.isLoading=true;
 
         archiveSelectedRecords({
             objectName: this.objectname,
@@ -453,7 +481,10 @@ notifyWhereClauseChange() {
                 this.dispatchEvent(new CustomEvent('refreshdata'));
                 this.loadRecords();
             })
-            .catch(err => this.showError(err));
+            .catch(err => this.showError(JSON.stringify(err)))
+            .finally(()=>{
+                this.isLoading=false;
+            });
     }
 
     // ---------------------------
@@ -463,6 +494,7 @@ notifyWhereClauseChange() {
         if (!this.query) {
             return this.showToast('Error', 'Full query missing.', 'error');
         }
+        this.isLoading=true;
 
         archiveAllRecords({
             objectName: this.objectname,
@@ -474,7 +506,10 @@ notifyWhereClauseChange() {
                 this.dispatchEvent(new CustomEvent('refreshdata'));
                 this.loadRecords();
             })
-            .catch(err => this.showError(err));
+            .catch(err => this.showError(err))
+            .finally(()=>{
+                this.isLoading=false;
+            });
     }
 
     // ---------------------------

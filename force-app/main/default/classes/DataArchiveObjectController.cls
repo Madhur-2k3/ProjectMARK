@@ -110,7 +110,6 @@ public with sharing class DataArchiveObjectController {
             List<String> lines = csvContent.split('\n');
             if (lines.size() < 2) continue;
 
-            // ⭐ Build field list WITHOUT ID
             List<String> fieldNames = new List<String>();
             List<String> headerAll = archive.Fields__c.split(',');
 
@@ -136,7 +135,6 @@ public with sharing class DataArchiveObjectController {
 
                 List<String> values = parseCsvLine(lines[i]);
 
-                // ⭐ REMOVE EXACT ID COLUMN (so shifting never happens)
                 if (idIndex >= 0 && idIndex < values.size()) {
                     values.remove(idIndex);
                 }
@@ -155,8 +153,12 @@ public with sharing class DataArchiveObjectController {
 
                     if (!fieldMap.containsKey(fieldAPI)) continue;
 
-                    Schema.DisplayType type =
-                        fieldMap.get(fieldAPI).getDescribe().getType();
+                    Schema.DescribeFieldResult d = fieldMap.get(fieldAPI).getDescribe();
+
+                    // ⭐ ⭐ NEW LOGIC — SKIP NON-WRITABLE FIELDS ⭐ ⭐
+                    if (!d.isCreateable() || d.isCalculated()) continue;
+
+                    Schema.DisplayType type = d.getType();
 
                     if (type == Schema.DisplayType.Id ||
                         type == Schema.DisplayType.String ||

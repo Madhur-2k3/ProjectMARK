@@ -10,45 +10,85 @@ export default class FieldSelector extends LightningElement {
     fieldTypeMap = {};
     requiredFields = [];
 
-    @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
-    wiredFields({ data, error }) {
-        if (data) {
+//     @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
+//     wiredFields({ data, error }) {
+//         if (data) {
 
-            this.fieldOptions = [];
-            this.requiredFields = [];
-            this.fieldTypeMap = {};
+//             this.fieldOptions = [];
+//             this.requiredFields = [];
+//             this.fieldTypeMap = {};
 
-            data.forEach(f => {
-    // store type & label
-    this.fieldTypeMap[f.apiName] = {
-        type: f.fieldType,
-        label: f.label
-    };
+//             data.forEach(f => {
+//     // store type & label
+//     this.fieldTypeMap[f.apiName] = {
+//         type: f.fieldType,
+//         label: f.label
+//     };
 
-    // store required fields (but DO NOT auto select)
-    if (f.isRequired) {
-        this.requiredFields.push(f.apiName);
-    }
+//     // store required fields (but DO NOT auto select)
+//     if (f.isRequired) {
+//         this.requiredFields.push(f.apiName);
+//     }
 
-    // ALL fields appear in UI (required + optional)
-    this.fieldOptions.push({
-        label: f.label, // show required with *
-        value: f.apiName
-    });
-});
+//     // ALL fields appear in UI (required + optional)
+//     this.fieldOptions.push({
+//         label: f.label, // show required with *
+//         value: f.apiName
+//     });
+// });
 
 
             
-            this.selectedValues = [
+//             this.selectedValues = [
                 
-            ];
+//             ];
 
-            this.sendUpdatedFields();
-        } 
-        else if (error) {
-            console.error('Error fetching fields:', error);
-        }
+//             this.sendUpdatedFields();
+//         } 
+//         else if (error) {
+//             console.error('Error fetching fields:', error);
+//         }
+//     }
+    @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
+    wiredFields({ data, error }) {
+    if (data) {
+
+        // Reset
+        this.fieldOptions = [];
+        this.requiredFields = [];
+        this.fieldTypeMap = {};
+
+        // ⭐ SORT fields by label
+        let sortedData = [...data].sort((a, b) =>
+            a.label.localeCompare(b.label)
+        );
+
+        sortedData.forEach(f => {
+            // Store type & label
+            this.fieldTypeMap[f.apiName] = {
+                type: f.fieldType,
+                label: f.label
+            };
+
+            // Required fields
+            if (f.isRequired) {
+                this.requiredFields.push(f.apiName);
+            }
+
+            // Fields for UI dropdown (sorted)
+            this.fieldOptions.push({
+                label: f.label,
+                value: f.apiName
+            });
+        });
+
+        this.selectedValues = [];
+        this.sendUpdatedFields();
+    } else if (error) {
+        console.error('Error fetching fields:', error);
     }
+}
+
 
     handleChange(event) {
     let selectedValues = event.detail.value;

@@ -13,6 +13,7 @@ export default class SObjectCombox extends LightningElement {
     @track finalFieldsForApex = [];  
     @track whereClause = '';
     @track objectLabel = '';
+    changed=false;
 
     searchTerm = '';
 
@@ -27,6 +28,8 @@ export default class SObjectCombox extends LightningElement {
     }
 
     handleSearch(event) {
+        this.changed=true;
+        
         const key = event.target.value.toLowerCase();
         this.searchTerm = key;
 

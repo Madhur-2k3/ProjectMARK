@@ -10,6 +10,8 @@
     gap: 14px;
     box-shadow: 0 8px 20px rgba(0,0,0,0.15);
     margin-bottom: 15px;
+    width: 99%;
+    margin: 0 auto;
 }
 
 /* LEFT SIDE */
@@ -88,7 +90,7 @@
 }
 
 .toggle-btn.active .dot {
-    background: #ffffff;
+    background: #3adb76; /* green */
 }
 
 /* RIGHT SIDE PILL */
@@ -108,5 +110,5 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: #3adb76;
+    background: #ffffff;
 }

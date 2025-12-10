@@ -95,14 +95,28 @@
                             data-id={flt.id}
                             onchange={handleValueChange}>
                         </lightning-input>
-                        <c-field-validator
+                        <!-- <c-field-validator
                             value={flt.value}
                             type="DATE">
-                        </c-field-validator>
+                        </c-field-validator> -->
+                        </div>
+                    </template>
+                    <template if:true={flt.isDateTime}>
+                        <div class="box">
+                        <lightning-input
+                            type="datetime"
+                            value={flt.value}
+                            data-id={flt.id}
+                            onchange={handleValueChange}>
+                        </lightning-input>
+                        <!-- <c-field-validator
+                            value={flt.value}
+                            type="DATE">
+                        </c-field-validator> -->
                         </div>
                     </template>
 
-                    <template if:false={flt.isDate}>
+                    <template if:true={flt.showTextInput}>
                         <div class="box">
                         <lightning-input
                             type="text"
@@ -129,15 +143,16 @@
                 </div>
             </template>
             <div class="add-filter">
-                <lightning-button label="Add filter" onclick={addFilter}></lightning-button>
+                <lightning-button label="Add Filter Condition" variant="brand" onclick={addFilter}></lightning-button>
             </div>
             
         </div>
         <template if:true={isFilterMode}>
             <div class="submit-btn">
                 <lightning-button 
-                    class=""
+                    variant="brand"
                     label="Submit"
+                    disabled={isSubmitDisabled}
                     onclick={handleFilterAccounts}>
                 </lightning-button>
             </div>
@@ -187,17 +202,19 @@
 
                         <lightning-button
                             label="Previous"
+                            variant="brand"
                             onclick={handlePrevious}
                             disabled={isPreviousDisabled}
                             class="slds-m-right_small">
                         </lightning-button>
 
                         <span class="slds-text-body_small slds-m-right_small">
-                            Page {currentPage} of {totalPages}
+                            Page {currentPage} Of {totalPages}
                         </span>
 
                         <lightning-button
                             label="Next"
+                            variant="brand"
                             onclick={handleNext}
                             disabled={isNextDisabled}>
                         </lightning-button>
@@ -212,9 +229,17 @@
                             onclick={handlearchive}>
                         </lightning-button>
                     </div>
+                    
                 </div>
             </div>
             </div>
+        </template>
+        <template if:true={isLoading}>
+                        <lightning-spinner 
+                            alternative-text="Processing..."
+                            size="medium"
+                            variant="brand">
+                        </lightning-spinner>
         </template>
 
         <div class="soql-preview">

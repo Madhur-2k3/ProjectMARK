@@ -47,7 +47,7 @@ export default class UnArchivedData extends LightningElement {
         this.isButtonDisabled = this.selectedRows.length !== 1;
     }
 
-    /** ⭐⭐ DOWNLOAD + TOAST ⭐⭐ */
+    /**  DOWNLOAD + TOAST  */
     async handleRowAction(event) {
         const { action, row } = event.detail;
 
@@ -63,7 +63,7 @@ export default class UnArchivedData extends LightningElement {
                 return;
             }
 
-            // ⭐ SAFE DOWNLOAD (no popup block)
+            //  SAFE DOWNLOAD 
             const link = document.createElement('a');
             link.href = url;
             link.target = '_blank';
@@ -72,7 +72,7 @@ export default class UnArchivedData extends LightningElement {
             link.click();
             document.body.removeChild(link);
 
-            // ⭐ Toast notification
+            //  Toast notification
             this.showToast('Download Started', 'Your CSV is downloading...', 'success');
 
         } catch (e) {
