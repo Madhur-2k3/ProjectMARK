@@ -155,7 +155,7 @@ public with sharing class DataArchiveObjectController {
 
                     Schema.DescribeFieldResult d = fieldMap.get(fieldAPI).getDescribe();
 
-                    // ⭐ ⭐ NEW LOGIC — SKIP NON-WRITABLE FIELDS ⭐ ⭐
+                    //  SKIP NON-WRITABLE FIELDS
                     if (!d.isCreateable() || d.isCalculated()) continue;
 
                     Schema.DisplayType type = d.getType();
