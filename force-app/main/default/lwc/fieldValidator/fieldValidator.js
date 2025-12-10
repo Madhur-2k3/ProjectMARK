@@ -40,9 +40,11 @@ export default class FieldValidator extends LightningElement {
             case "DOUBLE":
             case "CURRENCY":
                 if(this.val==null){
+                    console.log("inside null")
                     return true;
                 }
                 if (!/^-?\d+(\.\d+)?$/.test(val)) {
+                    console.log("inside invalid")
                     this.message =
                         `Invalid input: "${val}". You have to give input like: 123 or 45.67`;
                     return false;

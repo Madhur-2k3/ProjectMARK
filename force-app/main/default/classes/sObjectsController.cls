@@ -49,6 +49,7 @@ public static List<FieldInfoWrapper> getFieldsBySObject(String sObjectApiName) {
 
     for (String api : fields.keySet()) {
         Schema.DescribeFieldResult f = fields.get(api).getDescribe();
+        
 
         Boolean isRequired =
             !f.isNillable() &&

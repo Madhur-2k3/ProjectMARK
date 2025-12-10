@@ -475,8 +475,20 @@ notifyWhereClauseChange() {
             recordIds: ids,
             fieldsCsv: this.selectedFieldApiList.join(',')
         })
-            .then(() => {
-                this.showToast('Success', 'Selected records archived.', 'success');
+            .then((archiveId) => {
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Success',
+            message: '{0}',
+            messageData: [
+                {
+                    url: '/' + archiveId,
+                    label: 'Archive Created: ' + archiveId
+                }
+            ],
+            variant: 'success',
+        })
+    );
                 this.masterSelectedIds.clear();
                 this.dispatchEvent(new CustomEvent('refreshdata'));
                 this.loadRecords();
@@ -501,8 +513,20 @@ notifyWhereClauseChange() {
             fieldsCsv: this.selectedFieldApiList.join(','),
             fullQuery: this.query
         })
-            .then(() => {
-                this.showToast('Success', 'All records archived.', 'success');
+            .then((archiveId) => {
+    this.dispatchEvent(
+        new ShowToastEvent({
+            title: 'Success',
+            message: '{0}',
+            messageData: [
+                {
+                    url: '/' + archiveId,
+                    label: 'Archive Created: ' + archiveId
+                }
+            ],
+            variant: 'success',
+        })
+    );
                 this.dispatchEvent(new CustomEvent('refreshdata'));
                 this.loadRecords();
             })

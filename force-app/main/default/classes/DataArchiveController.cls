@@ -4,7 +4,7 @@ public with sharing class DataArchiveController {
      *   PUBLIC METHOD #1 — ARCHIVE SELECTED RECORDS
      * ===================================================== */
     @AuraEnabled
-    public static String archiveSelectedRecords(
+    public static Id archiveSelectedRecords(
         String objectName,
         List<Id> recordIds,
         String fieldsCsv
@@ -26,7 +26,7 @@ public with sharing class DataArchiveController {
      *   PUBLIC METHOD #2 — ARCHIVE ALL RECORDS (FULL QUERY)
      * ===================================================== */
     @AuraEnabled
-    public static String archiveAllRecords(
+    public static Id archiveAllRecords(
         String objectName,
         String fieldsCsv,
         String fullQuery
@@ -46,7 +46,7 @@ public with sharing class DataArchiveController {
     /* =====================================================
      *   CORE ARCHIVE ENGINE (USED BY BOTH METHODS)
      * ===================================================== */
-    private static String archiveEngine(
+    private static Id archiveEngine(
         String objectName,
         String fieldsCsv,
         String soql
@@ -106,7 +106,7 @@ public with sharing class DataArchiveController {
         // Delete original records
         delete rows;
 
-        return 'OK';
+        return archiveRecord.Id;
     }
 
 
