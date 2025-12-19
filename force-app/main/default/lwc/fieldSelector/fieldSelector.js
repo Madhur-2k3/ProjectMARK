@@ -148,5 +148,26 @@ export default class FieldSelector extends LightningElement {
         })
     );
 }
+    handleIncludeAllFieldsChange(event){
+        this.includeAllFields = event.target.checked;
+        if(this.includeAllFields){
+            // Select all fields
+            this.selectedValues = this.fieldOptions
+                .filter(opt => opt.value !== '__ALL__')
+                .map(opt => opt.value);
+        } else {
+            // Deselect all fields
+            this.selectedValues = [];
+        }
+        // Update userSelectedFields accordingly
+        this.userSelectedFields = this.selectedValues.map(apiName => ({
+            label: this.fieldTypeMap[apiName]?.label,
+            value: apiName,
+            required: this.requiredFields.includes(apiName)
+        }));
+        this.sendUpdatedFields();
+    }
+
 
 }
+    

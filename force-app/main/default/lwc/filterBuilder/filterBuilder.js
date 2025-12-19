@@ -21,15 +21,15 @@ export default class FilterBuilder extends LightningElement {
     @api changed;
     @track filteredAccounts;
     // Pagination
-    @track pageSize = '5';
+    @track pageSize = '20';
     @track allRecords=true;
     @track selectedRows=[];
     @track selectedCondition='AND';
     pageSizeOptions = [
-        { label: '5 / page', value: '5' },
-        { label: '10 / page', value: '10' },
-        { label: '15 / page', value: '15' },
-        { label: '20 / page', value: '20' }
+        { label: '20 / page', value: '20' },
+        { label: '40 / page', value: '40' },
+        { label: '60 / page', value: '60' },
+        { label: '80 / page', value: '80' }
     ];
     conditionOptions=[
         { label: 'All Conditions Met (AND)', value: 'AND' },
@@ -347,7 +347,7 @@ get selectedFieldApiList() {
     }
     this.currentPage = 1;
     this.loadRecords();
-}
+    }
 
 
     handleNext() {
@@ -371,16 +371,16 @@ get selectedFieldApiList() {
     get isNextDisabled() {
         return this.currentPage === this.totalPages;
     }
+    
     async loadRecords() {
     try {
         const offsetValue = (this.currentPage - 1) * Number(this.pageSize);
 
         const result = await getFilteredAccounts({
             query: this.query,
-            // conditions: this.whereClause === "/* No WHERE clause */" ? "" : " WHERE " + this.whereClause,
             offsetSize: offsetValue,
             pageSize: this.pageSize,
-            objectName: this.objectname      // <==== IMPORTANT
+            objectName: this.objectname      
         });
 
         this.filteredAccounts = result.records;
@@ -435,6 +435,7 @@ notifyWhereClauseChange() {
             //show modal for selected
             this.showModal = true;
             this.modalMessage = `Are you sure you want to archive the selected ${this.masterSelectedIds.size} records?`;
+            
             console.log("Modal status",this.showModal);
             // this.archiveSelected();
         } else {
@@ -483,7 +484,7 @@ notifyWhereClauseChange() {
             messageData: [
                 {
                     url: '/' + archiveId,
-                    label: 'Archive Created: ' + archiveId
+                    label: 'Archive Created: Click here For Data Archive Record'
                 }
             ],
             variant: 'success',
@@ -521,7 +522,7 @@ notifyWhereClauseChange() {
             messageData: [
                 {
                     url: '/' + archiveId,
-                    label: 'Archive Created: ' + archiveId
+                    label: 'Archive Created: Click here For Data Archive Record'
                 }
             ],
             variant: 'success',

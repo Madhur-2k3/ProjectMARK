@@ -23,10 +23,11 @@
                     </header>
                     <div class="slds-modal__content slds-p-around_medium">
                         <p>{modalMessage}</p>
+                        <p><b>NOTE: </b>The selected records will be Deleted</p>
                     </div>
-                    <footer class="slds-modal__footer">
+                    <footer class="slds-modal__footer footer">
                         <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
-                        <lightning-button variant="brand" label="Confirm" onclick={confirmArchive}></lightning-button>
+                        <lightning-button variant="destructive" label="Confirm" onclick={confirmArchive}></lightning-button>
                     </footer>
                 </div>
             </section>
@@ -242,10 +243,10 @@
                         </lightning-spinner>
         </template>
 
-        <div class="soql-preview">
+        <!-- <div class="soql-preview">
             <p><strong>WHERE Clause Preview:</strong></p>
             <code>{whereClause}</code>
-        </div>
+        </div> -->
   
     
 </template>

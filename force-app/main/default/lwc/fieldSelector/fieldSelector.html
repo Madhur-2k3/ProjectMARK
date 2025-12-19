@@ -1,6 +1,6 @@
 <template>
     <template if:true={fieldOptions}>
-        <lightning-card class="slds-p-around_medium" >
+        <lightning-card class="slds-p-around_medium">
             <div class="slds-p-horizontal_medium">
                 <lightning-dual-listbox
                     name="fields"
@@ -13,8 +13,14 @@
                     onchange={handleChange}>
                 </lightning-dual-listbox>
             </div>
-            
+            <div class="checkbox slds-p-around_medium">
+                <lightning-input
+                    type="checkbox"
+                    label="Include all fields"
+                    checked={includeAllFields}
+                    onchange={handleIncludeAllFieldsChange}>
+                </lightning-input>
+            </div>
         </lightning-card>
-        
     </template>
 </template>

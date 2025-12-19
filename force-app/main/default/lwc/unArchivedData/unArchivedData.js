@@ -91,6 +91,7 @@ export default class UnArchivedData extends LightningElement {
             })
             .catch(error => {
                 this.showToast('Error', error.body?.message, 'error');
+                console.error('Unarchive error:', JSON.stringify(error));
             });
     }
 

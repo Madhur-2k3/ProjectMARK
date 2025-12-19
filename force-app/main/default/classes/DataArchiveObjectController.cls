@@ -1,11 +1,17 @@
 public with sharing class DataArchiveObjectController {
 
+    /* =========================================================
+       WRAPPER
+    ========================================================= */
     public class ArchiveWrapper {
         @AuraEnabled public List<Map<String, Object>> columns { get; set; }
         @AuraEnabled public List<Map<String, Object>> data { get; set; }
         @AuraEnabled public Integer totalRecords { get; set; }
     }
 
+    /* =========================================================
+       PAGINATED ARCHIVE DATA
+    ========================================================= */
     @AuraEnabled(cacheable=true)
     public static ArchiveWrapper getArchivedObjectPaginated(Integer pageNumber, Integer pageSize) {
 
@@ -69,6 +75,9 @@ public with sharing class DataArchiveObjectController {
         return wrapper;
     }
 
+    /* =========================================================
+       CSV DOWNLOAD
+    ========================================================= */
     @AuraEnabled
     public static String getArchiveCsvDownloadUrl(Id archiveId) {
         List<ContentDocumentLink> links = [
@@ -81,6 +90,9 @@ public with sharing class DataArchiveObjectController {
         return '/sfc/servlet.shepherd/document/download/' + links[0].ContentDocumentId;
     }
 
+    /* =========================================================
+       UNARCHIVE (FIXED FOR DUPLICATES)
+    ========================================================= */
     @AuraEnabled
     public static String insertArchivedRecordsBulk(List<Id> archiveRecordIds) {
 
@@ -110,9 +122,8 @@ public with sharing class DataArchiveObjectController {
             List<String> lines = csvContent.split('\n');
             if (lines.size() < 2) continue;
 
-            List<String> fieldNames = new List<String>();
             List<String> headerAll = archive.Fields__c.split(',');
-
+            List<String> fieldNames = new List<String>();
             Integer idIndex = -1;
 
             for (Integer x = 0; x < headerAll.size(); x++) {
@@ -134,7 +145,6 @@ public with sharing class DataArchiveObjectController {
                 if (String.isBlank(lines[i])) continue;
 
                 List<String> values = parseCsvLine(lines[i]);
-
                 if (idIndex >= 0 && idIndex < values.size()) {
                     values.remove(idIndex);
                 }
@@ -148,50 +158,38 @@ public with sharing class DataArchiveObjectController {
                     if (j >= values.size()) continue;
 
                     String fieldAPI = fieldNames[j];
-                    String rawVal = values[j].trim();
-                    rawVal = rawVal.replace('"','');
+                    String rawVal = values[j].replace('"', '').trim();
 
                     if (!fieldMap.containsKey(fieldAPI)) continue;
 
                     Schema.DescribeFieldResult d = fieldMap.get(fieldAPI).getDescribe();
-
-                    //  SKIP NON-WRITABLE FIELDS
                     if (!d.isCreateable() || d.isCalculated()) continue;
 
                     Schema.DisplayType type = d.getType();
 
-                    if (type == Schema.DisplayType.Id ||
-                        type == Schema.DisplayType.String ||
-                        type == Schema.DisplayType.Reference) {
-                        sobj.put(fieldAPI, rawVal);
-                    }
-                    else if (type == Schema.DisplayType.Boolean) {
-                        sobj.put(fieldAPI, rawVal.toLowerCase() == 'true');
-                    }
-                    else if (type == Schema.DisplayType.Integer) {
-                        try {
+                    try {
+                        if (type == Schema.DisplayType.Boolean) {
+                            sobj.put(fieldAPI, rawVal.toLowerCase() == 'true');
+                        }
+                        else if (type == Schema.DisplayType.Integer) {
                             sobj.put(fieldAPI, rawVal == '' ? null : Integer.valueOf(rawVal));
-                        } catch (Exception e) {
-                            sobj.put(fieldAPI, null);
                         }
-                    }
-                    else if (type == Schema.DisplayType.Double ||
-                             type == Schema.DisplayType.Currency ||
-                             type == Schema.DisplayType.Percent) {
-                        try {
+                        else if (type == Schema.DisplayType.Double ||
+                                 type == Schema.DisplayType.Currency ||
+                                 type == Schema.DisplayType.Percent) {
                             sobj.put(fieldAPI, rawVal == '' ? null : Decimal.valueOf(rawVal));
-                        } catch (Exception e) {
-                            sobj.put(fieldAPI, null);
                         }
-                    }
-                    else if (type == Schema.DisplayType.Date) {
-                        sobj.put(fieldAPI, rawVal == '' ? null : Date.valueOf(rawVal));
-                    }
-                    else if (type == Schema.DisplayType.DateTime) {
-                        sobj.put(fieldAPI, rawVal == '' ? null : Datetime.valueOf(rawVal));
-                    }
-                    else {
-                        sobj.put(fieldAPI, rawVal);
+                        else if (type == Schema.DisplayType.Date) {
+                            sobj.put(fieldAPI, rawVal == '' ? null : Date.valueOf(rawVal));
+                        }
+                        else if (type == Schema.DisplayType.DateTime) {
+                            sobj.put(fieldAPI, rawVal == '' ? null : Datetime.valueOf(rawVal));
+                        }
+                        else {
+                            sobj.put(fieldAPI, rawVal);
+                        }
+                    } catch (Exception e) {
+                        sobj.put(fieldAPI, null);
                     }
                 }
 
@@ -202,16 +200,35 @@ public with sharing class DataArchiveObjectController {
         }
 
         if (newRecords.isEmpty()) {
-            return 'No valid data to insert (ID skipped)';
+            return 'No valid data to insert';
         }
 
-        insert newRecords;
+        /* ================= DUPLICATE RULE FIX ================= */
+        Database.DMLOptions dmlOpts = new Database.DMLOptions();
+        dmlOpts.DuplicateRuleHeader.allowSave = true;
+        dmlOpts.DuplicateRuleHeader.runAsCurrentUser = true;
+
+        for (SObject sob : newRecords) {
+            sob.setOptions(dmlOpts);
+        }
+
+        Database.SaveResult[] results = Database.insert(newRecords, false);
+
+        /* ================= CLEANUP ================= */
         delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archivesToDelete];
         delete [SELECT Id FROM ContentDocument WHERE Id IN :contentDocIds];
 
-        return 'Inserted ' + newRecords.size() + ' records successfully.';
+        Integer successCount = 0;
+        for (Database.SaveResult sr : results) {
+            if (sr.isSuccess()) successCount++;
+        }
+
+        return 'Inserted ' + successCount + ' record(s) successfully.';
     }
 
+    /* =========================================================
+       CSV PARSER
+    ========================================================= */
     private static List<String> parseCsvLine(String line) {
         List<String> result = new List<String>();
         Boolean insideQuotes = false;
@@ -219,7 +236,6 @@ public with sharing class DataArchiveObjectController {
 
         for (Integer i = 0; i < line.length(); i++) {
             String c = line.substring(i, i + 1);
-
             if (c == '"') {
                 insideQuotes = !insideQuotes;
             }

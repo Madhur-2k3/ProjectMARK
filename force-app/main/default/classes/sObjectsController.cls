@@ -67,6 +67,40 @@ public static List<FieldInfoWrapper> getFieldsBySObject(String sObjectApiName) {
 
     return result;
 }
+public class ChildRelationshipInfo {
+    @AuraEnabled public String childObject { get; set; }
+    @AuraEnabled public String relationshipField { get; set; }
+    @AuraEnabled public String relationshipName { get; set; }
+    @AuraEnabled public String relationshipType { get; set; } // always "Reference"
+}
+
+public static List<ChildRelationshipInfo> getChildObjectDetails(String parentObjectApiName) {
+
+    List<ChildRelationshipInfo> results = new List<ChildRelationshipInfo>();
+
+    Schema.DescribeSObjectResult parentDescribe =
+        Schema.getGlobalDescribe().get(parentObjectApiName).getDescribe();
+
+    for (Schema.ChildRelationship cr : parentDescribe.getChildRelationships()) {
+
+        if (cr.getRelationshipName() != null && cr.getChildSObject() != null && cr.getField() != null) {
+
+            Schema.DescribeFieldResult fieldDescribe = cr.getField().getDescribe();
+
+            ChildRelationshipInfo info = new ChildRelationshipInfo();
+            info.childObject       = cr.getChildSObject().getDescribe().getName();
+            info.relationshipField = fieldDescribe.getName();
+            info.relationshipName  = cr.getRelationshipName();
+            info.relationshipType  = 'Reference'; // Lookup or Master-Detail (Apex cannot distinguish)
+
+            results.add(info);
+        }
+    }
+
+    return results;
+}
+
+
 
     // ---------------------------------------------------
     // Wrapper for fields
