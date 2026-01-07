@@ -29,7 +29,13 @@ export default class FilterBuilder extends LightningElement {
         { label: '20 / page', value: '20' },
         { label: '40 / page', value: '40' },
         { label: '60 / page', value: '60' },
-        { label: '80 / page', value: '80' }
+        { label: '80 / page', value: '80' },
+        { label: '100 / page', value: '100' },
+        { label: '200 / page', value: '200' },
+        { label: '300 / page', value: '300' },
+        { label: '400 / page', value: '400' },
+        {label: '2000 / page', value: '2000' },
+        {label: '500 / page', value: '500' }
     ];
     conditionOptions=[
         { label: 'All Conditions Met (AND)', value: 'AND' },
@@ -94,14 +100,19 @@ export default class FilterBuilder extends LightningElement {
         ],
         PICKLIST: [
             { label: "equals", value: "=" },
-            { label: "not equals", value: "!=" }
+            { label: "not equals", value: "!=" },
+            { label: "contains", value: "LIKE" }
         ],
         BOOLEAN: [
-            { label: "equals", value: "=" }
+            { label: "equals", value: "=" },
+            { label: "not equals", value: "!=" }
         ],
         DOUBLE: [
             { label: "equals", value: "=" },
+            { label: "not equals", value: "!=" },
             { label: "greater than", value: ">" },
+            { label: "greater than or equals", value: ">=" },
+            { label: "less than or equals", value: "<=" },
             { label: "less than", value: "<" }
         ],
         INTEGER: [
@@ -114,18 +125,27 @@ export default class FilterBuilder extends LightningElement {
         ],
         DATE: [
             { label: "equals", value: "=" },
+            { label: "not equals", value: "!=" },
             { label: "greater than", value: ">" },
+             { label: "greater than or equals", value: ">=" },
+            { label: "less than or equals", value: "<=" },
             { label: "less than", value: "<" }
         ],
         DATETIME: [
             { label: "equals", value: "=" },
+            { label: "not equals", value: "!=" },
             { label: "greater than", value: ">" },
+             { label: "greater than or equals", value: ">=" },
+            { label: "less than or equals", value: "<=" },
             { label: "less than", value: "<" }
         ],
         CURRENCY: [
     { label: "equals", value: "=" },
     { label: "greater than", value: ">" },
-    { label: "less than", value: "<" }
+    { label: "less than", value: "<" },
+    { label: "greater than or equals", value: ">=" },
+    { label: "less than or equals", value: "<=" },
+    { label: "not equals", value: "!=" }
 ]
 
     };
@@ -164,15 +184,24 @@ get isSubmitDisabled() {
     if (this.tablecolumnsname.length === 0) return true;
 
     if (!this.filters.length) return true;
-
-    // Disable if any filter is incomplete
-    return this.filters.some(f =>
-        !f.field ||
-        !f.operator ||
-        f.value === "" ||
-        f.value === null ||
-        f.value === undefined
+    // Check if basic filters are filled
+    const basicFiltersInvalid = this.filters.some(f =>
+        !f.field || !f.operator || f.value === "" || f.value === null
     );
+
+    // Check if Custom Logic is valid (if in custom mode)
+    const customLogicInvalid = this.isCustom && !this.isValidCustomLogic(this.customLogic);
+
+    return basicFiltersInvalid || customLogicInvalid;
+
+    // // Disable if any filter is incomplete
+    // return this.filters.some(f =>
+    //     !f.field ||
+    //     !f.operator ||
+    //     f.value === "" ||
+    //     f.value === null ||
+    //     f.value === undefined
+    // );
 }
 
 
@@ -288,6 +317,14 @@ customWhereLogic(validParts) {
 }
 handleCustomLogic(event) {
     this.customLogic = event.detail.value;
+    const textarea = event.target;
+    if (!this.isValidCustomLogic(this.customLogic)) {
+        textarea.setCustomValidity("Invalid logic: Check your parentheses or filter numbers.");
+    } else {
+        textarea.setCustomValidity(""); // Clear error
+    }
+    textarea.reportValidity();
+    // console.log(this.customLogic);
     
     // this.filters=this.filters.map((f, index) => {
     //     return {
@@ -347,7 +384,7 @@ get selectedFieldApiList() {
     }
     this.currentPage = 1;
     this.loadRecords();
-    }
+}
 
 
     handleNext() {
@@ -371,7 +408,7 @@ get selectedFieldApiList() {
     get isNextDisabled() {
         return this.currentPage === this.totalPages;
     }
-    
+
     async loadRecords() {
     try {
         const offsetValue = (this.currentPage - 1) * Number(this.pageSize);
@@ -548,5 +585,37 @@ notifyWhereClauseChange() {
 
     showToast(title, message, variant) {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+    // Helper to check if the custom logic string is valid
+isValidCustomLogic(logic) {
+    if (!logic || logic.trim() === '') return true;
+
+    let stack = [];
+    const openBrackets = '(';
+    const closeBrackets = ')';
+    
+    // 1. Check Parentheses Balance
+    for (let char of logic) {
+        if (char === openBrackets) {
+            stack.push(char);
+        } else if (char === closeBrackets) {
+            if (stack.length === 0) return false; // Found ')' without an '('
+            stack.pop();
+        }
+    }
+    if (stack.length !== 0) return false; // Unclosed '('
+
+    // 2. Check if numbers referenced exist in current filters
+    const usedIndices = logic.match(/\b\d+\b/g);
+    if (usedIndices) {
+        const maxIndex = this.filters.length;
+        for (let num of usedIndices) {
+            if (parseInt(num, 10) > maxIndex || parseInt(num, 10) <= 0) {
+                return false; // Reference to a non-existent filter index
+            }
+        }
+    }
+
+    return true;
     }
 }

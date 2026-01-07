@@ -90,7 +90,7 @@ export default class FieldValidator extends LightningElement {
             --------------------------------------- */
             case "ID":
             case "SFID":
-                if (!(val.length === 15 || val.length === 18)) {
+                if (!(val.length === 16 || val.length === 18)) {
                     this.message =
                         `Invalid input: "${val}". You have to give input like: 001xx000003DG1t`;
                     return false;

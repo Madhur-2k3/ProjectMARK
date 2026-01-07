@@ -1,12 +1,154 @@
+// import { LightningElement, track, wire } from 'lwc';
+// import getArchivedObjectPaginated from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
+// import insertArchivedRecordsBulk from '@salesforce/apex/DataArchiveObjectController.insertArchivedRecordsBulk';
+// import getArchiveCsvDownloadUrl from '@salesforce/apex/DataArchiveObjectController.getArchiveCsvDownloadUrl';
+// import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+// import { refreshApex } from '@salesforce/apex';
+
+// export default class UnArchivedData extends LightningElement {
+
+//     @track archiveRecords = [];
+//     @track archiveColumns = [];
+//     selectedRows = [];
+
+//     pageSizeOptions = [
+//         { label: '5/page', value: '5' },
+//         { label: '10/page', value: '10' },
+//         { label: '20/page', value: '20' },
+//         { label: '50/page', value: '50' },
+//         { label: '100/page', value: '100' }
+//     ];
+
+//     @track pageSize = '5';
+//     @track currentPage = 1;
+//     totalPages = 1;
+//     totalRecords = 0;
+
+//     @track isLoading = false;      // 🔄 Spinner flag
+//     isButtonDisabled = true;
+//     wiredResult;
+
+//     /* ================== DATA LOAD ================== */
+//     @wire(getArchivedObjectPaginated, {
+//         pageNumber: '$currentPage',
+//         pageSize: '$pageSize'
+//     })
+//     wiredArchivedData(result) {
+//         this.wiredResult = result;
+
+//         if (result.data) {
+//             this.archiveColumns = result.data.columns;
+//             this.archiveRecords = result.data.data;
+//             this.totalRecords = result.data.totalRecords;
+//             this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
+//         }
+//     }
+
+//     /* ================== ROW SELECTION ================== */
+//     handleSelection(event) {
+//         this.selectedRows = event.detail;
+//         this.isButtonDisabled = this.selectedRows.length !== 1;
+//     }
+
+//     /* ================== CSV DOWNLOAD ================== */
+//     async handleRowAction(event) {
+//         const { action, row } = event.detail;
+//         if (!action || action.name !== 'downloadCsv') return;
+
+//         try {
+//             const url = await getArchiveCsvDownloadUrl({ archiveId: row.Id });
+
+//             if (!url) {
+//                 this.showToast('No File', 'No CSV found', 'warning');
+//                 return;
+//             }
+
+//             const link = document.createElement('a');
+//             link.href = url;
+//             link.target = '_blank';
+//             document.body.appendChild(link);
+//             link.click();
+//             document.body.removeChild(link);
+
+//             this.showToast('Download Started', 'Your CSV is downloading...', 'success');
+//         } catch (e) {
+//             this.showToast('Error', 'Download failed', 'error');
+//         }
+//     }
+
+//     /* ================== UN-ARCHIVE ================== */
+//     handleUnarchive() {
+//         const ids = this.selectedRows.map(r => r.Id);
+
+//         this.isLoading = true;
+//         this.isButtonDisabled = true;
+
+//         insertArchivedRecordsBulk({ archiveRecordIds: ids })
+//             .then(result => {
+//                 this.showToast('Success', result, 'success');
+//                 this.selectedRows = [];
+//                 return refreshApex(this.wiredResult);
+//             })
+//             .catch(error => {
+//                 this.showToast(
+//                     'Error',
+//                     error.body?.message || 'Un-archive failed',
+//                     'error'
+//                 );
+//                 console.error('Unarchive error:', JSON.stringify(error));
+//             })
+//             .finally(() => {
+//                 this.isLoading = false;
+//             });
+//     }
+
+//     /* ================== PAGINATION ================== */
+//     handleNext() {
+//         if (this.currentPage < this.totalPages && !this.isLoading) {
+//             this.currentPage++;
+//         }
+//     }
+
+//     handlePrevious() {
+//         if (this.currentPage > 1 && !this.isLoading) {
+//             this.currentPage--;
+//         }
+//     }
+
+//     handlePageSizeChange(event) {
+//         this.pageSize = event.detail.value;
+//         this.currentPage = 1;
+//         refreshApex(this.wiredResult);
+//     }
+
+//     /* ================== TOAST ================== */
+//     showToast(title, message, variant) {
+//         this.dispatchEvent(
+//             new ShowToastEvent({ title, message, variant })
+//         );
+//     }
+
+//     /* ================== UI STATES ================== */
+//     get isPreviousDisabled() {
+//         return this.isLoading || this.currentPage === 1;
+//     }
+
+//     get isNextDisabled() {
+//         return this.isLoading || this.currentPage === this.totalPages;
+//     }
+// }
 import { LightningElement, track, wire } from 'lwc';
-import getArchivedObjectPaginated from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
-import insertArchivedRecordsBulk from '@salesforce/apex/DataArchiveObjectController.insertArchivedRecordsBulk';
-import getArchiveCsvDownloadUrl from '@salesforce/apex/DataArchiveObjectController.getArchiveCsvDownloadUrl';
+import getArchivedObjectPaginated
+    from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
+import unarchiveAsync
+    from '@salesforce/apex/DataArchiveObjectController.unarchiveAsync';
+import getArchiveCsvDownloadUrl
+    from '@salesforce/apex/DataArchiveObjectController.getArchiveCsvDownloadUrl';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import { refreshApex } from '@salesforce/apex';
 
 export default class UnArchivedData extends LightningElement {
 
+    /* ================= DATA ================= */
     @track archiveRecords = [];
     @track archiveColumns = [];
     selectedRows = [];
@@ -15,86 +157,85 @@ export default class UnArchivedData extends LightningElement {
         { label: '5/page', value: '5' },
         { label: '10/page', value: '10' },
         { label: '20/page', value: '20' },
-        { label: '50/page', value: '50' },
-        { label: '100/page', value: '100' }
+        { label: '50/page', value: '50' }
     ];
 
     @track pageSize = '5';
     @track currentPage = 1;
-    totalPages = 1;
+    @track totalPages = 1;
     totalRecords = 0;
 
     isButtonDisabled = true;
-    wiredResult;
 
+    /* ================= LOAD DATA ================= */
     @wire(getArchivedObjectPaginated, {
         pageNumber: '$currentPage',
         pageSize: '$pageSize'
     })
-    wiredArchivedData(result) {
-        this.wiredResult = result;
-
-        if (result.data) {
-            this.archiveColumns = result.data.columns;
-            this.archiveRecords = result.data.data;
-            this.totalRecords = result.data.totalRecords;
-            this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
+    wiredData({ data, error }) {
+        if (data) {
+            this.archiveColumns = data.columns;
+            this.archiveRecords = data.data;
+            this.totalRecords = data.totalRecords;
+            this.totalPages = Math.ceil(
+                this.totalRecords / Number(this.pageSize)
+            );
+        } else if (error) {
+            this.showToast(
+                'Error',
+                error.body?.message || 'Failed to load data',
+                'error'
+            );
         }
     }
 
+    /* ================= ROW SELECTION ================= */
     handleSelection(event) {
         this.selectedRows = event.detail;
         this.isButtonDisabled = this.selectedRows.length !== 1;
     }
 
-    /**  DOWNLOAD + TOAST  */
-    async handleRowAction(event) {
+    /* ================= CSV DOWNLOAD ================= */
+    handleRowAction(event) {
         const { action, row } = event.detail;
+        if (!action || action.name !== 'downloadCsv') return;
 
-        if (!action || action.name !== 'downloadCsv') {
-            return;
-        }
-
-        try {
-            const url = await getArchiveCsvDownloadUrl({ archiveId: row.Id });
-
-            if (!url) {
-                this.showToast('No File', 'No CSV found', 'warning');
-                return;
-            }
-
-            //  SAFE DOWNLOAD 
-            const link = document.createElement('a');
-            link.href = url;
-            link.target = '_blank';
-            link.download = '';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            //  Toast notification
-            this.showToast('Download Started', 'Your CSV is downloading...', 'success');
-
-        } catch (e) {
-            this.showToast('Error', 'Download failed', 'error');
-        }
-    }
-
-    handleUnarchive() {
-        const ids = this.selectedRows.map(r => r.Id);
-
-        insertArchivedRecordsBulk({ archiveRecordIds: ids })
-            .then(result => {
-                this.showToast('Success', result, 'success');
-                this.isButtonDisabled = true;
-                refreshApex(this.wiredResult);
+        getArchiveCsvDownloadUrl({ archiveId: row.Id })
+            .then(url => {
+                if (url) {
+                    window.open(url, '_blank');
+                } else {
+                    this.showToast('No File', 'CSV not found', 'warning');
+                }
             })
-            .catch(error => {
-                this.showToast('Error', error.body?.message, 'error');
-                console.error('Unarchive error:', JSON.stringify(error));
+            .catch(() => {
+                this.showToast('Error', 'Download failed', 'error');
             });
     }
 
+    /* ================= UN-ARCHIVE ================= */
+    handleUnarchive() {
+        const ids = this.selectedRows.map(r => r.Id);
+        this.isButtonDisabled = true;
+
+        unarchiveAsync({ archiveRecordIds: ids })
+            .then(message => {
+                this.showToast('Success', message, 'success');
+
+                /* 🔁 RESET UI STATE */
+                this.selectedRows = [];
+                this.currentPage = 1;   // force reload page 1
+            })
+            .catch(error => {
+                this.showToast(
+                    'Error',
+                    error.body?.message || 'Un-archive failed',
+                    'error'
+                );
+            });
+    }
+
+    /* ================= PAGINATION ================= */
     handleNext() {
         if (this.currentPage < this.totalPages) {
             this.currentPage++;
@@ -110,24 +251,20 @@ export default class UnArchivedData extends LightningElement {
     handlePageSizeChange(event) {
         this.pageSize = event.detail.value;
         this.currentPage = 1;
-        refreshApex(this.wiredResult);
     }
 
-    showToast(title, message, variant) {
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title,
-                message,
-                variant
-            })
-        );
-    }
-
+    /* ================= UI HELPERS ================= */
     get isPreviousDisabled() {
         return this.currentPage === 1;
     }
 
     get isNextDisabled() {
         return this.currentPage === this.totalPages;
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(
+            new ShowToastEvent({ title, message, variant })
+        );
     }
 }

@@ -170,4 +170,3 @@ export default class FieldSelector extends LightningElement {
 
 
 }
-    

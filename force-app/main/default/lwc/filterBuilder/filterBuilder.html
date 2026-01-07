@@ -187,6 +187,43 @@
                     onchange={handlePageSizeChange}>
                 </c-capsule-dropdown>
             </div>
+             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+
+                    <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
+
+                        <lightning-button
+                            label="Previous"
+                            variant="brand"
+                            onclick={handlePrevious}
+                            disabled={isPreviousDisabled}
+                            class="slds-m-right_small">
+                        </lightning-button>
+
+                        <span class="slds-text-body_small slds-m-right_small">
+                            Page {currentPage} Of {totalPages}
+                        </span>
+
+                        <lightning-button
+                            label="Next"
+                            variant="brand"
+                            onclick={handleNext}
+                            disabled={isNextDisabled}>
+                        </lightning-button>
+
+                    </div>
+                    
+                    <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
+                        <lightning-button
+                            label={archiveButtonLabel}
+                            variant="brand"
+                            disabled={isButtonDisabled}
+                            onclick={handlearchive}>
+                        </lightning-button>
+                    </div>
+                    
+                </div>
+            </div>
             
             <c-dynamic-data-table
                     show-archive-table="true"
