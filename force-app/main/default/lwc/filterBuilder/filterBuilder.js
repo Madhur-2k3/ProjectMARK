@@ -34,8 +34,9 @@ export default class FilterBuilder extends LightningElement {
         { label: '200 / page', value: '200' },
         { label: '300 / page', value: '300' },
         { label: '400 / page', value: '400' },
+        {label: '500 / page', value: '500' },
         {label: '2000 / page', value: '2000' },
-        {label: '500 / page', value: '500' }
+        {label: '3000 / page', value: '3000' },
     ];
     conditionOptions=[
         { label: 'All Conditions Met (AND)', value: 'AND' },
@@ -62,6 +63,7 @@ export default class FilterBuilder extends LightningElement {
     showModal = false;
     customLogic = '';
     modalMessage=''
+    note='';
 
     // Toggle Buttons
     get allRecordsVariant() { return this.isFilterMode ? "neutral" : "brand"; }
@@ -422,6 +424,10 @@ get selectedFieldApiList() {
 
         this.filteredAccounts = result.records;
         console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
+        // console.log("size of fiteredAccounts",sizeOf(JSON.stringify(this.filteredAccounts)));
+        const sizeInBytes = new TextEncoder().encode(JSON.stringify(this.filteredAccounts)).length;
+        const kiloBytes = sizeInBytes / 1024;
+        console.log(`Size of filteredAccounts: ${kiloBytes.toFixed(2)} KB`);
         this.totalRecords = result.totalCount;
         this.totalPages = Math.ceil(this.totalRecords / Number(this.pageSize));
 
@@ -472,12 +478,14 @@ notifyWhereClauseChange() {
             //show modal for selected
             this.showModal = true;
             this.modalMessage = `Are you sure you want to archive the selected ${this.masterSelectedIds.size} records?`;
+            this.note = 'Selected records will be archived.';
             
             console.log("Modal status",this.showModal);
             // this.archiveSelected();
         } else {
              this.showModal = true;
             this.modalMessage = `Are you sure you want to archive all records?`;
+            this.note = 'All records will be archived.';
             // this.archiveAll();
         }
     }
