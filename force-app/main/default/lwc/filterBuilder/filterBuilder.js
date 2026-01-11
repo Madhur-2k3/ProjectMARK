@@ -321,16 +321,32 @@ get whereClause() {
     // 🔥 CUSTOM COMBINATION (user will define manually)
     return this.customWhereLogic(valid);
 }
-customWhereLogic(validParts) {
-    // Ask user input, e.g: (1 AND 2) OR 3
-    const input = this.customLogic || ""; // store separately
-    if (!input) return validParts.join(" AND "); // fallback
+// customWhereLogic(validParts) {
+//     // Ask user input, e.g: (1 AND 2) OR 3
+//     const input = this.customLogic || ""; // store separately
+//     if (!input) return validParts.join(" AND "); // fallback
 
-    // Replace numbers with actual conditions
-    return input.replace(/\b\d+\b/g, match => {
+//     // Replace numbers with actual conditions
+//     return input.replace(/\b\d+\b/g, match => {
+//         const idx = parseInt(match, 10) - 1;
+//         return validParts[idx] || '';
+//     });
+// }
+customWhereLogic(validParts) {
+    // 1. Get raw input and format it (add spaces, uppercase keywords)
+    let formattedInput = this.formatLogicString(this.customLogic);
+
+    if (!formattedInput) return validParts.join(" AND ");
+
+    // 2. Replace numbers with actual conditions
+    // The \b ensures we match the whole number (e.g., '1' but not the '1' in '10')
+    const finalQuery = formattedInput.replace(/\b(\d+)\b/g, (match) => {
         const idx = parseInt(match, 10) - 1;
-        return validParts[idx] || '';
+        // Return the condition or an empty string if index is out of bounds
+        return validParts[idx] !== undefined ? validParts[idx] : '';
     });
+
+    return finalQuery;
 }
 handleCustomLogic(event) {
     this.closeTable();
@@ -619,35 +635,89 @@ notifyWhereClauseChange() {
         this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
     // Helper to check if the custom logic string is valid
-isValidCustomLogic(logic) {
+    // isValidCustomLogic(logic) {
+    // if (!logic || logic.trim() === '') return true;
+
+    // let stack = [];
+    // const openBrackets = '(';
+    // const closeBrackets = ')';
+    
+    // // 1. Check Parentheses Balance
+    // for (let char of logic) {
+    //     if (char === openBrackets) {
+    //         stack.push(char);
+    //     } else if (char === closeBrackets) {
+    //         if (stack.length === 0) return false; // Found ')' without an '('
+    //         stack.pop();
+    //     }
+    // }
+    // if (stack.length !== 0) return false; // Unclosed '('
+
+    // // 2. Check if numbers referenced exist in current filters
+    // const usedIndices = logic.match(/\b\d+\b/g);
+    // if (usedIndices) {
+    //     const maxIndex = this.filters.length;
+    //     for (let num of usedIndices) {
+    //         if (parseInt(num, 10) > maxIndex || parseInt(num, 10) <= 0) {
+    //             return false; // Reference to a non-existent filter index
+    //         }
+    //     }
+    // }
+
+    // return true;
+    // }
+    isValidCustomLogic(logic) {
     if (!logic || logic.trim() === '') return true;
 
-    let stack = [];
-    const openBrackets = '(';
-    const closeBrackets = ')';
+    // 1. Check for Illegal Characters/Words
+    // This regex looks for anything that is NOT: a number, AND, OR, (, ), or whitespace
+    // We replace valid tokens with empty strings; if anything is left, it's illegal.
+    const sanitizedLogic = logic.replace(/\d+/g, '')       // Remove numbers
+                                .replace(/AND/gi, '')      // Remove AND (case insensitive)
+                                .replace(/OR/gi, '')       // Remove OR (case insensitive)
+                                .replace(/[\(\)\s]/g, ''); // Remove brackets and spaces
     
-    // 1. Check Parentheses Balance
+    if (sanitizedLogic.length > 0) {
+        return false; // Contains unauthorized text like "NOT" or "random_word"
+    }
+
+    // 2. Check Parentheses Balance
+    let stack = [];
     for (let char of logic) {
-        if (char === openBrackets) {
-            stack.push(char);
-        } else if (char === closeBrackets) {
-            if (stack.length === 0) return false; // Found ')' without an '('
+        if (char === '(') stack.push(char);
+        else if (char === ')') {
+            if (stack.length === 0) return false;
             stack.pop();
         }
     }
-    if (stack.length !== 0) return false; // Unclosed '('
+    if (stack.length !== 0) return false;
 
-    // 2. Check if numbers referenced exist in current filters
+    // 3. Check if numbers referenced exist in current filters
     const usedIndices = logic.match(/\b\d+\b/g);
     if (usedIndices) {
         const maxIndex = this.filters.length;
         for (let num of usedIndices) {
-            if (parseInt(num, 10) > maxIndex || parseInt(num, 10) <= 0) {
-                return false; // Reference to a non-existent filter index
-            }
+            const val = parseInt(num, 10);
+            if (val > maxIndex || val <= 0) return false;
         }
     }
 
     return true;
-    }
+}
+formatLogicString(logic) {
+    if (!logic) return '';
+
+    return logic
+        // 1. Add spaces around parentheses
+        .replace(/\(/g, ' ( ')
+        .replace(/\)/g, ' ) ')
+        // 2. Add spaces around numbers
+        .replace(/(\d+)/g, ' $1 ')
+        // 3. Add spaces around AND/OR (case insensitive) and convert to Uppercase
+        .replace(/AND/gi, ' AND ')
+        .replace(/OR/gi, ' OR ')
+        // 4. Collapse multiple spaces into one
+        .replace(/\s+/g, ' ')
+        .trim();
+}
 }

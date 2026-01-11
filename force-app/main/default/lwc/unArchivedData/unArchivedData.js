@@ -270,8 +270,8 @@
 // }
 
 import { LightningElement, track, wire } from 'lwc';
-import getAllArchiveCsvDownloadUrls
-    from '@salesforce/apex/DataArchiveObjectController.getAllArchiveCsvDownloadUrls';
+// import getAllArchiveCsvDownloadUrls
+//     from '@salesforce/apex/DataArchiveObjectController.getAllArchiveCsvDownloadUrls';
 
 import getArchivedObjectPaginated
     from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
@@ -342,7 +342,7 @@ export default class UnArchivedData extends LightningElement {
                     'Un-archive Started',
                     msg + ' You may refresh safely.',
                     'info',
-                    12000
+                    18000
                 );
 
                 this.selectedRows = [];
@@ -399,45 +399,45 @@ export default class UnArchivedData extends LightningElement {
             })
         );
     }
-    handleRowAction(event) {
-    const { action, row } = event.detail;
+    // handleRowAction(event) {
+    // const { action, row } = event.detail;
 
-    if (!action || action.name !== 'downloadCsv') return;
+    // if (!action || action.name !== 'downloadCsv') return;
 
-    getAllArchiveCsvDownloadUrls({ archiveId: row.Id })
-        .then(urls => {
-            if (!urls || urls.length === 0) {
-                this.showToast(
-                    'No Files',
-                    'No CSV files found for this record',
-                    'warning',
-                    6000
-                );
-                return;
-            }
+    // getAllArchiveCsvDownloadUrls({ archiveId: row.Id })
+    //     .then(urls => {
+    //         if (!urls || urls.length === 0) {
+    //             this.showToast(
+    //                 'No Files',
+    //                 'No CSV files found for this record',
+    //                 'warning',
+    //                 6000
+    //             );
+    //             return;
+    //         }
 
-            // Download all CSV files
-            urls.forEach((url, index) => {
-                setTimeout(() => {
-                    window.open(url, '_blank');
-                }, index * 500); // avoid popup block
-            });
+    //         // Download all CSV files
+    //         urls.forEach((url, index) => {
+    //             setTimeout(() => {
+    //                 window.open(url, '_blank');
+    //             }, index * 500); // avoid popup block
+    //         });
 
-            this.showToast(
-                'Download Started',
-                `CSV file downloading`,
-                'success',
-                8000
-            );
-        })
-        .catch(() => {
-            this.showToast(
-                'Error',
-                'Failed to download CSV files',
-                'error',
-                8000
-            );
-        });
-}
+    //         this.showToast(
+    //             'Download Started',
+    //             `CSV file downloading`,
+    //             'success',
+    //             8000
+    //         );
+    //     })
+    //     .catch(() => {
+    //         this.showToast(
+    //             'Error',
+    //             'Failed to download CSV files',
+    //             'error',
+    //             8000
+    //         );
+    //     });
+// }
 
 }
