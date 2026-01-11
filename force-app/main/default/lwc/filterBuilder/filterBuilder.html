@@ -174,8 +174,8 @@
             
         </template>
     </div>
-
-        <template if:true={filteredAccounts}>
+<template if:true={showTable}>
+    <template if:false={showNoRecords}>
             <div class="conditions-builder-container">
 
             
@@ -201,7 +201,7 @@
                         </lightning-button>
 
                         <span class="slds-text-body_small slds-m-right_small">
-                            Page {currentPage} of {totalPages}
+                            Page {currentPage} Of {totalPages}
                         </span>
 
                         <lightning-button
@@ -247,7 +247,7 @@
                         </lightning-button>
 
                         <span class="slds-text-body_small slds-m-right_small">
-                            Page {currentPage} of {totalPages}
+                            Page {currentPage} Of {totalPages}
                         </span>
 
                         <lightning-button
@@ -267,10 +267,17 @@
                             onclick={handlearchive}>
                         </lightning-button>
                     </div>
-                    
                 </div>
             </div>
             </div>
+        </template>
+
+        
+        <template if:true={showNoRecords}>
+            <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                No Records Found
+            </div>
+</template>
         </template>
         <template if:true={isLoading}>
                         <lightning-spinner 

@@ -19,12 +19,19 @@ export default class FilterBuilder extends LightningElement {
     @api objectname;
     @api tablecolumnsname=[];
     @api changed;
+    @track showNoRecords=false;
+    @track showTable=false;
     @track filteredAccounts;
     // Pagination
     @track pageSize = '20';
     @track allRecords=true;
     @track selectedRows=[];
     @track selectedCondition='AND';
+    closeTable(){
+        this.showTable=false;
+        this.filteredAccounts=null;
+        this.showNoRecords=false;
+    }
     pageSizeOptions = [
         { label: '20 / page', value: '20' },
         { label: '40 / page', value: '40' },
@@ -74,7 +81,7 @@ export default class FilterBuilder extends LightningElement {
     this.allRecords = true;
     this.filters = [];             // clear filters
     this.filteredAccounts = null;
-    
+    this.showNoRecords=false;
     this.notifyWhereClauseChange();
 }
 
@@ -159,11 +166,13 @@ export default class FilterBuilder extends LightningElement {
         }));
     }
     handleConditionChange(event){
+        this.closeTable();
         this.selectedCondition = event.detail.value;
         this.notifyWhereClauseChange();
     }
 
 addFilter() {
+    this.closeTable();
     this.filters = [
         ...this.filters,
         {
@@ -209,6 +218,7 @@ get isSubmitDisabled() {
 
 
     removeFilter(event) {
+        this.closeTable();
     const id = Number(event.currentTarget.dataset.id);
     this.filters = this.filters.filter(f => f.id !== id);
     console.log("Filterss Array length:",this.filters.length);
@@ -235,12 +245,17 @@ get isSubmitDisabled() {
 
 
     handleJoinChange(e) { this.updateFilter(e, "joinType"); }
-    handleOperatorChange(e) { this.updateFilter(e, "operator"); }
-    handleValueChange(e) { this.updateFilter(e, "value"); }
+    handleOperatorChange(e) { 
+        this.closeTable();
+        this.updateFilter(e, "operator"); }
+    handleValueChange(e) {
+        this.closeTable();
+        this.updateFilter(e, "value"); }
     // handleConditionChange(e) { this.updateFilter(e, "condition"); }
 
     
     handleFieldChange(event) {
+        this.closeTable();
     const id = Number(event.target.dataset.id);
     const selectedField = event.detail.value;
     const fieldMeta = this.fields.find(f => f.apiName === selectedField);
@@ -318,6 +333,7 @@ customWhereLogic(validParts) {
     });
 }
 handleCustomLogic(event) {
+    this.closeTable();
     this.customLogic = event.detail.value;
     const textarea = event.target;
     if (!this.isValidCustomLogic(this.customLogic)) {
@@ -385,6 +401,8 @@ get selectedFieldApiList() {
         return;
     }
     this.currentPage = 1;
+    this.showTable=true;
+    this.showNoRecords=false;
     this.loadRecords();
 }
 
@@ -423,6 +441,10 @@ get selectedFieldApiList() {
         });
 
         this.filteredAccounts = result.records;
+        this.showNoRecords = this.filteredAccounts.length === 0;
+        if(this.showNoRecords){
+            this.showTable=false;
+        }
         console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
         // console.log("size of fiteredAccounts",sizeOf(JSON.stringify(this.filteredAccounts)));
         const sizeInBytes = new TextEncoder().encode(JSON.stringify(this.filteredAccounts)).length;
@@ -435,8 +457,10 @@ get selectedFieldApiList() {
         this.archiveSelectedRows = [...this.masterSelectedIds];
     } catch (error) {
         console.error("Error Loading Records:", error);
+        this.showNoRecords = true;
     }
 }
+
 handlePageSizeChange(event) {
         this.pageSize = event.detail.value;
         this.currentPage = 1;

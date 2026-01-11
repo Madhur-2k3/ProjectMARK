@@ -883,17 +883,17 @@ public with sharing class DataArchiveObjectController {
             'fieldName' => 'statusClass'
         }
     }
-},
+}
 
-            new Map<String, Object>{
-                'type' => 'button-icon',
-                'initialWidth' => 60,
-                'typeAttributes' => new Map<String, Object>{
-                    'iconName' => 'utility:download',
-                    'name' => 'downloadCsv',
-                    'title' => 'Download All CSV'
-                }
-            }
+            // new Map<String, Object>{
+            //     'type' => 'button-icon',
+            //     'initialWidth' => 60,
+            //     'typeAttributes' => new Map<String, Object>{
+            //         'iconName' => 'utility:download',
+            //         'name' => 'downloadCsv',
+            //         'title' => 'Download All CSV'
+            //     }
+            // }
         };
 
         List<Map<String, Object>> rows = new List<Map<String, Object>>();
@@ -924,24 +924,24 @@ public with sharing class DataArchiveObjectController {
     }
 
     /* ================= DOWNLOAD ALL CSV FILES ================= */
-    @AuraEnabled
-    public static List<String> getAllArchiveCsvDownloadUrls(Id archiveId) {
+    // @AuraEnabled
+    // public static List<String> getAllArchiveCsvDownloadUrls(Id archiveId) {
 
-        List<String> urls = new List<String>();
+    //     List<String> urls = new List<String>();
 
-        for (ContentDocumentLink cdl : [
-            SELECT ContentDocumentId
-            FROM ContentDocumentLink
-            WHERE LinkedEntityId = :archiveId
-            ORDER BY SystemModstamp DESC
-        ]) {
-            urls.add(
-                '/sfc/servlet.shepherd/document/download/' +
-                cdl.ContentDocumentId
-            );
-        }
-        return urls;
-    }
+    //     for (ContentDocumentLink cdl : [
+    //         SELECT ContentDocumentId
+    //         FROM ContentDocumentLink
+    //         WHERE LinkedEntityId = :archiveId
+    //         ORDER BY SystemModstamp DESC
+    //     ]) {
+    //         urls.add(
+    //             '/sfc/servlet.shepherd/document/download/' +
+    //             cdl.ContentDocumentId
+    //         );
+    //     }
+    //     return urls;
+    // }
 
     /* ================= START ASYNC ================= */
     @AuraEnabled
