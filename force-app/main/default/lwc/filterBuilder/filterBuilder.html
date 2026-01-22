@@ -273,12 +273,13 @@
         </template>
 
         
+        
+        </template>
         <template if:true={showNoRecords}>
             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
                 No Records Found
             </div>
 </template>
-        </template>
         <template if:true={isLoading}>
                         <lightning-spinner 
                             alternative-text="Processing..."
@@ -287,10 +288,10 @@
                         </lightning-spinner>
         </template>
 
-        <div class="soql-preview">
+        <!-- <div class="soql-preview">
             <p><strong>WHERE Clause Preview:</strong></p>
             <code>{whereClause}</code>
-        </div>
+        </div> -->
   
     
 </template>

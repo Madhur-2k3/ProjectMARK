@@ -29,7 +29,7 @@ export default class FilterBuilder extends LightningElement {
     @track selectedCondition='AND';
     closeTable(){
         this.showTable=false;
-        this.filteredAccounts=null;
+        // this.filteredAccounts=null;
         this.showNoRecords=false;
     }
     pageSizeOptions = [
@@ -416,6 +416,7 @@ get selectedFieldApiList() {
         this.showToast('Error', 'Please fix validation errors before filtering.', 'error');
         return;
     }
+    this.filteredAccounts=null;//22
     this.currentPage = 1;
     this.showTable=true;
     this.showNoRecords=false;
@@ -457,10 +458,8 @@ get selectedFieldApiList() {
         });
 
         this.filteredAccounts = result.records;
-        this.showNoRecords = this.filteredAccounts.length === 0;
-        if(this.showNoRecords){
-            this.showTable=false;
-        }
+        this.showNoRecords = result.records.length === 0;
+        this.showTable = !this.showNoRecords;
         console.log("Filtered Accounts:",JSON.stringify(this.filteredAccounts));
         // console.log("size of fiteredAccounts",sizeOf(JSON.stringify(this.filteredAccounts)));
         const sizeInBytes = new TextEncoder().encode(JSON.stringify(this.filteredAccounts)).length;

@@ -7,7 +7,7 @@
 
             <div class="header-text">
                 <h1>Data Archive Console</h1>
-                <p>Move records in and out of archive with a clean, guided flow.</p>
+                <p>Archival Is Not Deletion-Just Smart Data Management</p>
             </div>
         </div>
 
@@ -31,10 +31,27 @@
         </div>
 
         <!-- RIGHT → Status Pill -->
-        <div class="status-pill">
-            <span class="green-dot"></span>
-            Preview only — no changes until you confirm
+        <div class="status-pill-wrapper slds-tooltip-trigger slds-tooltip-trigger_hover">
+
+    <div class="status-pill">
+        <span class="green-dot"></span>
+        Instructions
+    </div>
+
+    <div class="slds-tooltip slds-nubbin_top" role="tooltip">
+        <div class="slds-tooltip__content">
+            <p><b>{instructionTitle}</b></p>
+
+            <ul>
+                <template for:each={instructions} for:item="item">
+                    <li key={item}>{item}</li>
+                </template>
+            </ul>
         </div>
+    </div>
+
+</div>
+
 
     </div>
 
