@@ -353,7 +353,7 @@ handleCustomLogic(event) {
     this.customLogic = event.detail.value;
     const textarea = event.target;
     if (!this.isValidCustomLogic(this.customLogic)) {
-        textarea.setCustomValidity("Invalid logic: Check your parentheses or filter numbers.");
+        textarea.setCustomValidity("Invalid custom logic. Please check syntax and filter references.");
     } else {
         textarea.setCustomValidity(""); // Clear error
     }
@@ -516,15 +516,15 @@ notifyWhereClauseChange() {
         if (this.masterSelectedIds.size > 0) {
             //show modal for selected
             this.showModal = true;
-            this.modalMessage = `Are you sure you want to archive the selected ${this.masterSelectedIds.size} records?`;
-            this.note = 'Selected records will be archived.';
+            this.modalMessage = `Are you sure you want to archive the selected records? `;
+            this.note = `${this.masterSelectedIds.size} record(s) will be Archived.`;
             
             console.log("Modal status",this.showModal);
             // this.archiveSelected();
         } else {
              this.showModal = true;
             this.modalMessage = `Are you sure you want to archive all records?`;
-            this.note = 'All records will be archived.';
+            this.note = 'All records will be Archived.';
             // this.archiveAll();
         }
     }
