@@ -8,7 +8,7 @@
     margin: 0 auto;
 }
 .box{
-    width: 23%;
+    width: 27%;
     
 }
 .filter-box {
@@ -84,9 +84,6 @@
     margin: 0;
     gap: 1rem;
 }
-.archive-modal-content{
-    line-height: 2rem;
-}
-.modal-header{
-    font-weight: bold;
+.table-heading{
+    font-size: large;
 }

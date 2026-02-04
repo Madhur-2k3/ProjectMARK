@@ -468,13 +468,258 @@
 //             : s;
 //     }
 // }
+// public with sharing class DataArchiveController {
+
+//     // ===================== CONSTANT =====================
+//     private static final Integer MAX_CSV_SIZE_BYTES = 6 * 1024*10; // 6 MB
+
+//     /* =====================================================
+//      *   ARCHIVE SELECTED RECORDS
+//      * ===================================================== */
+//     @AuraEnabled
+//     public static Id archiveSelectedRecords(
+//         String objectName,
+//         List<Id> recordIds,
+//         String fieldsCsv
+//     ) {
+//         if (recordIds == null || recordIds.isEmpty()) {
+//             throw new AuraHandledException('Select at least one record to archive.');
+//         }
+
+//         String soql = buildSoqlForSelected(objectName, recordIds, fieldsCsv);
+//         return archiveEngine(objectName, fieldsCsv, soql);
+//     }
+
+//     /* =====================================================
+//      *   ARCHIVE ALL RECORDS
+//      * ===================================================== */
+//     @AuraEnabled
+//     public static Id archiveAllRecords(
+//         String objectName,
+//         String fieldsCsv,
+//         String fullQuery
+//     ) {
+//         if (String.isBlank(fullQuery)) {
+//             throw new AuraHandledException('Full query is required.');
+//         }
+
+//         String finalQuery = replaceSelect(fullQuery, fieldsCsv);
+//         return archiveEngine(objectName, fieldsCsv, finalQuery);
+//     }
+
+//     /* =====================================================
+//      *   CORE ENGINE
+//      * ===================================================== */
+//     private static Id archiveEngine(
+//         String objectName,
+//         String fieldsCsv,
+//         String soql
+//     ) {
+//         validateInputs(objectName, fieldsCsv);
+
+//         List<String> fields = normalizeFields(fieldsCsv);
+//         List<SObject> rows = Database.query(soql);
+
+//         if (rows.isEmpty()) {
+//             throw new AuraHandledException('No records found to archive.');
+//         }
+
+//         // 🔹 Create ONE Data Archive record
+//         Data_Archive__c archiveRecord = new Data_Archive__c(
+//             Parent_Object__c = objectName,
+//             Fields__c = String.join(fields, ',')
+//         );
+//         insert archiveRecord;
+
+//         // Re-query to get auto-number Name
+//         archiveRecord = [
+//             SELECT Id, Name
+//             FROM Data_Archive__c
+//             WHERE Id = :archiveRecord.Id
+//             LIMIT 1
+//         ];
+
+//         createArchiveFiles(archiveRecord, rows, fields);
+
+//         delete rows;
+//         return archiveRecord.Id;
+//     }
+
+//     /* =====================================================
+//      *   CSV SPLITTER (6 MB, SAME ARCHIVE RECORD)
+//      * ===================================================== */
+//     private static void createArchiveFiles(
+//         Data_Archive__c archiveRecord,
+//         List<SObject> rows,
+//         List<String> fields
+//     ) {
+//         String header = String.join(fields, ',') + '\n';
+//         String currentCsv = header;
+
+//         Integer partNumber = 1;
+//         List<String> csvLines = buildCsvLines(rows, fields);
+
+//         for (String line : csvLines) {
+
+//             // Safety: one record cannot exceed max size
+//             if (Blob.valueOf(header + line).size() > MAX_CSV_SIZE_BYTES) {
+//                 throw new AuraHandledException(
+//                     'A single record exceeds the 6 MB CSV size limit.'
+//                 );
+//             }
+
+//             String tentativeCsv = currentCsv + line + '\n';
+
+//             // If limit exceeded → save previous CSV (without this record)
+//             if (Blob.valueOf(tentativeCsv).size() > MAX_CSV_SIZE_BYTES) {
+//                 saveCsvFile(archiveRecord, currentCsv, partNumber);
+//                 partNumber++;
+//                 currentCsv = header + line + '\n';
+//             } else {
+//                 currentCsv = tentativeCsv;
+//             }
+//         }
+
+//         // Save last file
+//         if (currentCsv != header) {
+//             saveCsvFile(archiveRecord, currentCsv, partNumber);
+//         }
+//     }
+
+//     /* =====================================================
+//      *   SAVE CSV FILE (SAME NAME AS ARCHIVE RECORD)
+//      * ===================================================== */
+//     private static void saveCsvFile(
+//         Data_Archive__c archiveRecord,
+//         String csvData,
+//         Integer partNumber
+//     ) {
+//         ContentVersion cv = new ContentVersion(
+//             Title = archiveRecord.Name,                 // SAME NAME
+//             PathOnClient = archiveRecord.Name + '.csv', // SAME FILE NAME
+//             Description = 'Part ' + partNumber,         // Differentiator
+//             VersionData = Blob.valueOf(csvData)
+//         );
+//         insert cv;
+
+//         ContentVersion insertedCv = [
+//             SELECT ContentDocumentId
+//             FROM ContentVersion
+//             WHERE Id = :cv.Id
+//             LIMIT 1
+//         ];
+
+//         insert new ContentDocumentLink(
+//             ContentDocumentId = insertedCv.ContentDocumentId,
+//             LinkedEntityId = archiveRecord.Id,
+//             ShareType = 'V',
+//             Visibility = 'AllUsers'
+//         );
+//     }
+
+//     /* =====================================================
+//      *   CSV LINE BUILDER
+//      * ===================================================== */
+//     private static List<String> buildCsvLines(
+//         List<SObject> rows,
+//         List<String> fields
+//     ) {
+//         List<String> lines = new List<String>();
+
+//         for (SObject row : rows) {
+//             List<String> cols = new List<String>();
+
+//             for (String f : fields) {
+//                 Object value;
+
+//                 if (f.contains('.')) {
+//                     List<String> parts = f.split('\\.');
+//                     SObject parent = row.getSObject(parts[0]);
+//                     value = parent != null ? parent.get(parts[1]) : null;
+//                 } else {
+//                     value = row.get(f);
+//                 }
+
+//                 cols.add(escapeCsv(value == null ? '' : String.valueOf(value)));
+//             }
+
+//             lines.add(String.join(cols, ','));
+//         }
+//         return lines;
+//     }
+
+//     /* =====================================================
+//      *   SOQL HELPERS
+//      * ===================================================== */
+//     private static String buildSoqlForSelected(
+//         String objectName,
+//         List<Id> recordIds,
+//         String fieldsCsv
+//     ) {
+//         List<String> fields = normalizeFields(fieldsCsv);
+//         if (!fields.contains('Id')) fields.add('Id');
+
+//         List<String> ids = new List<String>();
+//         for (Id i : recordIds) {
+//             ids.add('\'' + String.escapeSingleQuotes(i) + '\'');
+//         }
+
+//         return 'SELECT ' + String.join(fields, ',') +
+//                ' FROM ' + objectName +
+//                ' WHERE Id IN (' + String.join(ids, ',') + ')';
+//     }
+
+//     private static String replaceSelect(String fullQuery, String fieldsCsv) {
+//         List<String> fields = normalizeFields(fieldsCsv);
+
+//         String lowerQuery = fullQuery.toLowerCase();
+//         Integer fromIndex = lowerQuery.indexOf(' from ');
+
+//         if (fromIndex == -1) {
+//             throw new AuraHandledException('Invalid SOQL query.');
+//         }
+
+//         String fromClause = fullQuery.substring(fromIndex);
+//         return 'SELECT ' + String.join(fields, ',') + fromClause;
+//     }
+
+//     /* =====================================================
+//      *   VALIDATION & UTILITIES
+//      * ===================================================== */
+//     private static void validateInputs(String objectName, String fieldsCsv) {
+//         if (String.isBlank(objectName)) {
+//             throw new AuraHandledException('Object name is required.');
+//         }
+//         if (!Schema.getGlobalDescribe().containsKey(objectName)) {
+//             throw new AuraHandledException('Invalid object name.');
+//         }
+//         if (String.isBlank(fieldsCsv)) {
+//             throw new AuraHandledException('At least one field is required.');
+//         }
+//     }
+
+//     private static List<String> normalizeFields(String csv) {
+//         List<String> fields = new List<String>();
+//         for (String f : csv.split(',')) {
+//             if (!String.isBlank(f)) {
+//                 fields.add(f.trim());
+//             }
+//         }
+//         return fields;
+//     }
+
+//     private static String escapeCsv(String v) {
+//         String s = v.replace('"', '""');
+//         return (s.contains(',') || s.contains('\n') || s.contains('"'))
+//             ? '"' + s + '"'
+//             : s;
+//     }
+// }
+
 public with sharing class DataArchiveController {
 
-    // ===================== CONSTANT =====================
-    private static final Integer MAX_CSV_SIZE_BYTES = 6 * 1024*10; // 6 MB
-
     /* =====================================================
-     *   ARCHIVE SELECTED RECORDS
+     *   ARCHIVE SELECTED RECORDS (ASYNC)
      * ===================================================== */
     @AuraEnabled
     public static Id archiveSelectedRecords(
@@ -487,11 +732,11 @@ public with sharing class DataArchiveController {
         }
 
         String soql = buildSoqlForSelected(objectName, recordIds, fieldsCsv);
-        return archiveEngine(objectName, fieldsCsv, soql);
+        return executeBatchArchive(objectName, fieldsCsv, soql);
     }
 
     /* =====================================================
-     *   ARCHIVE ALL RECORDS
+     *   ARCHIVE ALL RECORDS (ASYNC)
      * ===================================================== */
     @AuraEnabled
     public static Id archiveAllRecords(
@@ -504,148 +749,64 @@ public with sharing class DataArchiveController {
         }
 
         String finalQuery = replaceSelect(fullQuery, fieldsCsv);
-        return archiveEngine(objectName, fieldsCsv, finalQuery);
+        return executeBatchArchive(objectName, fieldsCsv, finalQuery);
     }
 
     /* =====================================================
-     *   CORE ENGINE
+     *   EXECUTE BATCH JOB
      * ===================================================== */
-    private static Id archiveEngine(
+    private static Id executeBatchArchive(
         String objectName,
         String fieldsCsv,
         String soql
     ) {
         validateInputs(objectName, fieldsCsv);
 
-        List<String> fields = normalizeFields(fieldsCsv);
-        List<SObject> rows = Database.query(soql);
+        // Execute batch with batch size of 200
+        DataArchiveBatch batch = new DataArchiveBatch(objectName, fieldsCsv, soql);
+        Id batchJobId = Database.executeBatch(batch, 200);
+        
+        return batchJobId;
+    }
 
-        if (rows.isEmpty()) {
-            throw new AuraHandledException('No records found to archive.');
-        }
+    /* =====================================================
+     *   CHECK BATCH STATUS
+     * ===================================================== */
+    @AuraEnabled
+    public static Map<String, Object> getBatchStatus(Id batchJobId) {
+        AsyncApexJob job = [
+            SELECT Id, Status, NumberOfErrors, JobItemsProcessed, TotalJobItems,
+                   CreatedDate, CompletedDate
+            FROM AsyncApexJob
+            WHERE Id = :batchJobId
+            LIMIT 1
+        ];
+        
+        Map<String, Object> result = new Map<String, Object>();
+        result.put('status', job.Status);
+        result.put('processed', job.JobItemsProcessed);
+        result.put('total', job.TotalJobItems);
+        result.put('errors', job.NumberOfErrors);
+        result.put('createdDate', job.CreatedDate);
+        result.put('completedDate', job.CompletedDate);
+        
+        return result;
+    }
 
-        // 🔹 Create ONE Data Archive record
-        Data_Archive__c archiveRecord = new Data_Archive__c(
-            Parent_Object__c = objectName,
-            Fields__c = String.join(fields, ',')
-        );
-        insert archiveRecord;
-
-        // Re-query to get auto-number Name
-        archiveRecord = [
-            SELECT Id, Name
+    /* =====================================================
+     *   GET ARCHIVE RECORD ID FROM BATCH JOB
+     * ===================================================== */
+    @AuraEnabled
+    public static Id getArchiveRecordId(Id batchJobId) {
+        // Query the most recent Data Archive record
+        List<Data_Archive__c> archives = [
+            SELECT Id, Status__c
             FROM Data_Archive__c
-            WHERE Id = :archiveRecord.Id
+            ORDER BY CreatedDate DESC
             LIMIT 1
         ];
-
-        createArchiveFiles(archiveRecord, rows, fields);
-
-        delete rows;
-        return archiveRecord.Id;
-    }
-
-    /* =====================================================
-     *   CSV SPLITTER (6 MB, SAME ARCHIVE RECORD)
-     * ===================================================== */
-    private static void createArchiveFiles(
-        Data_Archive__c archiveRecord,
-        List<SObject> rows,
-        List<String> fields
-    ) {
-        String header = String.join(fields, ',') + '\n';
-        String currentCsv = header;
-
-        Integer partNumber = 1;
-        List<String> csvLines = buildCsvLines(rows, fields);
-
-        for (String line : csvLines) {
-
-            // Safety: one record cannot exceed max size
-            if (Blob.valueOf(header + line).size() > MAX_CSV_SIZE_BYTES) {
-                throw new AuraHandledException(
-                    'A single record exceeds the 6 MB CSV size limit.'
-                );
-            }
-
-            String tentativeCsv = currentCsv + line + '\n';
-
-            // If limit exceeded → save previous CSV (without this record)
-            if (Blob.valueOf(tentativeCsv).size() > MAX_CSV_SIZE_BYTES) {
-                saveCsvFile(archiveRecord, currentCsv, partNumber);
-                partNumber++;
-                currentCsv = header + line + '\n';
-            } else {
-                currentCsv = tentativeCsv;
-            }
-        }
-
-        // Save last file
-        if (currentCsv != header) {
-            saveCsvFile(archiveRecord, currentCsv, partNumber);
-        }
-    }
-
-    /* =====================================================
-     *   SAVE CSV FILE (SAME NAME AS ARCHIVE RECORD)
-     * ===================================================== */
-    private static void saveCsvFile(
-        Data_Archive__c archiveRecord,
-        String csvData,
-        Integer partNumber
-    ) {
-        ContentVersion cv = new ContentVersion(
-            Title = archiveRecord.Name,                 // SAME NAME
-            PathOnClient = archiveRecord.Name + '.csv', // SAME FILE NAME
-            Description = 'Part ' + partNumber,         // Differentiator
-            VersionData = Blob.valueOf(csvData)
-        );
-        insert cv;
-
-        ContentVersion insertedCv = [
-            SELECT ContentDocumentId
-            FROM ContentVersion
-            WHERE Id = :cv.Id
-            LIMIT 1
-        ];
-
-        insert new ContentDocumentLink(
-            ContentDocumentId = insertedCv.ContentDocumentId,
-            LinkedEntityId = archiveRecord.Id,
-            ShareType = 'V',
-            Visibility = 'AllUsers'
-        );
-    }
-
-    /* =====================================================
-     *   CSV LINE BUILDER
-     * ===================================================== */
-    private static List<String> buildCsvLines(
-        List<SObject> rows,
-        List<String> fields
-    ) {
-        List<String> lines = new List<String>();
-
-        for (SObject row : rows) {
-            List<String> cols = new List<String>();
-
-            for (String f : fields) {
-                Object value;
-
-                if (f.contains('.')) {
-                    List<String> parts = f.split('\\.');
-                    SObject parent = row.getSObject(parts[0]);
-                    value = parent != null ? parent.get(parts[1]) : null;
-                } else {
-                    value = row.get(f);
-                }
-
-                cols.add(escapeCsv(value == null ? '' : String.valueOf(value)));
-            }
-
-            lines.add(String.join(cols, ','));
-        }
-        return lines;
+        
+        return archives.isEmpty() ? null : archives[0].Id;
     }
 
     /* =====================================================
@@ -706,12 +867,5 @@ public with sharing class DataArchiveController {
             }
         }
         return fields;
-    }
-
-    private static String escapeCsv(String v) {
-        String s = v.replace('"', '""');
-        return (s.contains(',') || s.contains('\n') || s.contains('"'))
-            ? '"' + s + '"'
-            : s;
     }
 }

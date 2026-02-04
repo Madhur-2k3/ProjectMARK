@@ -47,8 +47,14 @@ public static Map<String, Object> getFilteredAccounts(
     // Extract WHERE clause if present
     String wherePart = '';
     if (query.contains('WHERE')) {
-        wherePart = query.substringAfter('WHERE');
-        wherePart = ' WHERE ' + wherePart;
+        // Extract everything after WHERE, but before ORDER BY if it exists
+        String queryAfterWhere = query.substringAfter('WHERE');
+        if (queryAfterWhere.contains('ORDER BY')) {
+            wherePart = queryAfterWhere.substringBefore('ORDER BY');
+        } else {
+            wherePart = queryAfterWhere;
+        }
+        wherePart = ' WHERE ' + wherePart.trim();
     }
 
     String countQuery = 'SELECT COUNT() FROM ' + objectName + wherePart;

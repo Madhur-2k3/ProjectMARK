@@ -6,54 +6,19 @@ export default class FieldSelector extends LightningElement {
     @track userSelectedFields=[]
     @track fieldOptions = [];   // ONLY non-required visible in UI
     @track selectedValues = []; // user + required hidden fields included
+    @track includeAllFields = true;
 
     fieldTypeMap = {};
     requiredFields = [];
 
-//     @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
-//     wiredFields({ data, error }) {
-//         if (data) {
 
-//             this.fieldOptions = [];
-//             this.requiredFields = [];
-//             this.fieldTypeMap = {};
-
-//             data.forEach(f => {
-//     // store type & label
-//     this.fieldTypeMap[f.apiName] = {
-//         type: f.fieldType,
-//         label: f.label
-//     };
-
-//     // store required fields (but DO NOT auto select)
-//     if (f.isRequired) {
-//         this.requiredFields.push(f.apiName);
-//     }
-
-//     // ALL fields appear in UI (required + optional)
-//     this.fieldOptions.push({
-//         label: f.label, // show required with *
-//         value: f.apiName
-//     });
-// });
-
-
-            
-//             this.selectedValues = [
-                
-//             ];
-
-//             this.sendUpdatedFields();
-//         } 
-//         else if (error) {
-//             console.error('Error fetching fields:', error);
-//         }
-//     }
     @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
     wiredFields({ data, error }) {
     if (data) {
 
         // Reset
+        // Reset includeAllFields to default when object changes
+        this.includeAllFields = true;
         this.fieldOptions = [];
         this.requiredFields = [];
         this.fieldTypeMap = {};
@@ -82,7 +47,20 @@ export default class FieldSelector extends LightningElement {
             });
         });
 
-        this.selectedValues = [];
+        // Default: select all fields if includeAllFields enabled
+        if (this.includeAllFields) {
+            this.selectedValues = this.fieldOptions.map(opt => opt.value);
+        } else {
+            this.selectedValues = [];
+        }
+
+        // Build user-readable selected fields
+        this.userSelectedFields = this.selectedValues.map(apiName => ({
+            label: this.fieldTypeMap[apiName]?.label,
+            value: apiName,
+            required: this.requiredFields.includes(apiName)
+        }));
+
         this.sendUpdatedFields();
     } else if (error) {
         console.error('Error fetching fields:', error);
