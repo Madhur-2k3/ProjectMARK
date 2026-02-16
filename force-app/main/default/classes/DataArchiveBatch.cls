@@ -14,6 +14,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     private String currentCsv;
     private Integer partNumber = 1;
     private String header;
+    private Set<Id> generatedContentDocumentIds = new Set<Id>();
 
     // ===================== CONSTRUCTOR =====================
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
@@ -94,9 +95,39 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
         }
 
         if (!ids.isEmpty()) {
-            System.enqueueJob(
-                new CascadeDeleteQueueable(objectName, ids)
-            );
+            Integer queueableUsed = Limits.getQueueableJobs();
+            Integer queueableLimit = Limits.getLimitQueueableJobs();
+            System.debug('DataArchiveBatch.finish queueable usage: ' + queueableUsed + '/' + queueableLimit);
+
+            if (queueableUsed < queueableLimit) {
+                System.enqueueJob(
+                    new ArchivePostProcessQueueable(
+                        new List<Id>(generatedContentDocumentIds),
+                        archiveRecordId,
+                        objectName,
+                        ids
+                    )
+                );
+            } else {
+                System.debug('DataArchiveBatch.finish: queueable limit reached, running delete inline as fallback and skipping S3 upload.');
+                CascadeDeleteHelper.deleteParentWithRelations(objectName, ids);
+            }
+        } else if (!generatedContentDocumentIds.isEmpty()) {
+            Integer queueableUsed = Limits.getQueueableJobs();
+            Integer queueableLimit = Limits.getLimitQueueableJobs();
+            System.debug('DataArchiveBatch.finish queueable usage for S3-only post-process: ' + queueableUsed + '/' + queueableLimit);
+            if (queueableUsed < queueableLimit) {
+                System.enqueueJob(
+                    new ArchivePostProcessQueueable(
+                        new List<Id>(generatedContentDocumentIds),
+                        archiveRecordId,
+                        objectName,
+                        new List<Id>()
+                    )
+                );
+            } else {
+                System.debug('DataArchiveBatch.finish: queueable limit reached, skipping S3 upload post-process.');
+            }
         }
     }
 
@@ -118,6 +149,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             WHERE Id = :cv.Id
             LIMIT 1
         ];
+
+        generatedContentDocumentIds.add(insertedCv.ContentDocumentId);
 
         insert new ContentDocumentLink(
             ContentDocumentId = insertedCv.ContentDocumentId,

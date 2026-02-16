@@ -2,6 +2,13 @@ public with sharing class ContentDocumentLinkTriggerHandler {
     public static void afterInsert(List<ContentDocumentLink> newLinks) {
         if (newLinks == null || newLinks.isEmpty()) return;
 
+        // Avoid enqueueing S3 upload jobs from async contexts (Batch/Future/Queueable),
+        // otherwise archival batch flow can fail to enqueue its own delete queueable.
+        if (System.isBatch() || System.isFuture() || System.isQueueable()) {
+            System.debug('ContentDocumentLinkTriggerHandler: skipping S3 enqueue in async context.');
+            return;
+        }
+
         System.debug('ContentDocumentLinkTriggerHandler.afterInsert invoked, newLinks size: ' + (newLinks == null ? 0 : newLinks.size()));
 
         // Collect linked entity ids and content document ids
@@ -31,7 +38,11 @@ public with sharing class ContentDocumentLinkTriggerHandler {
         if (!pairs.isEmpty()) {
             // Enqueue queueable uploader to perform callouts and upload to S3
             System.debug('ContentDocumentLinkTriggerHandler: enqueueing S3UploadQueueable with ' + pairs.size() + ' pairs');
-            System.enqueueJob(new S3UploadQueueable(pairs));
+            try {
+                System.enqueueJob(new S3UploadQueueable(pairs));
+            } catch (Exception ex) {
+                System.debug('ContentDocumentLinkTriggerHandler: failed to enqueue S3UploadQueueable: ' + ex.getMessage());
+            }
         }
     }
 }

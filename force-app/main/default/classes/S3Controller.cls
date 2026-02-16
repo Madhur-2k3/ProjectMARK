@@ -99,10 +99,10 @@ public with sharing class S3Controller {
                 String responseBody = '';
                 try { responseBody = res.getBody(); } catch (Exception bodyEx) { responseBody = '<could not read response body>'; }
                 System.debug('S3Controller.putObjectToS3 error response: ' + res.getStatusCode() + ' ' + res.getStatus() + ' body: ' + responseBody);
-                throw new AuraHandledException('Error uploading to S3: ' + res.getStatusCode() + ' ' + res.getStatus() + ' body=' + responseBody);
+                throw new S3ControllerException('Error uploading to S3: ' + res.getStatusCode() + ' ' + res.getStatus() + ' body=' + responseBody);
             }
         } catch (Exception e) {
-            throw new AuraHandledException('s3Controller.putObjectToS3 error: ' + e.getMessage());
+            throw new S3ControllerException('s3Controller.putObjectToS3 error: ' + e.getMessage());
         }
     }
 
