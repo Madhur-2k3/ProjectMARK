@@ -1,0 +1,40 @@
+<template>
+    <lightning-card title="S3 Tester">
+        <div class="slds-p-around_medium">
+            <h1>Hello from S3 Tester!</h1>
+            <lightning-input label="File name" value={fileName} onchange={handleFileNameChange}></lightning-input>
+            <div class="slds-m-top_small">
+                <lightning-button label="Fetch from S3 (file)" onclick={handleFetch} variant="brand" disabled={loading}></lightning-button>
+                <lightning-button class="slds-m-left_small" label="List bucket" onclick={handleList} variant="neutral" disabled={loading}></lightning-button>
+                <template if:true={loading}>
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </template>
+            </div>
+            <div class="slds-m-top_small">
+                <lightning-input type="file" label="Select File" onchange={handleFileSelected} accept="*/*"></lightning-input>
+                <lightning-button class="slds-m-left_small" label="Upload to S3" onclick={handleUpload} variant="success" disabled={loading}></lightning-button>
+            </div>
+            <template if:true={items}>
+                <h3 class="slds-m-top_medium">Bucket Objects</h3>
+                <lightning-datatable
+                    key-field="Key"
+                    data={items}
+                    columns={columns}
+                    onrowaction={handleRowAction}
+                    hide-checkbox-column
+                ></lightning-datatable>
+            </template>
+
+            <template if:true={result}>
+                <h3 class="slds-m-top_medium">Preview</h3>
+                <div class="preview-box slds-p-around_medium">
+                    <pre>{result}</pre>
+                </div>
+            </template>
+            <template if:true={error}>
+                <h3 class="slds-m-top_medium slds-text-color_error">Error</h3>
+                <pre>{error}</pre>
+            </template>
+        </div>
+    </lightning-card>
+</template>
