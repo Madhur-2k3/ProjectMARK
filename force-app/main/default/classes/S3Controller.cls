@@ -7,7 +7,7 @@ public with sharing class S3Controller {
         String endpoint = 'callout:aws_s3';
         if (fileName != null && fileName.trim().length() > 0) {
             if (!endpoint.endsWith('/')) endpoint += '/';
-            endpoint += EncodingUtil.urlEncode(fileName, 'UTF-8');
+            endpoint += encodeS3KeyPreserveSlashes(fileName);
         }
         request.setEndpoint(endpoint);
         request.setHeader('Accept', '*/*');
@@ -79,7 +79,7 @@ public with sharing class S3Controller {
             String endpoint = 'callout:aws_s3';
             if (fileName != null && fileName.trim().length() > 0) {
                 if (!endpoint.endsWith('/')) endpoint += '/';
-                endpoint += EncodingUtil.urlEncode(fileName, 'UTF-8');
+                endpoint += encodeS3KeyPreserveSlashes(fileName);
             }
             request.setEndpoint(endpoint);
             if (contentType != null) {
@@ -96,10 +96,25 @@ public with sharing class S3Controller {
             if (res.getStatusCode() >= 200 && res.getStatusCode() < 300) {
                 return res.getStatus() + ' (' + res.getStatusCode() + ')';
             } else {
-                throw new AuraHandledException('Error uploading to S3: ' + res.getStatusCode() + ' ' + res.getStatus());
+                String responseBody = '';
+                try { responseBody = res.getBody(); } catch (Exception bodyEx) { responseBody = '<could not read response body>'; }
+                System.debug('S3Controller.putObjectToS3 error response: ' + res.getStatusCode() + ' ' + res.getStatus() + ' body: ' + responseBody);
+                throw new AuraHandledException('Error uploading to S3: ' + res.getStatusCode() + ' ' + res.getStatus() + ' body=' + responseBody);
             }
         } catch (Exception e) {
             throw new AuraHandledException('s3Controller.putObjectToS3 error: ' + e.getMessage());
         }
+    }
+
+    private static String encodeS3KeyPreserveSlashes(String key) {
+        if (key == null) return null;
+        List<String> parts = key.split('/');
+        List<String> encodedParts = new List<String>();
+        for (String part : parts) {
+            String encoded = EncodingUtil.urlEncode(part, 'UTF-8');
+            encoded = encoded.replace('+', '%20');
+            encodedParts.add(encoded);
+        }
+        return String.join(encodedParts, '/');
     }
 }
