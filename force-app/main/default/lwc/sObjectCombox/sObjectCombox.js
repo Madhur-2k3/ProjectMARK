@@ -54,6 +54,13 @@ export default class SObjectCombox extends LightningElement {
         this.finalFieldsForApex = [];
         this.whereClause = '';
         this.searchTerm=this.objectLabel;
+
+        this.dispatchEvent(
+    new CustomEvent('objectselected', {
+        detail: this.selectedSObject
+    })
+);
+
     }
 
     // RECEIVE FIELDS FROM FIELD SELECTOR
@@ -93,5 +100,7 @@ export default class SObjectCombox extends LightningElement {
 
     return q;
 }
+
+
 
 }

@@ -1,9 +1,25 @@
 import { LightningElement } from 'lwc';
+import scheduleArchive
+from '@salesforce/apex/DataArchiveScheduleController.scheduleArchive';
+
+import { ShowToastEvent }
+from 'lightning/platformShowToastEvent';
 
 export default class DataArchiveSelection extends LightningElement {
 
     booleanFlag = true;     // Archive default ON
     unArchiveFlag = false;
+
+
+    // Modal Flags
+    showScheduleModal = false;
+    showCriteriaModal = false;
+    showObjectModal = false;
+
+    // Store selections
+    selectedFrequency;
+    selectedCriteria;
+    selectedObject;
 
     get archiveClass() {
         return this.booleanFlag
@@ -54,4 +70,67 @@ export default class DataArchiveSelection extends LightningElement {
         this.booleanFlag = false;
         this.unArchiveFlag = true;
     }
+
+
+    // Open first modal
+openScheduleModal(){
+    this.showScheduleModal = true;
+}
+
+// Frequency selected
+handleFrequencySelected(event){
+    this.selectedFrequency = event.detail;
+    this.showScheduleModal = false;
+    this.showCriteriaModal = true;
+}
+
+// Criteria selected
+handleCriteriaSelected(event){
+    this.selectedCriteria = event.detail;
+    this.showCriteriaModal = false;
+    this.showObjectModal = true;
+}
+
+// Object selected and scheduling complete
+handleScheduleComplete(event){
+
+    const scheduleData = event.detail;
+
+    scheduleArchive({
+        objectName: scheduleData.object,
+        frequency: scheduleData.frequency,
+        dateField: scheduleData.criteria.field,
+        days: scheduleData.criteria.days
+    })
+    .then(result => {
+
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Success',
+                message: result,
+                variant: 'success'
+            })
+        );
+
+        this.closeAllModals();
+    })
+    .catch(error => {
+
+        this.dispatchEvent(
+            new ShowToastEvent({
+                title: 'Error',
+                message: error.body.message,
+                variant: 'error'
+            })
+        );
+    });
+}
+
+
+closeAllModals(){
+    this.showScheduleModal = false;
+    this.showCriteriaModal = false;
+    this.showObjectModal = false;
+}
+
 }

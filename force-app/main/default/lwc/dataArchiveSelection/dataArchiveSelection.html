@@ -37,6 +37,12 @@
         <span class="green-dot"></span>
         Instructions
     </div>
+    <lightning-button
+        label="Schedule"
+        variant="brand"
+        class="slds-m-left_small"
+        onclick={openScheduleModal}>
+    </lightning-button>
 
     <div class="slds-tooltip slds-nubbin_top" role="tooltip">
         <div class="slds-tooltip__content">
@@ -63,5 +69,33 @@
     <template lwc:if={unArchiveFlag}>
         <c-un-archived-data class="header-unArchive"></c-un-archived-data>
     </template>
+
+    <!-- FREQUENCY MODAL -->
+<template if:true={showScheduleModal}>
+    <c-archive-schedule-frequency-modal
+        onfrequencyselected={handleFrequencySelected}
+        onclose={closeAllModals}>
+    </c-archive-schedule-frequency-modal>
+</template>
+
+<!-- CRITERIA MODAL -->
+<template if:true={showCriteriaModal}>
+    <c-archive-schedule-criteria-modal
+        selected-frequency={selectedFrequency}
+        oncriteriaselected={handleCriteriaSelected}
+        onclose={closeAllModals}>
+    </c-archive-schedule-criteria-modal>
+</template>
+
+<!-- OBJECT MODAL (REUSING YOUR OBJECT SELECTOR) -->
+<template if:true={showObjectModal}>
+    <c-archive-schedule-object-modal
+        selected-frequency={selectedFrequency}
+        selected-criteria={selectedCriteria}
+        onschedulecomplete={handleScheduleComplete}
+        onclose={closeAllModals}>
+    </c-archive-schedule-object-modal>
+</template>
+
 
 </template>
