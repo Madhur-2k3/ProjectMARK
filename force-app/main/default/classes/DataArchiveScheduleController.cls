@@ -5,7 +5,8 @@ public with sharing class DataArchiveScheduleController {
         String objectName,
         String frequency,
         String dateField,
-        Integer days
+        Integer days,
+        String filterValue
     ){
 
         // ----------------------------
@@ -16,7 +17,6 @@ public with sharing class DataArchiveScheduleController {
              FROM Data_Archive_Schedule__c
              WHERE Object_Name__c = :objectName
              AND Date_Field__c = :dateField
-             AND Days__c = :days
              AND Status__c = 'Active'
              LIMIT 1];
 
@@ -31,30 +31,24 @@ public with sharing class DataArchiveScheduleController {
         }
 
         // ----------------------------
-        // Build WHERE clause
+        // Build cron & schedule the job
         // ----------------------------
-        Date targetDate = Date.today().addDays(-days);
-
-        String soql =
-            'SELECT Id FROM ' + objectName +
-            ' WHERE ' + dateField + ' <= ' +
-            targetDate.format();
-
-        String fieldsCsv = 'Id';
-
         String cronExp = buildCronExpression(frequency);
 
         String jobName =
             'Archive_' + objectName + '_' +
             Datetime.now().getTime();
 
+        // Pass criteria so the scheduler can build
+        // the correct WHERE clause at execution time
         Id jobId = System.schedule(
             jobName,
             cronExp,
             new DataArchiveScheduler(
                 objectName,
-                fieldsCsv,
-                soql
+                dateField,
+                days,
+                filterValue
             )
         );
 
@@ -62,13 +56,13 @@ public with sharing class DataArchiveScheduleController {
         // Save schedule record
         // ----------------------------
         insert new Data_Archive_Schedule__c(
-            Object_Name__c = objectName,
-            Frequency__c = frequency,
-            Date_Field__c = dateField,
-            Days__c = days,
+            Object_Name__c     = objectName,
+            Frequency__c       = frequency,
+            Date_Field__c      = dateField,
+            Days__c            = days,
             Cron_Expression__c = cronExp,
-            Job_Id__c = jobId,
-            Status__c = 'Active'
+            Job_Id__c          = jobId,
+            Status__c          = 'Active'
         );
 
         return 'Schedule Created Successfully';
@@ -78,7 +72,7 @@ public with sharing class DataArchiveScheduleController {
     private static String buildCronExpression(String frequency){
 
         if(frequency == 'DAILY'){
-            return '0 11 15 * * ?';
+            return '0 39 16 * * ?';
         }
         if(frequency == 'WEEKLY_ONCE'){
             return '0 0 2 ? * MON';

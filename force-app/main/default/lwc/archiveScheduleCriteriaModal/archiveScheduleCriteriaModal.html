@@ -2,51 +2,46 @@
     <section class="slds-modal slds-fade-in-open">
         <div class="slds-modal__container">
 
-           <header class="slds-modal__header">
+            <header class="slds-modal__header">
 
-    <button class="slds-button slds-button_icon slds-modal__close"
-            title="Close"
-            onclick={handleClose}>
+                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleClose}>
 
-        <lightning-icon
-            icon-name="utility:close"
-            alternative-text="close"
-            size="small">
-        </lightning-icon>
+                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small">
+                    </lightning-icon>
 
-    </button>
+                </button>
 
-    <h2 class="slds-modal__title">
-        Define Schedule Criteria
-    </h2>
+                <h2 class="slds-modal__title">
+                    Define Schedule Criteria
+                </h2>
 
-</header>
+            </header>
 
 
             <div class="slds-modal__content slds-p-around_medium">
 
-                <lightning-combobox
-                    label="Date Field"
-                    value={selectedField}
-                    options={dateFieldOptions}
+                <lightning-combobox label="Filter Field" value={selectedField} options={dateFieldOptions}
                     onchange={handleFieldChange}>
                 </lightning-combobox>
 
-                <lightning-input
-                    type="number"
-                    label="Older Than (Days)"
-                    value={days}
-                    class="slds-m-top_small"
-                    onchange={handleDaysChange}>
-                </lightning-input>
+                <!-- Date field → show "Older Than (Days)" -->
+                <template lwc:if={isDateField}>
+                    <lightning-input type="number" label="Older Than (Days)" value={days} class="slds-m-top_small"
+                        onchange={handleDaysChange}>
+                    </lightning-input>
+                </template>
+
+                <!-- Text field → show text input -->
+                <template lwc:if={isTextField}>
+                    <lightning-input type="text" label="Filter Value" placeholder="Enter value to match"
+                        value={filterValue} class="slds-m-top_small" onchange={handleFilterValueChange}>
+                    </lightning-input>
+                </template>
 
             </div>
 
             <footer class="slds-modal__footer">
-                <lightning-button
-                    label="Next"
-                    variant="brand"
-                    onclick={handleNext}>
+                <lightning-button label="Next" variant="brand" onclick={handleNext}>
                 </lightning-button>
             </footer>
 
