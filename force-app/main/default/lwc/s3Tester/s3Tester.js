@@ -1,7 +1,7 @@
 import { LightningElement, track } from 'lwc';
-import getDataFromS3 from '@salesforce/apex/s3Controller.getDataFromS3';
-import listObjectsFromS3 from '@salesforce/apex/s3Controller.listObjectsFromS3';
-import putObjectToS3 from '@salesforce/apex/s3Controller.putObjectToS3';
+import getDataFromS3 from '@salesforce/apex/S3Controller.getDataFromS3';
+import listObjectsFromS3 from '@salesforce/apex/S3Controller.listObjectsFromS3';
+import putObjectToS3 from '@salesforce/apex/S3Controller.putObjectToS3';
 // import getPresignedUrl from '@salesforce/apex/s3Presigner.getPresignedUrl';
 
 export default class S3Tester extends LightningElement {

@@ -41,6 +41,12 @@ private class DataArchiveObjectControllerTest {
     }
 
     @IsTest
+    static void testUnarchiveAsync_NullInput() {
+        String msg = DataArchiveObjectController.unarchiveAsync(null);
+        System.assertEquals('No records selected', msg);
+    }
+
+    @IsTest
     static void testGetArchivedObjectPaginated() {
         Test.startTest();
         DataArchiveObjectController.ArchiveWrapper result = 

@@ -63,6 +63,17 @@ private class DataArchiveUnarchiveQueueableTest {
     }
 
     @IsTest
+    static void testQueueable_NullAndEmptyInput() {
+        Test.startTest();
+        // Null input
+        System.enqueueJob(new DataArchiveUnarchiveQueueable(null));
+        // Empty input
+        System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>()));
+        Test.stopTest();
+        // No exception expected
+    }
+
+    @IsTest
     static void testQueueable_IgnoresInvalidFieldValues() {
         // Create an archive for Account with an invalid Integer field mapping via CSV to trigger catch and continue
         Data_Archive__c da = new Data_Archive__c(

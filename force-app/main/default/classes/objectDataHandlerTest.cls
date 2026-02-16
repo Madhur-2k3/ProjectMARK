@@ -45,6 +45,22 @@ private class objectDataHandlerTest {
     }
 
     @IsTest
+    static void testGetFilteredAccounts_NullInputs() {
+        Test.startTest();
+        // Null SOQL
+        try {
+            objectDataHandler.getFilteredAccounts(null, 0, 2, 'Account');
+            System.assert(false);
+        } catch (Exception e) {}
+        // Null object
+        try {
+            objectDataHandler.getFilteredAccounts('SELECT Id FROM Account', 0, 2, null);
+            System.assert(false);
+        } catch (Exception e) {}
+        Test.stopTest();
+    }
+
+    @IsTest
     static void testGetFilteredAccounts_Pagination_NoWhere() {
         // Base SOQL without WHERE
         String baseQuery = 'SELECT Id, Name FROM Account ORDER BY CreatedDate DESC';

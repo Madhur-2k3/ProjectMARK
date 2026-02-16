@@ -27,6 +27,16 @@ private class sObjectsControllerTest {
     }
 
     @IsTest
+    static void testGetAllSObjectNames_NullSafe() {
+        // Should not throw even if method is called in a context with no objects
+        Test.startTest();
+        List<sObjectsController.SObjectInfo> sobjList = sObjectsController.getAllSObjectNames();
+        Test.stopTest();
+        System.assertNotEquals(null, sobjList);
+    }
+    
+
+    @IsTest
     static void testGetFieldsBySObject_Account() {
         Test.startTest();
         List<sObjectsController.FieldInfoWrapper> fields =
@@ -76,5 +86,6 @@ private class sObjectsControllerTest {
             }
         }
         System.assert(hasContact, 'Expected Contact as a child of Account');
-    }
+    
+}
 }

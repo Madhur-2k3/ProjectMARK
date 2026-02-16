@@ -8,6 +8,21 @@ private class DataArchiveControllerTest {
 
     // -------- VALIDATION TESTS (EXISTING) --------
     @IsTest
+    static void testArchiveSelectedRecords_NullInputs() {
+        try {
+            DataArchiveController.archiveSelectedRecords(null, null, null);
+            System.assert(false);
+        } catch (Exception e) {}
+        try {
+            DataArchiveController.archiveSelectedRecords('Account', null, 'Name');
+            System.assert(false);
+        } catch (Exception e) {}
+        try {
+            DataArchiveController.archiveSelectedRecords('Account', new List<Id>(), null);
+            System.assert(false);
+        } catch (Exception e) {}
+    }
+    @IsTest
     static void testValidations_NoRecordsFound_AndInvalidInputs() {
 
         try {

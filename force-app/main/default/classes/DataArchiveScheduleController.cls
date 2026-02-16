@@ -78,7 +78,7 @@ public with sharing class DataArchiveScheduleController {
     private static String buildCronExpression(String frequency){
 
         if(frequency == 'DAILY'){
-            return '0 0 2 * * ?';
+            return '0 11 15 * * ?';
         }
         if(frequency == 'WEEKLY_ONCE'){
             return '0 0 2 ? * MON';
