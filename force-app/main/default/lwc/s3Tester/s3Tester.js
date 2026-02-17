@@ -109,6 +109,22 @@ export default class S3Tester extends LightningElement {
         }
     }
 
+    getMimeType(fileName) {
+        const ext = (fileName || '').split('.').pop().toLowerCase();
+        const mimeMap = {
+            'txt': 'text/plain', 'csv': 'text/csv', 'json': 'application/json',
+            'xml': 'application/xml', 'html': 'text/html', 'htm': 'text/html',
+            'pdf': 'application/pdf', 'zip': 'application/zip',
+            'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
+            'gif': 'image/gif', 'svg': 'image/svg+xml',
+            'doc': 'application/msword', 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls': 'application/vnd.ms-excel', 'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'ppt': 'application/vnd.ms-powerpoint', 'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'mp4': 'video/mp4', 'mp3': 'audio/mpeg', 'wav': 'audio/wav'
+        };
+        return mimeMap[ext] || 'application/octet-stream';
+    }
+
     async handleRowAction(event) {
         const action = event.detail.action;
         const row = event.detail.row;
@@ -118,25 +134,22 @@ export default class S3Tester extends LightningElement {
             this.loading = true;
             try {
                 console.log('Fetching file via Apex GET:', row.Key);
-                // Request content from Apex GET (no presigned URL)
                 const content = await getDataFromS3({ fileName: row.Key });
-                // Show preview modal / result block
                 this.result = content;
-                // Attempt to trigger download for text content
-                try {
-                    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = row.Key.replace(/\//g, '_');
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(url);
-                } catch (dErr) {
-                    console.error('download attempt failed', dErr);
-                    // ignore download errors; preview still available
-                }
+
+                // Trigger file download using data URI (avoids LWS "Unsupported MIME type" error)
+                const downloadName = row.Key.split('/').pop() || row.Key.replace(/\//g, '_');
+                const base64 = btoa(unescape(encodeURIComponent(content)));
+                const dataUri = 'data:application/octet-stream;base64,' + base64;
+
+                const container = this.template.querySelector('.slds-p-around_medium');
+                const a = document.createElement('a');
+                a.href = dataUri;
+                a.download = downloadName;
+                a.style.display = 'none';
+                container.appendChild(a);
+                a.click();
+                container.removeChild(a);
             } catch (e) {
                 this.error = e?.body?.message || e?.message || JSON.stringify(e);
                 console.error('getDataFromS3 error', e);
