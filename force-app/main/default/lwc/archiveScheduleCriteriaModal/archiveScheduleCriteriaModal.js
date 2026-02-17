@@ -2,7 +2,7 @@ import { LightningElement, api } from 'lwc';
 
 export default class ArchiveScheduleCriteriaModal extends LightningElement {
 
-    @api selectedFrequency;
+    @api selectedObject;
 
     selectedField = 'CreatedDate';
     days = 30;

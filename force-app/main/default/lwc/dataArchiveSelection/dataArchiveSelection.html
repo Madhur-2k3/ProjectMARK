@@ -15,14 +15,12 @@
         <div class="toggle-wrapper">
             <div class="toggle-container">
 
-                <button class={archiveClass}
-                        onclick={activateArchive}>
+                <button class={archiveClass} onclick={activateArchive}>
                     <span class="dot"></span>
                     Archive
                 </button>
 
-                <button class={unArchiveClass}
-                        onclick={activateUnArchive}>
+                <button class={unArchiveClass} onclick={activateUnArchive}>
                     <span class="dot"></span>
                     Un-Archive
                 </button>
@@ -54,10 +52,7 @@
 
             </div>
 
-            <lightning-button
-                label="Schedule"
-                variant="Brand Outline"
-                onclick={openScheduleModal}>
+            <lightning-button label="Schedule" variant="Brand Outline" onclick={openScheduleModal}>
             </lightning-button>
 
         </div>
@@ -74,32 +69,25 @@
         <c-un-archived-data class="header-unArchive"></c-un-archived-data>
     </template>
 
-    <!-- FREQUENCY MODAL -->
-<template if:true={showScheduleModal}>
-    <c-archive-schedule-frequency-modal
-        onfrequencyselected={handleFrequencySelected}
-        onclose={closeAllModals}>
-    </c-archive-schedule-frequency-modal>
-</template>
+    <!-- STEP 1: OBJECT MODAL -->
+    <template if:true={showObjectModal}>
+        <c-archive-schedule-object-modal onobjectselected={handleObjectSelected} onclose={closeAllModals}>
+        </c-archive-schedule-object-modal>
+    </template>
 
-<!-- CRITERIA MODAL -->
-<template if:true={showCriteriaModal}>
-    <c-archive-schedule-criteria-modal
-        selected-frequency={selectedFrequency}
-        oncriteriaselected={handleCriteriaSelected}
-        onclose={closeAllModals}>
-    </c-archive-schedule-criteria-modal>
-</template>
+    <!-- STEP 2: CRITERIA MODAL -->
+    <template if:true={showCriteriaModal}>
+        <c-archive-schedule-criteria-modal selected-object={selectedObject} oncriteriaselected={handleCriteriaSelected}
+            onclose={closeAllModals}>
+        </c-archive-schedule-criteria-modal>
+    </template>
 
-<!-- OBJECT MODAL (REUSING YOUR OBJECT SELECTOR) -->
-<template if:true={showObjectModal}>
-    <c-archive-schedule-object-modal
-        selected-frequency={selectedFrequency}
-        selected-criteria={selectedCriteria}
-        onschedulecomplete={handleScheduleComplete}
-        onclose={closeAllModals}>
-    </c-archive-schedule-object-modal>
-</template>
+    <!-- STEP 3: FREQUENCY MODAL (FINAL) -->
+    <template if:true={showScheduleModal}>
+        <c-archive-schedule-frequency-modal selected-object={selectedObject} selected-criteria={selectedCriteria}
+            onschedulecomplete={handleScheduleComplete} onclose={closeAllModals}>
+        </c-archive-schedule-frequency-modal>
+    </template>
 
 
 </template>

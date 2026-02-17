@@ -1,6 +1,9 @@
-import { LightningElement } from 'lwc';
+import { LightningElement, api } from 'lwc';
 
 export default class ArchiveScheduleFrequencyModal extends LightningElement {
+
+    @api selectedObject;
+    @api selectedCriteria;
 
     selectedValue;
 
@@ -12,24 +15,28 @@ export default class ArchiveScheduleFrequencyModal extends LightningElement {
         { label: 'Yearly', value: 'YEARLY' }
     ];
 
-    get isDisabled(){
+    get isDisabled() {
         return !this.selectedValue;
     }
 
-    handleChange(event){
+    handleChange(event) {
         this.selectedValue = event.detail.value;
     }
 
-    handleNext(){
+    handleNext() {
         this.dispatchEvent(
-            new CustomEvent('frequencyselected', {
-                detail: this.selectedValue
+            new CustomEvent('schedulecomplete', {
+                detail: {
+                    frequency: this.selectedValue,
+                    criteria: this.selectedCriteria,
+                    object: this.selectedObject
+                }
             })
         );
     }
 
-    handleClose(){
-    this.dispatchEvent(new CustomEvent('close'));
-}
+    handleClose() {
+        this.dispatchEvent(new CustomEvent('close'));
+    }
 
 }

@@ -72,26 +72,26 @@ export default class DataArchiveSelection extends LightningElement {
     }
 
 
-    // Open first modal
+    // Open first modal (Object selection)
     openScheduleModal() {
-        this.showScheduleModal = true;
-    }
-
-    // Frequency selected
-    handleFrequencySelected(event) {
-        this.selectedFrequency = event.detail;
-        this.showScheduleModal = false;
-        this.showCriteriaModal = true;
-    }
-
-    // Criteria selected
-    handleCriteriaSelected(event) {
-        this.selectedCriteria = event.detail;
-        this.showCriteriaModal = false;
         this.showObjectModal = true;
     }
 
-    // Object selected and scheduling complete
+    // Object selected → open Criteria modal
+    handleObjectSelected(event) {
+        this.selectedObject = event.detail;
+        this.showObjectModal = false;
+        this.showCriteriaModal = true;
+    }
+
+    // Criteria selected → open Frequency modal
+    handleCriteriaSelected(event) {
+        this.selectedCriteria = event.detail;
+        this.showCriteriaModal = false;
+        this.showScheduleModal = true;
+    }
+
+    // Frequency selected and scheduling complete
     handleScheduleComplete(event) {
 
         const scheduleData = event.detail;

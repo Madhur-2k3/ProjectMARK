@@ -1,34 +1,27 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement } from 'lwc';
 
 export default class ArchiveScheduleObjectModal extends LightningElement {
 
-    @api selectedFrequency;
-    @api selectedCriteria;
-
     selectedObject;
 
-    handleObjectSelected(event){
+    handleObjectSelected(event) {
         this.selectedObject = event.detail;
     }
 
-    get isDisabled(){
+    get isDisabled() {
         return !this.selectedObject;
     }
 
-    handleConfirm(){
+    handleConfirm() {
         this.dispatchEvent(
-            new CustomEvent('schedulecomplete', {
-                detail: {
-                    frequency: this.selectedFrequency,
-                    criteria: this.selectedCriteria,
-                    object: this.selectedObject
-                }
+            new CustomEvent('objectselected', {
+                detail: this.selectedObject
             })
         );
     }
 
-    handleClose(){
-    this.dispatchEvent(new CustomEvent('close'));
-}
+    handleClose() {
+        this.dispatchEvent(new CustomEvent('close'));
+    }
 
 }
