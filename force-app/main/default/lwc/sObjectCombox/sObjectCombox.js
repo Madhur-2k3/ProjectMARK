@@ -1,7 +1,9 @@
-import { LightningElement, track, wire } from 'lwc';
+import { LightningElement, api, track, wire } from 'lwc';
 import getAllSObjectNames from '@salesforce/apex/sObjectsController.getAllSObjectNames';
 
 export default class SObjectCombox extends LightningElement {
+
+    @api hideFilter = false;
 
     sobjectOptions = [];
     filteredOptions;
@@ -78,6 +80,10 @@ export default class SObjectCombox extends LightningElement {
     console.log('User Selected Fields:', (JSON.stringify(this.datatablecolumns)));
 }
 
+
+    get showFilter() {
+        return !this.hideFilter;
+    }
 
     // RECEIVE WHERE CLAUSE FROM FILTER BUILDER
     handleWhereClauseChange(event) {

@@ -30,33 +30,37 @@
             </div>
         </div>
 
-        <!-- RIGHT → Status Pill -->
-        <div class="status-pill-wrapper slds-tooltip-trigger slds-tooltip-trigger_hover">
+        <!-- RIGHT → Instructions Pill + Schedule Button -->
+        <div class="header-right-actions">
 
-    <div class="status-pill">
-        <span class="green-dot"></span>
-        Instructions
-    </div>
-    <lightning-button
-        label="Schedule"
-        variant="brand"
-        class="slds-m-left_small"
-        onclick={openScheduleModal}>
-    </lightning-button>
+            <div class="status-pill-wrapper slds-tooltip-trigger slds-tooltip-trigger_hover">
 
-    <div class="slds-tooltip slds-nubbin_top" role="tooltip">
-        <div class="slds-tooltip__content">
-            <p><b>{instructionTitle}</b></p>
+                <div class="status-pill">
+                    <span class="green-dot"></span>
+                    Instructions
+                </div>
 
-            <ul>
-                <template for:each={instructions} for:item="item">
-                    <li key={item}>{item}</li>
-                </template>
-            </ul>
+                <div class="slds-tooltip slds-nubbin_top" role="tooltip">
+                    <div class="slds-tooltip__content">
+                        <p><b>{instructionTitle}</b></p>
+
+                        <ul>
+                            <template for:each={instructions} for:item="item">
+                                <li key={item}>{item}</li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <lightning-button
+                label="Schedule"
+                variant="Brand Outline"
+                onclick={openScheduleModal}>
+            </lightning-button>
+
         </div>
-    </div>
-
-</div>
 
 
     </div>

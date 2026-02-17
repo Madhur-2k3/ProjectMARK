@@ -1,37 +1,26 @@
 @IsTest
 private class DataArchiveSchedulerTest {
-
     @IsTest
-    static void testScheduler_DateCriteria() {
+    static void testScheduler_Execute() {
+        // Provide the new constructor arguments
+        String objectName = 'Account';
+        String dateField  = 'CreatedDate';
+        Integer days      = 30;
+
         DataArchiveScheduler sched =
-            new DataArchiveScheduler('Account', 'CreatedDate', 30, null);
+            new DataArchiveScheduler(objectName, dateField, days);
 
         Test.startTest();
         sched.execute(null);
         Test.stopTest();
 
+        // Verify a batch job was enqueued
         List<AsyncApexJob> jobs = [
-            SELECT Id FROM AsyncApexJob
+            SELECT Id, JobType, Status
+            FROM AsyncApexJob
             WHERE JobType = 'BatchApex'
             AND ApexClass.Name = 'DataArchiveBatch'
         ];
-        System.assert(!jobs.isEmpty(), 'Batch should be enqueued for date criteria');
-    }
-
-    @IsTest
-    static void testScheduler_TextCriteria() {
-        DataArchiveScheduler sched =
-            new DataArchiveScheduler('Account', 'Name', null, 'Acme Corp');
-
-        Test.startTest();
-        sched.execute(null);
-        Test.stopTest();
-
-        List<AsyncApexJob> jobs = [
-            SELECT Id FROM AsyncApexJob
-            WHERE JobType = 'BatchApex'
-            AND ApexClass.Name = 'DataArchiveBatch'
-        ];
-        System.assert(!jobs.isEmpty(), 'Batch should be enqueued for text criteria');
+        System.assert(!jobs.isEmpty(), 'DataArchiveBatch should have been enqueued');
     }
 }

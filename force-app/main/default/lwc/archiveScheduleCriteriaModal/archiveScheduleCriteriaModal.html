@@ -25,18 +25,9 @@
                 </lightning-combobox>
 
                 <!-- Date field → show "Older Than (Days)" -->
-                <template lwc:if={isDateField}>
-                    <lightning-input type="number" label="Older Than (Days)" value={days} class="slds-m-top_small"
-                        onchange={handleDaysChange}>
-                    </lightning-input>
-                </template>
-
-                <!-- Text field → show text input -->
-                <template lwc:if={isTextField}>
-                    <lightning-input type="text" label="Filter Value" placeholder="Enter value to match"
-                        value={filterValue} class="slds-m-top_small" onchange={handleFilterValueChange}>
-                    </lightning-input>
-                </template>
+                <lightning-input type="number" label="Older Than (Days)" value={days} class="slds-m-top_small"
+                    onchange={handleDaysChange}>
+                </lightning-input>
 
             </div>
 

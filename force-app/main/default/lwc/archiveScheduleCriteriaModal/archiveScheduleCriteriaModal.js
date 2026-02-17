@@ -6,7 +6,7 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
 
     selectedField = 'CreatedDate';
     days = 30;
-    filterValue = '';
+
 
     // Date-type fields use "Older Than (Days)" input
     // Text-type fields use a free-text input
@@ -14,17 +14,13 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
 
     dateFieldOptions = [
         { label: 'Created Date', value: 'CreatedDate' },
-        { label: 'Last Modified Date', value: 'LastModifiedDate' },
-        { label: 'Customer Name', value: 'Customer_Name__c' }
+        { label: 'Last Modified Date', value: 'LastModifiedDate' }
     ];
 
     get isDateField() {
         return this.dateFields.has(this.selectedField);
     }
 
-    get isTextField() {
-        return !this.isDateField;
-    }
 
     handleFieldChange(event) {
         this.selectedField = event.detail.value;
@@ -34,17 +30,14 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
         this.days = event.detail.value;
     }
 
-    handleFilterValueChange(event) {
-        this.filterValue = event.detail.value;
-    }
+
 
     handleNext() {
         this.dispatchEvent(
             new CustomEvent('criteriaselected', {
                 detail: {
                     field: this.selectedField,
-                    days: this.isDateField ? this.days : null,
-                    filterValue: this.isTextField ? this.filterValue : null
+                    days: this.days
                 }
             })
         );

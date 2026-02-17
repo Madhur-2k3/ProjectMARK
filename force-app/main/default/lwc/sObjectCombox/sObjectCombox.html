@@ -1,7 +1,9 @@
 <template>
     <lightning-card title="Select an Object">
         <div class="object-and-field-container">
-            <c-s3-tester></c-s3-tester>
+            <template lwc:if={showFilter}>
+                <c-s3-tester></c-s3-tester>
+            </template>
                 <!-- Search -->
             <div class="slds-p-around_medium">
             <lightning-input 
@@ -40,20 +42,22 @@
             </c-field-selector>
             </template>
         </div>
-        <!-- Child 2: Filter Builder -->
-        <template if:true={finalFieldsForApex.length}>
-            <c-filter-builder
-                tablecolumnsname={datatablecolumns}
-                selectfields={finalFieldsForApex}
-                fields={allFieldsForFilter}
-                onwherechange={handleWhereClauseChange}
-                selectobject={selectedSObject}
-                query={finalQuery}
-                conditions={whereClause}
-                objectname={selectedSObject}
-                objectlabel={objectLabel}
-                changed={changed}>
-            </c-filter-builder>
+        <!-- Child 2: Filter Builder (hidden when hide-filter is set) -->
+        <template lwc:if={showFilter}>
+            <template if:true={finalFieldsForApex.length}>
+                <c-filter-builder
+                    tablecolumnsname={datatablecolumns}
+                    selectfields={finalFieldsForApex}
+                    fields={allFieldsForFilter}
+                    onwherechange={handleWhereClauseChange}
+                    selectobject={selectedSObject}
+                    query={finalQuery}
+                    conditions={whereClause}
+                    objectname={selectedSObject}
+                    objectlabel={objectLabel}
+                    changed={changed}>
+                </c-filter-builder>
+            </template>
         </template>
 
         

@@ -104,6 +104,13 @@
    STATUS PILL + HOVER TOOLTIP
 ===================================================== */
 
+/* Right section: Instructions pill + Schedule button */
+.header-right-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 /* Wrapper needed for tooltip positioning */
 .status-pill-wrapper {
     position: relative;
