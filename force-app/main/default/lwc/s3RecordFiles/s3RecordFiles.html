@@ -1,0 +1,57 @@
+<template>
+    <lightning-card icon-name="standard:file" title={title}>
+        <div slot="actions">
+            <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh" title="Refresh"
+                onclick={handleRefresh}></lightning-button-icon>
+        </div>
+        <div class="slds-card__body slds-card__body_inner">
+            <template if:true={loading}>
+                <div class="slds-align_absolute-center slds-p-around_medium">
+                    <lightning-spinner alternative-text="Loading" size="small"></lightning-spinner>
+                </div>
+            </template>
+
+            <template if:false={loading}>
+                <template if:true={error}>
+                    <div class="slds-text-color_error slds-p-around_small">
+                        <lightning-icon icon-name="utility:error" size="x-small" variant="error"
+                            class="slds-m-right_x-small"></lightning-icon>
+                        {error}
+                    </div>
+                </template>
+
+                <template if:true={hasFiles}>
+                    <div class="file-grid">
+                        <template for:each={displayedFiles} for:item="file">
+                            <div key={file.id} class="file-tile" data-key={file.fullKey} data-filename={file.fileName}
+                                onclick={handleDownload}>
+                                <div class="file-tile__icon">
+                                    <lightning-icon icon-name={file.iconName} size="small"></lightning-icon>
+                                </div>
+                                <div class="file-tile__details">
+                                    <p class="file-tile__name" title={file.fileName}>{file.fileName}</p>
+                                    <p class="file-tile__meta">{file.dateLabel} &bull; {file.sizeLabel} &bull;
+                                        {file.ext}</p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                    <template if:true={hasMoreFiles}>
+                        <div class="slds-align_absolute-center slds-p-top_small">
+                            <a href="javascript:void(0);" class="view-all-link" onclick={handleViewAll}>View All</a>
+                        </div>
+                    </template>
+                </template>
+
+                <template if:false={hasFiles}>
+                    <template if:false={error}>
+                        <div class="slds-align_absolute-center slds-p-around_medium slds-text-color_weak">
+                            No files found for this record.
+                        </div>
+                    </template>
+                </template>
+            </template>
+        </div>
+    </lightning-card>
+</template>

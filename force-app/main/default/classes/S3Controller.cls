@@ -106,6 +106,44 @@ public with sharing class S3Controller {
         }
     }
 
+    @AuraEnabled(cacheable=false)
+    public static String listObjectsByPrefix(String prefix) {
+        try {
+            HttpRequest request = new HttpRequest();
+            request.setMethod('GET');
+            String encodedPrefix = EncodingUtil.urlEncode(prefix, 'UTF-8').replace('+', '%20');
+            String endpoint = 'callout:aws_s3?list-type=2&prefix=' + encodedPrefix + '/';
+            request.setEndpoint(endpoint);
+            Http http = new Http();
+            HttpResponse res = http.send(request);
+            if (res.getStatusCode() == 200) {
+                String body = res.getBody();
+                Dom.Document doc = new Dom.Document();
+                doc.load(body);
+                Dom.XmlNode root = doc.getRootElement();
+                List<Map<String, Object>> items = new List<Map<String, Object>>();
+                for (Dom.XmlNode child : root.getChildElements()) {
+                    if (child.getName() == 'Contents') {
+                        Map<String, Object> mapItem = new Map<String, Object>();
+                        for (Dom.XmlNode contentChild : child.getChildElements()) {
+                            mapItem.put(contentChild.getName(), contentChild.getText());
+                        }
+                        // Skip the folder entry itself
+                        String key = (String) mapItem.get('Key');
+                        if (key != null && key != prefix + '/') {
+                            items.add(mapItem);
+                        }
+                    }
+                }
+                return JSON.serialize(items);
+            } else {
+                throw new AuraHandledException('Error listing S3 objects by prefix: ' + res.getStatusCode() + ' ' + res.getStatus());
+            }
+        } catch (Exception e) {
+            throw new AuraHandledException('s3Controller.listObjectsByPrefix error: ' + e.getMessage());
+        }
+    }
+
     private static String encodeS3KeyPreserveSlashes(String key) {
         if (key == null) return null;
         List<String> parts = key.split('/');
