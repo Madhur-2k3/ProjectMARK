@@ -25,7 +25,10 @@ public with sharing class DataArchiveScheduler implements Schedulable {
         // ── Build WHERE clause based on criteria type ──
         String whereClause;
 
-        if (this.filterValue != null && this.filterValue != '') {
+        if (this.criteriaField == 'FilterCriteria' && this.filterValue != null && this.filterValue != '') {
+            // LWC criteria modal passes a pre-built WHERE clause
+            whereClause = this.filterValue;
+        } else if (this.filterValue != null && this.filterValue != '') {
             // Text-based filter  →  WHERE Customer_Name__c = 'value'
             String safeValue = String.escapeSingleQuotes(this.filterValue);
             whereClause = this.criteriaField + ' = \'' + safeValue + '\'';

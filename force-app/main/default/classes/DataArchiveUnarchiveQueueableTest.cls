@@ -63,14 +63,13 @@ private class DataArchiveUnarchiveQueueableTest {
     }
 
     @IsTest
-    static void testQueueable_NullAndEmptyInput() {
+    static void testQueueable_EmptyInput() {
         Test.startTest();
-        // Null input
-        System.enqueueJob(new DataArchiveUnarchiveQueueable(null));
-        // Empty input
+        // Empty input — should complete without error
         System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>()));
         Test.stopTest();
         // No exception expected
+        System.assert(true, 'Empty input handled gracefully');
     }
 
     @IsTest

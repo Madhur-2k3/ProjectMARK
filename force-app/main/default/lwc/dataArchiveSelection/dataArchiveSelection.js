@@ -91,17 +91,31 @@ export default class DataArchiveSelection extends LightningElement {
         this.showScheduleModal = true;
     }
 
+    // Previous from Criteria → back to Object modal
+    handleCriteriaPrevious() {
+        this.showCriteriaModal = false;
+        this.showObjectModal = true;
+    }
+
+    // Previous from Frequency → back to Criteria modal
+    handleFrequencyPrevious() {
+        this.showScheduleModal = false;
+        this.showCriteriaModal = true;
+    }
+
     // Frequency selected and scheduling complete
     handleScheduleComplete(event) {
 
         const scheduleData = event.detail;
 
         scheduleArchive({
-            objectName: scheduleData.object,
-            frequency: scheduleData.frequency,
-            dateField: scheduleData.criteria.field,
-            days: scheduleData.criteria.days,
-            filterValue: scheduleData.criteria.filterValue
+            objectName:    scheduleData.object,
+            frequency:     scheduleData.frequency,
+            dateField:     'FilterCriteria',
+            days:          0,
+            filterValue:   scheduleData.criteria.whereClause,
+            preferredTime: scheduleData.preferredTime,
+            dayOfWeek:     scheduleData.dayOfWeek
         })
             .then(result => {
 

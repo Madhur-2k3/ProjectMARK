@@ -1,0 +1,12 @@
+/* ── Modal footer alignment ── */
+.slds-modal__footer_directional {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.schedule-summary {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}

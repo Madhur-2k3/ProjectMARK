@@ -78,14 +78,14 @@
     <!-- STEP 2: CRITERIA MODAL -->
     <template if:true={showCriteriaModal}>
         <c-archive-schedule-criteria-modal selected-object={selectedObject} oncriteriaselected={handleCriteriaSelected}
-            onclose={closeAllModals}>
+            onprevious={handleCriteriaPrevious} onclose={closeAllModals}>
         </c-archive-schedule-criteria-modal>
     </template>
 
     <!-- STEP 3: FREQUENCY MODAL (FINAL) -->
     <template if:true={showScheduleModal}>
         <c-archive-schedule-frequency-modal selected-object={selectedObject} selected-criteria={selectedCriteria}
-            onschedulecomplete={handleScheduleComplete} onclose={closeAllModals}>
+            onschedulecomplete={handleScheduleComplete} onprevious={handleFrequencyPrevious} onclose={closeAllModals}>
         </c-archive-schedule-frequency-modal>
     </template>
 
