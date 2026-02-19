@@ -35,6 +35,43 @@ public with sharing class S3Controller {
             throw new AuraHandledException(err);
         }
     }
+
+    @AuraEnabled(cacheable=false)
+    public static String getDataFromS3AsBase64(String fileName) {
+        HttpRequest request = new HttpRequest();
+        request.setMethod('GET');
+        String endpoint = 'callout:aws_s3';
+        if (fileName != null && fileName.trim().length() > 0) {
+            if (!endpoint.endsWith('/')) endpoint += '/';
+            endpoint += encodeS3KeyPreserveSlashes(fileName);
+        }
+        request.setEndpoint(endpoint);
+        request.setHeader('Accept', '*/*');
+
+        Http http = new Http();
+        HttpResponse res;
+        try {
+            res = http.send(request);
+        } catch (Exception e) {
+            String err = 's3Controller.getDataFromS3AsBase64 exception: ' + e.getMessage() + '\n' + e.getStackTraceString();
+            throw new AuraHandledException(err);
+        }
+
+        if (res == null) {
+            throw new AuraHandledException('s3Controller.getDataFromS3AsBase64 error: Empty HttpResponse');
+        }
+
+        Integer status = res.getStatusCode();
+        if (status == 200) {
+            Blob bodyBlob = res.getBodyAsBlob();
+            return EncodingUtil.base64Encode(bodyBlob);
+        } else {
+            String body = '';
+            try { body = res.getBody(); } catch (Exception e) { body = '<could not read response body>'; }
+            String err = 'Error fetching data from S3: status=' + status + ' statusText=' + res.getStatus() + ' body=' + body;
+            throw new AuraHandledException(err);
+        }
+    }
     
     @AuraEnabled(cacheable=false)
     public static String listObjectsFromS3() {

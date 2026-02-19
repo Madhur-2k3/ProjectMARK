@@ -24,7 +24,7 @@
                     <div class="file-grid">
                         <template for:each={displayedFiles} for:item="file">
                             <div key={file.id} class="file-tile" data-key={file.fullKey} data-filename={file.fileName}
-                                onclick={handleDownload}>
+                                data-ext={file.ext} onclick={handleFileClick}>
                                 <div class="file-tile__icon">
                                     <lightning-icon icon-name={file.iconName} size="small"></lightning-icon>
                                 </div>
@@ -54,4 +54,109 @@
             </template>
         </div>
     </lightning-card>
+
+    <!-- Preview Modal -->
+    <template if:true={showPreview}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-modal="true"
+            aria-labelledby="preview-modal-heading">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleClosePreview}>
+                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"
+                            variant="inverse"></lightning-icon>
+                        <span class="slds-assistive-text">Close</span>
+                    </button>
+                    <h2 id="preview-modal-heading" class="slds-modal__title slds-hyphenate">
+                        {previewFileName}
+                    </h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium preview-content">
+                    <template if:true={previewLoading}>
+                        <div class="slds-align_absolute-center slds-p-around_large">
+                            <lightning-spinner alternative-text="Loading preview" size="medium"></lightning-spinner>
+                        </div>
+                    </template>
+
+                    <template if:false={previewLoading}>
+                        <template if:true={previewError}>
+                            <div class="slds-text-color_error slds-p-around_small">
+                                {previewError}
+                            </div>
+                        </template>
+
+                        <template if:true={isImagePreview}>
+                            <div class="preview-image-container">
+                                <img src={previewDataUrl} alt={previewFileName} class="preview-image" />
+                            </div>
+                        </template>
+
+                        <template if:true={isPdfPreview}>
+                            <div class="preview-pdf-container">
+                                <iframe src={previewDataUrl} class="preview-iframe" title={previewFileName}></iframe>
+                            </div>
+                        </template>
+
+                        <template if:true={isCsvPreview}>
+                            <div class="preview-csv-container">
+                                <table
+                                    class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped csv-table">
+                                    <thead>
+                                        <tr class="slds-line-height_reset">
+                                            <template for:each={csvHeaders} for:item="header">
+                                                <th key={header} scope="col" class="csv-th">
+                                                    <div class="slds-truncate" title={header}>{header}</div>
+                                                </th>
+                                            </template>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <template for:each={csvRows} for:item="row">
+                                            <tr key={row.id} class="slds-hint-parent">
+                                                <template for:each={row.cells} for:item="cell">
+                                                    <td key={cell.id} data-label={cell.value}>
+                                                        <div class="slds-truncate" title={cell.value}>{cell.value}</div>
+                                                    </td>
+                                                </template>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </template>
+
+                        <template if:true={isTextPreview}>
+                            <div class="preview-text-container">
+                                <pre class="preview-text">{previewTextContent}</pre>
+                            </div>
+                        </template>
+
+                        <template if:true={isVideoPreview}>
+                            <div class="preview-video-container">
+                                <video controls class="preview-video">
+                                    <source src={previewDataUrl} type={previewMimeType} />
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        </template>
+
+                        <template if:true={isAudioPreview}>
+                            <div class="preview-audio-container">
+                                <audio controls class="preview-audio">
+                                    <source src={previewDataUrl} type={previewMimeType} />
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button variant="neutral" label="Close" onclick={handleClosePreview}></lightning-button>
+                    <lightning-button variant="brand" label="Download" icon-name="utility:download"
+                        onclick={handleDownloadFromPreview} class="slds-m-left_x-small"></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
 </template>
