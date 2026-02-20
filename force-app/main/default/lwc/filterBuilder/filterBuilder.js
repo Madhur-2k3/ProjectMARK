@@ -433,6 +433,7 @@ export default class FilterBuilder extends LightningElement {
             });
 
             this.filteredAccounts = result.records;
+            console.log("Filtered Accounts",JSON.stringify(this.filteredAccounts))
             this.showNoRecords = result.records.length === 0;
             this.showTable = !this.showNoRecords;
             

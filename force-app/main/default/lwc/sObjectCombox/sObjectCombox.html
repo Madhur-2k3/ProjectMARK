@@ -1,9 +1,6 @@
 <template>
     <lightning-card title="Select an Object">
         <div class="object-and-field-container">
-            <template lwc:if={showFilter}>
-                <c-s3-tester></c-s3-tester>
-            </template>
                 <!-- Search -->
             <div class="slds-p-around_medium">
             <lightning-input 
@@ -14,7 +11,7 @@
                 placeholder="Search Object...">
             </lightning-input>
             </div>
-
+            <p><img src="https://orgfarm-6c702b1c15-dev-ed.develop.file.force.com/servlet/rtaImage?eid=a0RgL000001mgdt&amp;feoid=00NgL00003EDo73&amp;refid=0EMgL000000oMBp" alt="1000236991.jpeg"></img></p>
             <!-- Object List -->
             <template if:true={filteredOptions}>
             <ul class="slds-box slds-m-horizontal_medium"
