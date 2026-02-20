@@ -1,6 +1,7 @@
 /**
  * @description Tests for DataArchiveUnarchiveQueueable
- * Ensures queueable parses CSVs, inserts records, and cleans up archive + documents
+ * Ensures queueable parses CSVs (found via ContentDocumentLink),
+ * inserts records, and cleans up archive + documents
  */
 @IsTest
 private class DataArchiveUnarchiveQueueableTest {
@@ -17,13 +18,13 @@ private class DataArchiveUnarchiveQueueableTest {
 
         da = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :da.Id];
 
-        // Create a CSV content for two accounts
+        // Create a CSV with Title = objectApiName (matching archive behavior)
         String csv = 'Name,Phone\n"Restored One","111"\n"Restored Two","222"';
         ContentVersion cv = new ContentVersion(
-            Title = da.Name,
-            PathOnClient = da.Name + '.csv',
+            Title = 'Account',
+            PathOnClient = da.Name + '-Account.csv',
             VersionData = Blob.valueOf(csv),
-            Description = 'Part 1'
+            Description = 'Account - ' + da.Name
         );
         insert cv;
 
@@ -74,7 +75,7 @@ private class DataArchiveUnarchiveQueueableTest {
 
     @IsTest
     static void testQueueable_IgnoresInvalidFieldValues() {
-        // Create an archive for Account with an invalid Integer field mapping via CSV to trigger catch and continue
+        // Create an archive for Account with invalid Integer field via CSV
         Data_Archive__c da = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c = 'Name,NumberOfEmployees',
@@ -86,8 +87,8 @@ private class DataArchiveUnarchiveQueueableTest {
         // invalid integer for NumberOfEmployees should be ignored safely
         String csv = 'Name,NumberOfEmployees\n"Invalid Emp","NotANumber"';
         ContentVersion cv = new ContentVersion(
-            Title = da.Name,
-            PathOnClient = da.Name + '.csv',
+            Title = 'Account',
+            PathOnClient = da.Name + '-Account.csv',
             VersionData = Blob.valueOf(csv)
         );
         insert cv;

@@ -159,6 +159,35 @@ public with sharing class DataArchiveScheduleController {
         String  dayOfWeek
     ){
 
+        // ── Clean up orphaned schedules first ────────
+        // If a job was deleted from Setup, the record still says 'Active'.
+        // Remove it before the duplicate check so re-creating works.
+        List<Data_Archive_Schedule__c> existing =
+            [SELECT Id, Job_Id__c, Frequency__c
+             FROM Data_Archive_Schedule__c
+             WHERE Object_Name__c = :objectName
+               AND Date_Field__c  = :dateField
+               AND Status__c      = 'Active'
+             LIMIT 1];
+
+        if (!existing.isEmpty()) {
+            Boolean jobStillExists = false;
+            if (existing[0].Job_Id__c != null) {
+                List<CronTrigger> ct = [
+                    SELECT Id FROM CronTrigger
+                    WHERE Id = :existing[0].Job_Id__c
+                    LIMIT 1
+                ];
+                jobStillExists = !ct.isEmpty();
+            }
+
+            if (!jobStillExists) {
+                // Job was deleted from Setup — clean up the stale record
+                delete existing[0];
+                existing.clear();
+            }
+        }
+
         // ── Duplicate validation ──────────────────────
         List<Data_Archive_Schedule__c> duplicates =
             [SELECT Id
@@ -178,15 +207,7 @@ public with sharing class DataArchiveScheduleController {
             );
         }
 
-        // ── Abort any existing schedule for same object+field ──
-        List<Data_Archive_Schedule__c> existing =
-            [SELECT Id, Job_Id__c, Frequency__c
-             FROM Data_Archive_Schedule__c
-             WHERE Object_Name__c = :objectName
-               AND Date_Field__c  = :dateField
-               AND Status__c      = 'Active'
-             LIMIT 1];
-
+        // ── Abort any remaining active schedule for same object+field ──
         if (!existing.isEmpty()) {
             if (existing[0].Job_Id__c != null) {
                 System.abortJob(existing[0].Job_Id__c);

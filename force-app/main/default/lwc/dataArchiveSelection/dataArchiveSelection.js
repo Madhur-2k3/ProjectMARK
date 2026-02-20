@@ -111,7 +111,7 @@ export default class DataArchiveSelection extends LightningElement {
         scheduleArchive({
             objectName:    scheduleData.object,
             frequency:     scheduleData.frequency,
-            dateField:     'FilterCriteria',
+            dateField:     scheduleData.criteria.whereClause || 'FilterCriteria',
             days:          0,
             filterValue:   scheduleData.criteria.whereClause,
             preferredTime: scheduleData.preferredTime,
