@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApexPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>65.0</apiVersion>
+    <availableInTouch>false</availableInTouch>
+    <confirmationTokenRequired>false</confirmationTokenRequired>
+    <description>Default Lightning Platform home page for Answers sites</description>
+    <label>AnswersHome</label>
+    <packageVersions>
+        <majorNumber>1</majorNumber>
+        <minorNumber>0</minorNumber>
+        <namespace>DBSCDMR</namespace>
+    </packageVersions>
+    <packageVersions>
+        <majorNumber>1</majorNumber>
+        <minorNumber>64</minorNumber>
+        <namespace>Kcloud_Actions</namespace>
+    </packageVersions>
+    <packageVersions>
+        <majorNumber>1</majorNumber>
+        <minorNumber>0</minorNumber>
+        <namespace>esia</namespace>
+    </packageVersions>
+    <packageVersions>
+        <majorNumber>4</majorNumber>
+        <minorNumber>1</minorNumber>
+        <namespace>grax</namespace>
+    </packageVersions>
+    <packageVersions>
+        <majorNumber>1</majorNumber>
+        <minorNumber>7</minorNumber>
+        <namespace>sf_com_apps</namespace>
+    </packageVersions>
+</ApexPage>

@@ -98,6 +98,38 @@
                         </template>
 
                         <template if:true={isCsvPreview}>
+                            <!-- Toggle + FilterBuilder for CSV filtering -->
+                            <template if:true={hasFilterFields}>
+                                <div class="csv-filter-area">
+                                    <div class="csv-toggle-header">
+                                        <lightning-button-group>
+                                            <lightning-button
+                                                label="All records"
+                                                variant={allRecordsVariant}
+                                                onclick={handleShowAllRecords}>
+                                            </lightning-button>
+                                            <lightning-button
+                                                label="Filter records"
+                                                variant={filterRecordsVariant}
+                                                onclick={handleShowFilterRecords}>
+                                            </lightning-button>
+                                        </lightning-button-group>
+                                        <div class="csv-row-count">
+                                            {csvRowCountLabel}
+                                        </div>
+                                    </div>
+
+                                    <template if:true={isFilterRecordsMode}>
+                                        <c-filter-builder
+                                            criteria-only="true"
+                                            fields={csvFieldMeta}
+                                            objectname={csvObjectName}
+                                            onwherechange={handleWhereChange}>
+                                        </c-filter-builder>
+                                    </template>
+                                </div>
+                            </template>
+
                             <div class="preview-csv-container">
                                 <table
                                     class="slds-table slds-table_cell-buffer slds-table_bordered slds-table_striped csv-table">
@@ -111,7 +143,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template for:each={csvRows} for:item="row">
+                                        <template for:each={filteredCsvRows} for:item="row">
                                             <tr key={row.id} class="slds-hint-parent">
                                                 <template for:each={row.cells} for:item="cell">
                                                     <td key={cell.id} data-label={cell.value}>
@@ -152,8 +184,10 @@
                 </div>
                 <footer class="slds-modal__footer">
                     <lightning-button variant="neutral" label="Close" onclick={handleClosePreview}></lightning-button>
-                    <lightning-button variant="brand" label="Download" icon-name="utility:download"
-                        onclick={handleDownloadFromPreview} class="slds-m-left_x-small"></lightning-button>
+                    <template if:true={canDownload}>
+                        <lightning-button variant="brand" label="Download" icon-name="utility:download"
+                            onclick={handleDownloadFromPreview} class="slds-m-left_x-small"></lightning-button>
+                    </template>
                 </footer>
             </div>
         </section>

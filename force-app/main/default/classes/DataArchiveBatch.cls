@@ -1368,7 +1368,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
         System.debug('Parent Object  : ' + this.objectName);
         System.debug('Chain Objects  : ' + childMetadataMap.size());
 
-        return Database.getQueryLocator(this.soqlQuery);
+        return Database.getQueryLocator(this.soqlQuery + ' WITH SECURITY_ENFORCED');
     }
 
     // ===================== EXECUTE =====================

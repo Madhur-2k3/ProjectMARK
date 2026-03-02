@@ -26,6 +26,7 @@ export default class FilterBuilder extends LightningElement {
     @api objectlabel;
     @api tablecolumnsname=[];
     @api changed;
+    @api criteriaOnly = false;
     @track showNoRecords=false;
     @track showTable=false;
     @track filteredAccounts;
@@ -73,6 +74,13 @@ export default class FilterBuilder extends LightningElement {
         if(this.changed){
             this.filteredAccounts=null;
         }
+        if(this.criteriaOnly){
+            this.isFilterMode = true;
+            this.allRecords = false;
+            if(!this.filters.length){
+                this.addFilter();
+            }
+        }
     }
 
     disconnectedCallback() {
@@ -85,6 +93,9 @@ export default class FilterBuilder extends LightningElement {
 
     get allRecordsVariant() { return this.isFilterMode ? "neutral" : "brand"; }
     get filterRecordsVariant() { return this.isFilterMode ? "brand" : "neutral"; }
+
+    get showToggle() { return !this.criteriaOnly; }
+    get showFilters() { return this.isFilterMode || this.criteriaOnly; }
 
     showAllRecords() {
         this.isFilterMode = false;
@@ -228,7 +239,7 @@ export default class FilterBuilder extends LightningElement {
             };
         });
 
-        if (this.filters.length === 0) {
+        if (this.filters.length === 0 && !this.criteriaOnly) {
             this.showAllRecords();
         }
 
@@ -283,7 +294,7 @@ export default class FilterBuilder extends LightningElement {
     }
 
     get whereClause() {
-        if (!this.isFilterMode || !this.filters.length) {
+        if ((!this.isFilterMode && !this.criteriaOnly) || !this.filters.length) {
             return '';
         }
 

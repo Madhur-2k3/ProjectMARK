@@ -26,6 +26,7 @@ export default class SObjectCombox extends LightningElement {
                 label: item.label,
                 value: item.apiName
             }));
+            this.filteredOptions = this.sobjectOptions;
         }
     }
 

@@ -1,7 +1,10 @@
 import { LightningElement, api, track } from 'lwc';
 import listObjectsByPrefix from '@salesforce/apex/S3Controller.listObjectsByPrefix';
 import getDataFromS3 from '@salesforce/apex/S3Controller.getDataFromS3';
+import getFilteredCsvFromS3 from '@salesforce/apex/S3Controller.getFilteredCsvFromS3';
 import getDataFromS3AsBase64 from '@salesforce/apex/S3Controller.getDataFromS3AsBase64';
+import getCsvFieldMetadata from '@salesforce/apex/S3Controller.getCsvFieldMetadata';
+import hasDownloadPermission from '@salesforce/customPermission/Can_Download_Archive_Files';
 
 // File types that can be previewed in-browser
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp', 'ico']);
@@ -44,6 +47,17 @@ export default class S3RecordFiles extends LightningElement {
     _previewExt = '';
     _previewFullKey = '';
 
+    // CSV filter state (filterBuilder integration)
+    @track csvFieldMeta = [];    // [{apiName, label, type}] for filterBuilder
+    @track csvObjectName = '';   // SObject name for filterBuilder
+    @track csvFilterMode = 'all'; // 'all' or 'filter'
+    _allCsvRows = [];            // unfiltered backup
+    _csvWhereClause = '';        // current WHERE clause from filterBuilder
+
+    get canDownload() {
+        return hasDownloadPermission;
+    }
+
     get fileCount() {
         return this.files.length;
     }
@@ -78,6 +92,44 @@ export default class S3RecordFiles extends LightningElement {
 
     get isCsvPreview() {
         return CSV_EXTS.has(this._previewExt) && !this.previewError;
+    }
+
+    get hasFilterFields() {
+        return this.csvFieldMeta && this.csvFieldMeta.length > 0;
+    }
+
+    get isAllRecordsMode() {
+        return this.csvFilterMode === 'all';
+    }
+
+    get isFilterRecordsMode() {
+        return this.csvFilterMode === 'filter';
+    }
+
+    get allRecordsVariant() {
+        return this.csvFilterMode === 'all' ? 'brand' : 'neutral';
+    }
+
+    get filterRecordsVariant() {
+        return this.csvFilterMode === 'filter' ? 'brand' : 'neutral';
+    }
+
+    // Filtered CSV rows based on filterBuilder WHERE clause
+    get filteredCsvRows() {
+        if (this.csvFilterMode === 'all' || !this._csvWhereClause) {
+            return this._allCsvRows;
+        }
+        return this._allCsvRows.filter(row => this._evaluateWhereClause(row));
+    }
+
+    // Row count label
+    get csvRowCountLabel() {
+        const filtered = this.filteredCsvRows.length;
+        const total = this._allCsvRows.length;
+        if (filtered === total) {
+            return `${total} row${total !== 1 ? 's' : ''}`;
+        }
+        return `${filtered} of ${total} rows`;
     }
 
     get isTextPreview() {
@@ -207,9 +259,25 @@ export default class S3RecordFiles extends LightningElement {
 
         try {
             if (CSV_EXTS.has(ext)) {
-                // CSV: parse into table data
-                const content = await getDataFromS3({ fileName: fullKey });
+                // CSV: fetch with FLS filtering, then parse into table data
+                const content = await getFilteredCsvFromS3({ fileName: fullKey });
                 this._parseCsv(content);
+
+                // Fetch field metadata for filterBuilder
+                try {
+                    const objName = this._extractObjectNameFromKey(fullKey);
+                    if (objName && this.csvHeaders.length > 0) {
+                        this.csvObjectName = objName;
+                        const meta = await getCsvFieldMetadata({
+                            objectName: objName,
+                            fieldNames: this.csvHeaders
+                        });
+                        this.csvFieldMeta = meta || [];
+                    }
+                } catch (metaErr) {
+                    console.warn('Could not load field metadata for filters:', metaErr);
+                    // Non-fatal: filters just won't appear
+                }
             } else if (TEXT_EXTS.has(ext)) {
                 // Text content can use the string-based method
                 const content = await getDataFromS3({ fileName: fullKey });
@@ -233,9 +301,265 @@ export default class S3RecordFiles extends LightningElement {
         this.previewTextContent = '';
         this.csvHeaders = [];
         this.csvRows = [];
+        this._allCsvRows = [];
         this._previewExt = '';
         this._previewFullKey = '';
         this.previewError = null;
+        this.csvFieldMeta = [];
+        this.csvObjectName = '';
+        this._csvWhereClause = '';
+        this.csvFilterMode = 'all';
+    }
+
+    // ─── CSV Toggle Handlers ─────────────────────────────────────
+
+    handleShowAllRecords() {
+        this.csvFilterMode = 'all';
+        this._csvWhereClause = '';
+    }
+
+    handleShowFilterRecords() {
+        this.csvFilterMode = 'filter';
+    }
+
+    // ─── FilterBuilder Integration ───────────────────────────────
+
+    /**
+     * Handler for filterBuilder's wherechange event.
+     * Receives a SOQL-style WHERE clause string and triggers re-filtering.
+     */
+    handleWhereChange(event) {
+        this._csvWhereClause = event.detail || '';
+    }
+
+    /**
+     * Extracts object name from S3 key (client-side version).
+     * Pattern: recordId/ObjectName_ObjectName_-_DA-XXXX.csv
+     */
+    _extractObjectNameFromKey(key) {
+        if (!key) return null;
+        let fName = key.includes('/') ? key.substring(key.lastIndexOf('/') + 1) : key;
+        const dotIdx = fName.lastIndexOf('.');
+        if (dotIdx > 0) fName = fName.substring(0, dotIdx);
+
+        // Look for "_-_DA-" delimiter
+        const daIdx = fName.indexOf('_-_DA-');
+        if (daIdx > 0) {
+            const beforeDA = fName.substring(0, daIdx);
+            // Pattern: ObjectName_ObjectName → first part is the object
+            // For custom objects like Booking__c_Booking__c, find __c suffix
+            for (const suffix of ['__c', '__mdt', '__e', '__b', '__x']) {
+                const sIdx = beforeDA.indexOf(suffix);
+                if (sIdx > 0) {
+                    return beforeDA.substring(0, sIdx + suffix.length);
+                }
+            }
+            // Standard object: first segment before _
+            const usIdx = beforeDA.indexOf('_');
+            return usIdx > 0 ? beforeDA.substring(0, usIdx) : beforeDA;
+        }
+        return null;
+    }
+
+    /**
+     * Evaluates the WHERE clause from filterBuilder against a single CSV row.
+     * Supports: =, !=, >, >=, <, <=, LIKE
+     * Supports: AND, OR, parenthesized custom logic
+     */
+    _evaluateWhereClause(row) {
+        const clause = this._csvWhereClause;
+        if (!clause) return true;
+
+        try {
+            // Tokenize the clause into conditions and logical operators
+            const tokens = this._tokenizeWhereClause(clause);
+            return this._evalTokens(tokens, row);
+        } catch (e) {
+            console.warn('WHERE clause evaluation error:', e);
+            return true; // Show row if evaluation fails
+        }
+    }
+
+    /**
+     * Tokenizes a WHERE clause into an array of tokens:
+     * conditions become {type:'cond', field, op, value},
+     * AND/OR become {type:'logic', value:'AND'|'OR'},
+     * parentheses become {type:'paren', value:'('|')'}
+     */
+    _tokenizeWhereClause(clause) {
+        const tokens = [];
+        let remaining = clause.trim();
+
+        while (remaining.length > 0) {
+            remaining = remaining.trimStart();
+            if (!remaining) break;
+
+            // Parentheses
+            if (remaining[0] === '(') {
+                tokens.push({ type: 'paren', value: '(' });
+                remaining = remaining.substring(1);
+                continue;
+            }
+            if (remaining[0] === ')') {
+                tokens.push({ type: 'paren', value: ')' });
+                remaining = remaining.substring(1);
+                continue;
+            }
+
+            // AND / OR
+            const logicMatch = remaining.match(/^(AND|OR)\b/i);
+            if (logicMatch) {
+                tokens.push({ type: 'logic', value: logicMatch[1].toUpperCase() });
+                remaining = remaining.substring(logicMatch[0].length);
+                continue;
+            }
+
+            // Condition: field operator value
+            const condMatch = remaining.match(
+                /^(\S+?)\s+(=|!=|>=|<=|>|<|LIKE)\s+(.+?)(?=\s+AND\b|\s+OR\b|\)|$)/i
+            );
+            if (condMatch) {
+                let val = condMatch[3].trim();
+                // Remove quotes
+                if ((val.startsWith("'") && val.endsWith("'")) ||
+                    (val.startsWith('"') && val.endsWith('"'))) {
+                    val = val.substring(1, val.length - 1);
+                }
+                // Remove LIKE wildcards for contains matching
+                if (condMatch[2].toUpperCase() === 'LIKE') {
+                    val = val.replace(/%/g, '');
+                }
+                tokens.push({
+                    type: 'cond',
+                    field: condMatch[1],
+                    op: condMatch[2].toUpperCase(),
+                    value: val
+                });
+                remaining = remaining.substring(condMatch[0].length);
+                continue;
+            }
+
+            // Skip unrecognized character
+            remaining = remaining.substring(1);
+        }
+
+        return tokens;
+    }
+
+    /**
+     * Recursively evaluates tokenized WHERE clause with support for
+     * AND, OR, and parenthesized groups.
+     */
+    _evalTokens(tokens, row) {
+        const { result } = this._evalExpr(tokens, 0, row);
+        return result;
+    }
+
+    _evalExpr(tokens, pos, row) {
+        let left, idx = pos;
+
+        // Get first operand
+        if (idx < tokens.length && tokens[idx].type === 'paren' && tokens[idx].value === '(') {
+            const inner = this._evalExpr(tokens, idx + 1, row);
+            left = inner.result;
+            idx = inner.nextPos;
+            // Skip closing paren
+            if (idx < tokens.length && tokens[idx].type === 'paren' && tokens[idx].value === ')') {
+                idx++;
+            }
+        } else if (idx < tokens.length && tokens[idx].type === 'cond') {
+            left = this._evalCondition(tokens[idx], row);
+            idx++;
+        } else {
+            return { result: true, nextPos: idx + 1 };
+        }
+
+        // Chain with AND/OR
+        while (idx < tokens.length && tokens[idx].type === 'logic') {
+            const logic = tokens[idx].value;
+            idx++;
+
+            let right;
+            if (idx < tokens.length && tokens[idx].type === 'paren' && tokens[idx].value === '(') {
+                const inner = this._evalExpr(tokens, idx + 1, row);
+                right = inner.result;
+                idx = inner.nextPos;
+                if (idx < tokens.length && tokens[idx].type === 'paren' && tokens[idx].value === ')') {
+                    idx++;
+                }
+            } else if (idx < tokens.length && tokens[idx].type === 'cond') {
+                right = this._evalCondition(tokens[idx], row);
+                idx++;
+            } else {
+                break;
+            }
+
+            left = logic === 'AND' ? (left && right) : (left || right);
+        }
+
+        return { result: left, nextPos: idx };
+    }
+
+    /**
+     * Evaluates a single condition against a CSV row.
+     */
+    _evalCondition(cond, row) {
+        const colIdx = this.csvHeaders.indexOf(cond.field);
+        if (colIdx < 0 || colIdx >= row.cells.length) return true;
+
+        const cellVal = (row.cells[colIdx].value || '').trim();
+        const filterVal = (cond.value || '').trim();
+
+        // Get field type from metadata
+        const fieldMeta = this.csvFieldMeta.find(f => f.apiName === cond.field);
+        const fieldType = fieldMeta ? fieldMeta.type : 'STRING';
+
+        // Compare as numbers for numeric types
+        const numericTypes = new Set(['INTEGER', 'DOUBLE', 'CURRENCY']);
+        if (numericTypes.has(fieldType)) {
+            const cellNum = parseFloat(cellVal);
+            const filterNum = parseFloat(filterVal);
+            if (!isNaN(cellNum) && !isNaN(filterNum)) {
+                return this._compareValues(cellNum, cond.op, filterNum);
+            }
+        }
+
+        // Date/DateTime comparison
+        if (fieldType === 'DATE' || fieldType === 'DATETIME') {
+            const cellDate = new Date(cellVal);
+            const filterDate = new Date(filterVal);
+            if (!isNaN(cellDate.getTime()) && !isNaN(filterDate.getTime())) {
+                return this._compareValues(cellDate.getTime(), cond.op, filterDate.getTime());
+            }
+        }
+
+        // String comparison (case-insensitive)
+        const cellLower = cellVal.toLowerCase();
+        const filterLower = filterVal.toLowerCase();
+
+        switch (cond.op) {
+            case '=':
+                return cellLower === filterLower;
+            case '!=':
+                return cellLower !== filterLower;
+            case 'LIKE':
+                return cellLower.includes(filterLower);
+            default:
+                return this._compareValues(cellLower, cond.op, filterLower);
+        }
+    }
+
+    _compareValues(a, op, b) {
+        switch (op) {
+            case '=':  return a === b;
+            case '!=': return a !== b;
+            case '>':  return a > b;
+            case '>=': return a >= b;
+            case '<':  return a < b;
+            case '<=': return a <= b;
+            case 'LIKE': return String(a).toLowerCase().includes(String(b).toLowerCase());
+            default:   return true;
+        }
     }
 
     /**
@@ -281,13 +605,14 @@ export default class S3RecordFiles extends LightningElement {
         };
 
         this.csvHeaders = parseLine(lines[0]);
-        this.csvRows = lines.slice(1).map((line, idx) => {
+        this._allCsvRows = lines.slice(1).map((line, idx) => {
             const cells = parseLine(line);
             return {
                 id: 'row-' + idx,
                 cells: cells.map((val, ci) => ({ id: 'cell-' + idx + '-' + ci, value: val }))
             };
         });
+        this.csvRows = this._allCsvRows;
     }
 
     /**
