@@ -158,6 +158,8 @@ export default class S3RecordFiles extends LightningElement {
                 const fullKey = item.Key || '';
                 const fileName = fullKey.includes('/') ? fullKey.substring(fullKey.lastIndexOf('/') + 1) : fullKey;
                 const ext = fileName.includes('.') ? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase() : '';
+                // Resolve effective extension for encrypted files (e.g. .csv.enc → csv)
+                const effectiveExt = this._getEffectiveExt(fileName, ext);
                 const sizeBytes = Number(item.Size) || 0;
                 let sizeLabel;
                 if (sizeBytes >= 1048576) {
@@ -178,9 +180,10 @@ export default class S3RecordFiles extends LightningElement {
                     fullKey,
                     fileName,
                     ext,
+                    effectiveExt,
                     sizeLabel,
                     dateLabel,
-                    iconName: this.getIconName(ext)
+                    iconName: this.getIconName(effectiveExt)
                 };
             });
         } catch (e) {
@@ -217,6 +220,20 @@ export default class S3RecordFiles extends LightningElement {
     }
 
     /**
+     * Resolves the effective extension for encrypted files.
+     * e.g. "file.csv.enc" → "csv", "file.pdf" → "pdf"
+     */
+    _getEffectiveExt(fileName, ext) {
+        if (ext === 'enc' && fileName) {
+            const lower = fileName.toLowerCase();
+            if (lower.endsWith('.csv.enc')) return 'csv';
+            if (lower.endsWith('.txt.enc')) return 'txt';
+            if (lower.endsWith('.json.enc')) return 'json';
+        }
+        return ext;
+    }
+
+    /**
      * Determines whether a file can be previewed in-browser.
      */
     _isPreviewable(ext) {
@@ -231,11 +248,13 @@ export default class S3RecordFiles extends LightningElement {
         const fullKey = event.currentTarget.dataset.key;
         const fileName = event.currentTarget.dataset.filename;
         const ext = (event.currentTarget.dataset.ext || '').toLowerCase();
+        // Use effective extension for preview routing
+        const effectiveExt = this._getEffectiveExt(fileName, ext);
 
         if (!fullKey) return;
 
-        if (this._isPreviewable(ext)) {
-            this._openPreview(fullKey, fileName, ext);
+        if (this._isPreviewable(effectiveExt)) {
+            this._openPreview(fullKey, fileName, effectiveExt);
         } else {
             this._downloadFile(fullKey, fileName);
         }
@@ -551,14 +570,14 @@ export default class S3RecordFiles extends LightningElement {
 
     _compareValues(a, op, b) {
         switch (op) {
-            case '=':  return a === b;
+            case '=': return a === b;
             case '!=': return a !== b;
-            case '>':  return a > b;
+            case '>': return a > b;
             case '>=': return a >= b;
-            case '<':  return a < b;
+            case '<': return a < b;
             case '<=': return a <= b;
             case 'LIKE': return String(a).toLowerCase().includes(String(b).toLowerCase());
-            default:   return true;
+            default: return true;
         }
     }
 

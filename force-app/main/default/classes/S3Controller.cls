@@ -27,6 +27,11 @@ public with sharing class S3Controller {
 
         Integer status = res.getStatusCode();
         if (status == 200) {
+            // If the file is encrypted, decrypt it
+            if (fileName != null && fileName.endsWith('.enc')) {
+                Blob bodyBlob = res.getBodyAsBlob();
+                return decryptFromS3(bodyBlob, fileName);
+            }
             return res.getBody();
         } else {
             String body = '';
@@ -64,6 +69,11 @@ public with sharing class S3Controller {
         Integer status = res.getStatusCode();
         if (status == 200) {
             Blob bodyBlob = res.getBodyAsBlob();
+            // If encrypted, decrypt then re-encode as base64
+            if (fileName != null && fileName.endsWith('.enc')) {
+                String decrypted = decryptFromS3(bodyBlob, fileName);
+                return EncodingUtil.base64Encode(Blob.valueOf(decrypted));
+            }
             return EncodingUtil.base64Encode(bodyBlob);
         } else {
             String body = '';
@@ -384,7 +394,10 @@ public with sharing class S3Controller {
         // Get just the file name (after last slash)
         String fName = key.contains('/') ? key.substringAfterLast('/') : key;
 
-        // Remove extension
+        // Remove extension(s): strip .enc, then .csv
+        if (fName.endsWith('.enc')) {
+            fName = fName.substringBeforeLast('.');
+        }
         if (fName.contains('.')) {
             fName = fName.substringBeforeLast('.');
         }
@@ -505,6 +518,45 @@ public with sharing class S3Controller {
             return '"' + value.replace('"', '""') + '"';
         }
         return value;
+    }
+
+    /**
+     * Decrypts an encrypted blob fetched from S3.
+     * Looks up the AES key from the Data_Archive__c record whose Id is the
+     * first segment of the S3 key.
+     */
+    private static String decryptFromS3(Blob encryptedBlob, String s3Key) {
+        String archiveId = extractArchiveIdFromKey(s3Key);
+        if (String.isBlank(archiveId)) {
+            throw new AuraHandledException('Cannot determine archive record from S3 key: ' + s3Key);
+        }
+
+        List<Data_Archive__c> archives = [
+            SELECT Encryption_Key__c
+            FROM Data_Archive__c
+            WHERE Id = :archiveId
+            LIMIT 1
+        ];
+
+        if (archives.isEmpty() || String.isBlank(archives[0].Encryption_Key__c)) {
+            throw new AuraHandledException('Encryption key not found for archive: ' + archiveId);
+        }
+
+        Blob aesKey = EncodingUtil.base64Decode(archives[0].Encryption_Key__c);
+        Blob decrypted = Crypto.decryptWithManagedIV('AES256', aesKey, encryptedBlob);
+        return decrypted.toString();
+    }
+
+    /**
+     * Extracts the Data_Archive__c record Id from an S3 key.
+     * Keys follow the pattern: archiveRecordId/filename.csv.gz.enc
+     */
+    @TestVisible
+    private static String extractArchiveIdFromKey(String s3Key) {
+        if (String.isBlank(s3Key) || !s3Key.contains('/')) {
+            return null;
+        }
+        return s3Key.substringBefore('/');
     }
 
     private static String encodeS3KeyPreserveSlashes(String key) {

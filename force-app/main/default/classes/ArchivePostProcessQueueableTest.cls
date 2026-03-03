@@ -17,6 +17,13 @@ private class ArchivePostProcessQueueableTest {
         Account acc = new Account(Name = 'Archive Delete Test');
         insert acc;
 
+        // Create a Data_Archive__c record (archiveRecordId must be a real archive)
+        Data_Archive__c archive = new Data_Archive__c(
+            Parent_Object__c = 'Account',
+            Fields__c = 'Id,Name'
+        );
+        insert archive;
+
         // Create a ContentVersion (archive CSV file)
         ContentVersion cv = new ContentVersion(
             Title = 'ArchiveExport',
@@ -27,7 +34,6 @@ private class ArchivePostProcessQueueableTest {
         insert cv;
         cv = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
 
-        // Use the Account Id as both the archiveRecordId and the parent to delete
         List<Id> contentDocIds = new List<Id>{ cv.ContentDocumentId };
         List<Id> parentIds = new List<Id>{ acc.Id };
 
@@ -35,7 +41,7 @@ private class ArchivePostProcessQueueableTest {
         Test.startTest();
         System.enqueueJob(new ArchivePostProcessQueueable(
             contentDocIds,
-            acc.Id,
+            archive.Id,
             'Account',
             parentIds
         ));
@@ -44,7 +50,17 @@ private class ArchivePostProcessQueueableTest {
         // Verify the Account was deleted
         List<Account> remaining = [SELECT Id FROM Account WHERE Id = :acc.Id];
         System.assertEquals(0, remaining.size(), 'Account should have been deleted');
+
+        // Verify encryption key was stored on the archive record
+        Data_Archive__c updatedArchive = [
+            SELECT Encryption_Key__c FROM Data_Archive__c WHERE Id = :archive.Id
+        ];
+        System.assert(
+            String.isNotBlank(updatedArchive.Encryption_Key__c),
+            'Encryption key should be populated on the archive record'
+        );
     }
+
 
     @IsTest
     static void testExecute_NoContentDocs() {

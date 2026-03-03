@@ -39,6 +39,10 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
 
         System.debug('ArchivePostProcessQueueable: uploading ' + versions.size() + ' archive file(s) to S3.');
 
+        // Generate a unique AES-256 encryption key for this archive (in-memory only)
+        Blob aesKey = Crypto.generateAesKey(256);
+
+        // ===== CALLOUTS FIRST (before any DML) =====
         for (ContentVersion versionRecord : versions) {
             try {
                 String partSuffix = '';
@@ -46,24 +50,36 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
                     partSuffix = '_' + versionRecord.Description.replace(' ', '_');
                 }
 
-                String s3FileName = String.valueOf(archiveRecordId) + '/' + versionRecord.Title + partSuffix;
-                if (!String.isBlank(versionRecord.FileExtension)) {
-                    s3FileName += '.' + versionRecord.FileExtension;
-                }
+                // Build S3 key with .csv.enc extension
+                String s3FileName = String.valueOf(archiveRecordId) + '/' + versionRecord.Title + partSuffix + '.csv.enc';
 
-                String base64Body = versionRecord.VersionData == null
-                    ? ''
-                    : EncodingUtil.base64Encode(versionRecord.VersionData);
+                // Encrypt the CSV data
+                String base64Body = '';
+                if (versionRecord.VersionData != null) {
+                    Blob encrypted = Crypto.encryptWithManagedIV('AES256', aesKey, versionRecord.VersionData);
+                    base64Body = EncodingUtil.base64Encode(encrypted);
+                }
 
                 String response = S3Controller.putObjectToS3(
                     s3FileName,
                     base64Body,
-                    'text/csv'
+                    'application/octet-stream'
                 );
                 System.debug('ArchivePostProcessQueueable: S3 upload success for ' + s3FileName + ' -> ' + response);
             } catch (Exception ex) {
                 System.debug('ArchivePostProcessQueueable: S3 upload failed for ContentVersion ' + versionRecord.Id + ': ' + ex.getMessage());
             }
+        }
+
+        // ===== DML AFTER callouts — save the encryption key =====
+        try {
+            update new Data_Archive__c(
+                Id = archiveRecordId,
+                Encryption_Key__c = EncodingUtil.base64Encode(aesKey)
+            );
+            System.debug('ArchivePostProcessQueueable: encryption key saved to archive record.');
+        } catch (Exception ex) {
+            System.debug('ArchivePostProcessQueueable: failed to save encryption key: ' + ex.getMessage());
         }
     }
 }

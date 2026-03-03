@@ -31,7 +31,7 @@
                                 <div class="file-tile__details">
                                     <p class="file-tile__name" title={file.fileName}>{file.fileName}</p>
                                     <p class="file-tile__meta">{file.dateLabel} &bull; {file.sizeLabel} &bull;
-                                        {file.ext}</p>
+                                        {file.effectiveExt}</p>
                                 </div>
                             </div>
                         </template>
@@ -103,14 +103,10 @@
                                 <div class="csv-filter-area">
                                     <div class="csv-toggle-header">
                                         <lightning-button-group>
-                                            <lightning-button
-                                                label="All records"
-                                                variant={allRecordsVariant}
+                                            <lightning-button label="All records" variant={allRecordsVariant}
                                                 onclick={handleShowAllRecords}>
                                             </lightning-button>
-                                            <lightning-button
-                                                label="Filter records"
-                                                variant={filterRecordsVariant}
+                                            <lightning-button label="Filter records" variant={filterRecordsVariant}
                                                 onclick={handleShowFilterRecords}>
                                             </lightning-button>
                                         </lightning-button-group>
@@ -120,11 +116,8 @@
                                     </div>
 
                                     <template if:true={isFilterRecordsMode}>
-                                        <c-filter-builder
-                                            criteria-only="true"
-                                            fields={csvFieldMeta}
-                                            objectname={csvObjectName}
-                                            onwherechange={handleWhereChange}>
+                                        <c-filter-builder criteria-only="true" fields={csvFieldMeta}
+                                            objectname={csvObjectName} onwherechange={handleWhereChange}>
                                         </c-filter-builder>
                                     </template>
                                 </div>

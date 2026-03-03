@@ -359,4 +359,45 @@ private class S3ControllerTest {
         System.assertEquals(2, result.size(), 'Should return 2 fields');
         System.assertEquals('STRING', result[0].get('type'), 'Unknown object fields default to STRING');
     }
+
+    // ─── extractObjectNameFromKey with .csv.gz.enc ───────────────────
+
+    @IsTest
+    static void testExtractObjectNameFromKey_EncryptedFile() {
+        // Pattern: recordId/Account_Account_-_DA-0001.csv.enc
+        String result = S3Controller.extractObjectNameFromKey('recId/Account_Account_-_DA-0001.csv.enc');
+        System.assertEquals('Account', result, 'Should extract Account from encrypted file key');
+    }
+
+    @IsTest
+    static void testExtractObjectNameFromKey_EncExtensionOnly() {
+        String result = S3Controller.extractObjectNameFromKey('recId/Account_Account_-_DA-0001.csv.enc');
+        System.assertEquals('Account', result, 'Should extract Account from encrypted file key');
+    }
+
+    // ─── extractArchiveIdFromKey ─────────────────────────────────────
+
+    @IsTest
+    static void testExtractArchiveIdFromKey_Success() {
+        String result = S3Controller.extractArchiveIdFromKey('a0B5g00000ABC12/Account_-_DA-0001.csv.enc');
+        System.assertEquals('a0B5g00000ABC12', result, 'Should return archive ID prefix');
+    }
+
+    @IsTest
+    static void testExtractArchiveIdFromKey_NoSlash() {
+        String result = S3Controller.extractArchiveIdFromKey('noSlashHere.csv');
+        System.assertEquals(null, result, 'Should return null when no slash in key');
+    }
+
+    @IsTest
+    static void testExtractArchiveIdFromKey_Null() {
+        String result = S3Controller.extractArchiveIdFromKey(null);
+        System.assertEquals(null, result, 'Should return null for null key');
+    }
+
+    @IsTest
+    static void testExtractArchiveIdFromKey_Blank() {
+        String result = S3Controller.extractArchiveIdFromKey('');
+        System.assertEquals(null, result, 'Should return null for blank key');
+    }
 }
