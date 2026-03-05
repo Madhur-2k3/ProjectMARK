@@ -18,8 +18,15 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .panel-header {
@@ -37,9 +44,25 @@
 }
 
 .schedule-table-wrapper {
-    max-height: 200px;
+    max-height: 300px;
     overflow-y: auto;
     border-radius: 4px;
+}
+
+/* =====================================================
+   PAGINATION CONTROLS
+===================================================== */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.page-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: #032d60;
 }
 
 .freq-badge {
@@ -50,6 +73,12 @@
 
 .status-active {
     color: #2e844a;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.status-inactive {
+    color: #706e6b;
     font-weight: 600;
     font-size: 12px;
 }

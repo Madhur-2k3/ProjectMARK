@@ -1,307 +1,257 @@
 <template>
     <div class="slds-p-horizontal_large conditions-builder-container">
         <template lwc:if={showToggle}>
-        <div class="header">
-        <lightning-button-group>
-            <lightning-button
-                label="All records"
-                variant={allRecordsVariant}
-                onclick={showAllRecords}>
-            </lightning-button>
+            <div class="header">
+                <lightning-button-group>
+                    <lightning-button label="All records" variant={allRecordsVariant} onclick={showAllRecords}>
+                    </lightning-button>
 
-            <lightning-button
-                label="Filter records"
-                variant={filterRecordsVariant}
-                onclick={showFilterRecords}>
-            </lightning-button>
-        </lightning-button-group>
-        </div>
+                    <lightning-button label="Filter records" variant={filterRecordsVariant} onclick={showFilterRecords}>
+                    </lightning-button>
+                </lightning-button-group>
+            </div>
         </template>
         <template lwc:if={showToggle}>
-        <template if:true={showModal}>
-            <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01" class="slds-modal slds-fade-in-open">
-                <div class="slds-modal__container">
-                    <header class="slds-modal__header">
-                        <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Archive Confirmation</h2>
-                    </header>
-                    <div class="slds-modal__content slds-p-around_medium">
-                        <p>{modalMessage}</p>
-                        <p><b>NOTE: </b>{note}</p>
+            <template if:true={showModal}>
+                <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01"
+                    class="slds-modal slds-fade-in-open">
+                    <div class="slds-modal__container">
+                        <header class="slds-modal__header">
+                            <button class="slds-button slds-button_icon slds-modal__close" title="Close"
+                                onclick={closeModal}>
+                                <lightning-icon icon-name="utility:close" alternative-text="close"
+                                    size="small"></lightning-icon>
+                            </button>
+                            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Archive Records</h2>
+                        </header>
+                        <div class="slds-modal__content slds-p-around_medium">
+
+                            <lightning-input label="Data Archive Record Name" type="text" value={archiveName}
+                                maxlength="80" required placeholder="Enter a name for the archive record"
+                                onchange={handleArchiveNameChange} class="slds-m-bottom_medium">
+                            </lightning-input>
+
+                            <p class="slds-m-bottom_x-small">{modalMessage}</p>
+                            <p><b>NOTE: </b>{note}</p>
+
+                        </div>
+                        <footer class="slds-modal__footer footer">
+                            <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
+                            <lightning-button variant="brand" label="Start Archive" icon-name="utility:archive"
+                                onclick={confirmArchive} disabled={isStartArchiveDisabled}>
+                            </lightning-button>
+                        </footer>
                     </div>
-                    <footer class="slds-modal__footer footer">
-                        <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
-                        <lightning-button variant="destructive" label="Confirm" onclick={confirmArchive}></lightning-button>
-                    </footer>
-                </div>
-            </section>
-            <div class="slds-backdrop slds-backdrop_open"></div>
-        </template>
+                </section>
+                <div class="slds-backdrop slds-backdrop_open"></div>
+            </template>
         </template>
 
         <template if:true={showFilters}>
             <div class="conditions-combobox">
-                <lightning-combobox
-                    label="Condition Requirements"
-                    value={selectedCondition}
-                    options={conditionOptions}
+                <lightning-combobox label="Condition Requirements" value={selectedCondition} options={conditionOptions}
                     onchange={handleConditionChange}>
                 </lightning-combobox>
             </div>
             <template if:true={isCustom}>
-                <lightning-textarea
-                    label="Custom Condition Logic (e.g. (1 AND 2) OR 3)"
-                    onchange={handleCustomLogic}>
+                <lightning-textarea label="Custom Condition Logic (e.g. (1 AND 2) OR 3)" onchange={handleCustomLogic}>
                 </lightning-textarea>
             </template>
 
-        <div class="filter-container">
+            <div class="filter-container">
 
-            <template for:each={filters} for:item="flt" for:index="index">
-                <div key={flt.id} class="filter-row">
-                    <!-- if custom then show Array Indices -->
-                     <template if:true={isCustom}>
-                        <p class="condition">{flt.displayIndex}</p>
-                     </template>
-                        
-                    <!-- if first show div with class name as filter-box-first else filter-box --> 
-                     <template if:false={isCustom}>
+                <template for:each={filters} for:item="flt" for:index="index">
+                    <div key={flt.id} class="filter-row">
+                        <!-- if custom then show Array Indices -->
+                        <template if:true={isCustom}>
+                            <p class="condition">{flt.displayIndex}</p>
+                        </template>
+
+                        <!-- if first show div with class name as filter-box-first else filter-box -->
+                        <template if:false={isCustom}>
                             <div class={flt.showJoin}>
                                 <p class="condition">{selectedCondition}</p>
                             </div>
-                     </template>
-                    
-                    
-
-                    <div class="box">
-                        <lightning-combobox
-                            value={flt.field}
-                            data-id={flt.id}
-                            options={fieldOptions}
-                            onchange={handleFieldChange}>
-                        </lightning-combobox>
-                    </div>
+                        </template>
 
 
-                     <div class="box">
-                            <lightning-combobox
-                            value={flt.operator}
-                            data-id={flt.id}
-                            options={flt.operatorOptions}
-                            onchange={handleOperatorChange}>
+
+                        <div class="box">
+                            <lightning-combobox value={flt.field} data-id={flt.id} options={fieldOptions}
+                                onchange={handleFieldChange}>
                             </lightning-combobox>
-                     </div>
-                    
+                        </div>
 
-                    <template if:true={flt.isDate}>
+
                         <div class="box">
-                        <lightning-input
-                            type="date"
-                            value={flt.value}
-                            data-id={flt.id}
-                            onchange={handleValueChange}>
-                        </lightning-input>
-                        <!-- <c-field-validator
+                            <lightning-combobox value={flt.operator} data-id={flt.id} options={flt.operatorOptions}
+                                onchange={handleOperatorChange}>
+                            </lightning-combobox>
+                        </div>
+
+
+                        <template if:true={flt.isDate}>
+                            <div class="box">
+                                <lightning-input type="date" value={flt.value} data-id={flt.id}
+                                    onchange={handleValueChange}>
+                                </lightning-input>
+                                <!-- <c-field-validator
                             value={flt.value}
                             type="DATE">
                         </c-field-validator> -->
-                        </div>
-                    </template>
-                    <template if:true={flt.isDateTime}>
-                        <div class="box">
-                        <lightning-input
-                            type="datetime"
-                            value={flt.value}
-                            data-id={flt.id}
-                            onchange={handleValueChange}>
-                        </lightning-input>
-                        <!-- <c-field-validator
+                            </div>
+                        </template>
+                        <template if:true={flt.isDateTime}>
+                            <div class="box">
+                                <lightning-input type="datetime" value={flt.value} data-id={flt.id}
+                                    onchange={handleValueChange}>
+                                </lightning-input>
+                                <!-- <c-field-validator
                             value={flt.value}
                             type="DATE">
                         </c-field-validator> -->
-                        </div>
-                    </template>
+                            </div>
+                        </template>
 
-                    <template if:true={flt.showTextInput}>
-                        <div class="box">
-                        <lightning-input
-                            type="text"
-                            value={flt.value}
-                            data-id={flt.id}
-                            onchange={handleValueChange}>
-                        </lightning-input>
-                        <c-field-validator
-                            value={flt.value}
-                            type={flt.fieldType}>
-                        </c-field-validator>
-                        </div>
-                    </template>
+                        <template if:true={flt.showTextInput}>
+                            <div class="box">
+                                <lightning-input type="text" value={flt.value} data-id={flt.id}
+                                    onchange={handleValueChange}>
+                                </lightning-input>
+                                <c-field-validator value={flt.value} type={flt.fieldType}>
+                                </c-field-validator>
+                            </div>
+                        </template>
 
-                    <div class="btn">
-                        <lightning-button-icon
-                            icon-name="utility:delete"
-                            data-id={flt.id}
-                            onclick={removeFilter}>
-                        </lightning-button-icon>
+                        <div class="btn">
+                            <lightning-button-icon icon-name="utility:delete" data-id={flt.id} onclick={removeFilter}>
+                            </lightning-button-icon>
+                        </div>
+
+
                     </div>
-                    
-
+                </template>
+                <div class="add-filter">
+                    <lightning-button label="Add Filter Condition" variant="brand"
+                        onclick={addFilter}></lightning-button>
                 </div>
+
+            </div>
+            <template lwc:if={showToggle}>
+                <template if:true={isFilterMode}>
+                    <div class="submit-btn">
+                        <lightning-button variant="brand" label="Submit" disabled={isSubmitDisabled}
+                            onclick={handleFilterAccounts}>
+                        </lightning-button>
+                    </div>
+
+                </template>
             </template>
-            <div class="add-filter">
-                <lightning-button label="Add Filter Condition" variant="brand" onclick={addFilter}></lightning-button>
-            </div>
-            
-        </div>
+        </template>
+
+
         <template lwc:if={showToggle}>
-        <template if:true={isFilterMode}>
-            <div class="submit-btn">
-                <lightning-button 
-                    variant="brand"
-                    label="Submit"
-                    disabled={isSubmitDisabled}
-                    onclick={handleFilterAccounts}>
-                </lightning-button>
-            </div>
-            
-        </template>
-        </template>
-        </template>
-    
-         
-        <template lwc:if={showToggle}>
-        <template if:false={isFilterMode}>
-            <div class="submit-btn">
-                <lightning-button 
-                    class=""
-                    label="Get all Records"
-                    disabled={isButtonDisabled}
-                    onclick={handleFilterAccounts}>
-                </lightning-button>
-            </div>
-            
-        </template>
+            <template if:false={isFilterMode}>
+                <div class="submit-btn">
+                    <lightning-button class="" label="Get all Records" disabled={isButtonDisabled}
+                        onclick={handleFilterAccounts}>
+                    </lightning-button>
+                </div>
+
+            </template>
         </template>
     </div>
-<template lwc:if={showToggle}>
-<template if:true={showTable}>
-    <template if:false={showNoRecords}>
-            <div class="conditions-builder-container">
+    <template lwc:if={showToggle}>
+        <template if:true={showTable}>
+            <template if:false={showNoRecords}>
+                <div class="conditions-builder-container">
 
-            
-            <div class="table-header">
-                <p class="table-heading"><b>{objectLabel} Records</b></p>
-                <c-capsule-dropdown
-                    value={pageSize}
-                    options={pageSizeOptions}
-                    onchange={handlePageSizeChange}>
-                </c-capsule-dropdown>
-            </div>
-             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
-                <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
 
-                    <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
-
-                        <lightning-button
-                            label="Previous"
-                            variant="brand"
-                            onclick={handlePrevious}
-                            disabled={isPreviousDisabled}
-                            class="slds-m-right_small">
-                        </lightning-button>
-
-                        <span class="slds-text-body_small slds-m-right_small">
-                            Page {currentPage} Of {totalPages}
-                        </span>
-
-                        <lightning-button
-                            label="Next"
-                            variant="brand"
-                            onclick={handleNext}
-                            disabled={isNextDisabled}>
-                        </lightning-button>
-
+                    <div class="table-header">
+                        <p class="table-heading"><b>{objectLabel} Records</b></p>
+                        <c-capsule-dropdown value={pageSize} options={pageSizeOptions} onchange={handlePageSizeChange}>
+                        </c-capsule-dropdown>
                     </div>
-                    
-                    <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
-                        <lightning-button
-                            label={archiveButtonLabel}
-                            variant="brand"
-                            disabled={isButtonDisabled}
-                            onclick={handlearchive}>
-                        </lightning-button>
+                    <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                        <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+
+                            <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
+
+                                <lightning-button label="Previous" variant="brand" onclick={handlePrevious}
+                                    disabled={isPreviousDisabled} class="slds-m-right_small">
+                                </lightning-button>
+
+                                <span class="slds-text-body_small slds-m-right_small">
+                                    Page {currentPage} Of {totalPages}
+                                </span>
+
+                                <lightning-button label="Next" variant="brand" onclick={handleNext}
+                                    disabled={isNextDisabled}>
+                                </lightning-button>
+
+                            </div>
+
+                            <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
+                                <lightning-button label={archiveButtonLabel} variant="brand" disabled={isButtonDisabled}
+                                    onclick={handlearchive}>
+                                </lightning-button>
+                            </div>
+
+                        </div>
                     </div>
-                    
-                </div>
-            </div>
-            
-            <c-dynamic-data-table
-                    show-archive-table="true"
-                    archivedata={filteredAccounts}
-                    archivecolumns={tablecolumnsname}
-                    archive-selected-rows={archiveSelectedRows}
-                    onarchiverowselection={handleArchiveRowSelections}>
-            </c-dynamic-data-table>
 
-            <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
-                <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
+                    <c-dynamic-data-table show-archive-table="true" archivedata={filteredAccounts}
+                        archivecolumns={tablecolumnsname} archive-selected-rows={archiveSelectedRows}
+                        onarchiverowselection={handleArchiveRowSelections}>
+                    </c-dynamic-data-table>
 
-                    <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
+                    <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
+                        <div class="slds-grid slds-wrap slds-grid_vertical-align-center">
 
-                        <lightning-button
-                            label="Previous"
-                            variant="brand"
-                            onclick={handlePrevious}
-                            disabled={isPreviousDisabled}
-                            class="slds-m-right_small">
-                        </lightning-button>
+                            <div class="slds-col slds-grow slds-grid slds-grid_align-center demo">
 
-                        <span class="slds-text-body_small slds-m-right_small">
-                            Page {currentPage} Of {totalPages}
-                        </span>
+                                <lightning-button label="Previous" variant="brand" onclick={handlePrevious}
+                                    disabled={isPreviousDisabled} class="slds-m-right_small">
+                                </lightning-button>
 
-                        <lightning-button
-                            label="Next"
-                            variant="brand"
-                            onclick={handleNext}
-                            disabled={isNextDisabled}>
-                        </lightning-button>
+                                <span class="slds-text-body_small slds-m-right_small">
+                                    Page {currentPage} Of {totalPages}
+                                </span>
 
-                    </div>
-                    
-                    <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
-                        <lightning-button
-                            label={archiveButtonLabel}
-                            variant="brand"
-                            disabled={isButtonDisabled}
-                            onclick={handlearchive}>
-                        </lightning-button>
+                                <lightning-button label="Next" variant="brand" onclick={handleNext}
+                                    disabled={isNextDisabled}>
+                                </lightning-button>
+
+                            </div>
+
+                            <div class="slds-col slds-text-align_right slds-m-top_small slds-m-top_none">
+                                <lightning-button label={archiveButtonLabel} variant="brand" disabled={isButtonDisabled}
+                                    onclick={handlearchive}>
+                                </lightning-button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            </div>
-        </template>
+            </template>
 
-        
-        
+
+
         </template>
         <template if:true={showNoRecords}>
             <div class="slds-p-horizontal_small slds-p-bottom_small slds-m-top_small">
                 No Records Found
             </div>
-</template>
-</template>
-        <template if:true={isLoading}>
-                        <lightning-spinner 
-                            alternative-text="Processing..."
-                            size="medium"
-                            variant="brand">
-                        </lightning-spinner>
         </template>
+    </template>
+    <template if:true={isLoading}>
+        <lightning-spinner alternative-text="Processing..." size="medium" variant="brand">
+        </lightning-spinner>
+    </template>
 
-        <!-- <div class="soql-preview">
+    <!-- <div class="soql-preview">
             <p><strong>WHERE Clause Preview:</strong></p>
             <code>{whereClause}</code>
         </div> -->
-  
-    
+
+
 </template>

@@ -1,0 +1,199 @@
+<template>
+    <!-- MODAL BACKDROP -->
+    <section role="dialog" tabindex="-1" aria-modal="true"
+             aria-labelledby="child-selection-heading"
+             class="slds-modal slds-fade-in-open slds-modal_large">
+        <div class="slds-modal__container">
+
+            <!-- HEADER -->
+            <header class="slds-modal__header modal-header">
+                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+                        title="Close" onclick={handleCancel}>
+                    <lightning-icon icon-name="utility:close" alternative-text="Close"
+                                   size="small" variant="inverse"></lightning-icon>
+                </button>
+                <div class="header-content">
+                    <lightning-icon icon-name="standard:record" size="medium"
+                                   class="slds-m-right_small"></lightning-icon>
+                    <div class="header-text-group">
+                        <div class="header-top-row">
+                            <h2 id="child-selection-heading" class="slds-modal__title">
+                                Select Related Records to Archive
+                            </h2>
+                            <span class="step-badge">Step 1 of 2</span>
+                        </div>
+                        <p class="header-subtitle">
+                            Choose which child records to include with the parent.
+                            Unselected records will be
+                            <strong>permanently deleted</strong>.
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- BODY -->
+            <div class="slds-modal__content slds-p-around_medium modal-body">
+
+                <!-- Parent Summary Card -->
+                <div class="parent-summary-card">
+                    <lightning-icon icon-name="standard:account" size="small"
+                                   class="slds-m-right_x-small"></lightning-icon>
+                    <span class="parent-label">
+                        <strong>{parentObjectName}</strong> &mdash;
+                        {selectedParentRecordCount} record(s) selected for archival
+                    </span>
+                </div>
+
+                <!-- Loading State -->
+                <template if:true={isLoading}>
+                    <div class="loading-container">
+                        <lightning-spinner alternative-text="Loading related records..."
+                                          size="medium" variant="brand"></lightning-spinner>
+                        <p class="slds-m-top_medium slds-text-color_weak">
+                            Fetching related child records&hellip;
+                        </p>
+                    </div>
+                </template>
+
+                <!-- No Child Records -->
+                <template if:false={isLoading}>
+                    <template if:true={hasNoChildRecords}>
+                        <div class="empty-state">
+                            <lightning-icon icon-name="utility:info_alt" size="large"
+                                           variant="light"
+                                           class="slds-m-bottom_small"></lightning-icon>
+                            <h3 class="slds-text-heading_small">No Related Records Found</h3>
+                            <p class="slds-text-color_weak slds-m-top_xx-small">
+                                The selected <strong>{parentObjectName}</strong> records have no related
+                                child records. You can proceed directly with archival.
+                            </p>
+                        </div>
+                    </template>
+
+                    <!-- Child Object Sections -->
+                    <template if:false={hasNoChildRecords}>
+                        <div class="info-banner">
+                            <lightning-icon icon-name="utility:warning" size="x-small"
+                                           variant="warning"
+                                           class="slds-m-right_x-small"></lightning-icon>
+                            <span>
+                                Select the child records you want to archive.
+                                All <strong>unselected</strong> child records will be
+                                <strong class="text-danger">permanently deleted</strong>.
+                            </span>
+                        </div>
+
+                        <!-- Hierarchy Tree -->
+                        <div class="hierarchy-tree">
+                            <!-- Parent Node -->
+                            <div class="tree-node tree-node-parent">
+                                <div class="tree-node-content">
+                                    <lightning-icon icon-name="standard:account" size="x-small"
+                                                   class="slds-m-right_xx-small"></lightning-icon>
+                                    <span class="tree-parent-name">{parentObjectName}</span>
+                                    <span class="tree-record-count">
+                                        {selectedParentRecordCount} record(s)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Child Nodes -->
+                            <template for:each={childObjectSections} for:item="section">
+                                <div key={section.childObjectName} class="tree-node tree-node-child">
+                                    <div class="tree-connector">
+                                        <span class="tree-line-vertical"></span>
+                                        <span class="tree-line-horizontal"></span>
+                                    </div>
+                                    <div class="child-section">
+
+                                        <!-- Section Header (clickable to expand/collapse) -->
+                                        <div class="section-header" data-object={section.childObjectName}
+                                             onclick={toggleSection}>
+                                            <div class="section-header-left">
+                                                <lightning-icon
+                                                    icon-name={section.expandIcon}
+                                                    size="xx-small"
+                                                    class="slds-m-right_x-small expand-icon">
+                                                </lightning-icon>
+                                                <lightning-icon icon-name="standard:related_list"
+                                                               size="small"
+                                                               class="slds-m-right_x-small"></lightning-icon>
+                                                <div>
+                                                    <span class="section-title">{section.childObjectLabel}</span>
+                                                    <span class="section-api-name">({section.childObjectName})</span>
+                                                    <p class="relationship-label">
+                                                        Related via: <strong>{section.relationshipField}</strong>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div class="section-header-right">
+                                                <span class="record-badge">
+                                                    {section.selectedCount} / {section.recordCount} selected
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Section Body (collapsible) -->
+                                        <template if:true={section.isExpanded}>
+                                            <div class="section-body">
+                                                <div class="section-actions">
+                                                    <lightning-button label="Select All"
+                                                        variant="brand-outline" size="small"
+                                                        data-object={section.childObjectName}
+                                                        onclick={handleSelectAll}>
+                                                    </lightning-button>
+                                                    <lightning-button label="Deselect All"
+                                                        variant="neutral" size="small"
+                                                        data-object={section.childObjectName}
+                                                        onclick={handleDeselectAll}>
+                                                    </lightning-button>
+                                                </div>
+                                                <lightning-datatable
+                                                    key-field="Id"
+                                                    data={section.records}
+                                                    columns={section.columns}
+                                                    selected-rows={section.selectedRowIds}
+                                                    onrowselection={handleRowSelection}
+                                                    data-object={section.childObjectName}
+                                                    max-row-selection="200"
+                                                    show-row-number-column>
+                                                </lightning-datatable>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </template>
+            </div>
+
+            <!-- FOOTER -->
+            <footer class="slds-modal__footer modal-footer">
+                <div class="footer-summary">
+                    <template if:false={hasNoChildRecords}>
+                        <span class="footer-stat">
+                            <strong>{totalSelectedChildRecords}</strong> child record(s) selected for archival
+                        </span>
+                        <template if:true={hasUnselectedRecords}>
+                            <span class="footer-stat footer-warning">
+                                <lightning-icon icon-name="utility:warning" size="xx-small"
+                                               variant="error"
+                                               class="slds-m-right_xx-small"></lightning-icon>
+                                <strong>{totalUnselectedChildRecords}</strong>&nbsp;record(s) will be permanently deleted
+                            </span>
+                        </template>
+                    </template>
+                </div>
+                <div class="footer-actions">
+                    <lightning-button variant="neutral" label="Cancel"
+                                     onclick={handleCancel}></lightning-button>
+                    <lightning-button variant="brand" label="Proceed to Confirmation"
+                                     onclick={handleProceed}
+                                     icon-name="utility:forward"></lightning-button>
+                </div>
+            </footer>
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

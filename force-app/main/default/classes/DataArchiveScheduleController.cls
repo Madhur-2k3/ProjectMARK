@@ -17,6 +17,14 @@ public with sharing class DataArchiveScheduleController {
     }
 
     // ─────────────────────────────────────────────────
+    //  Wrapper for paginated results
+    // ─────────────────────────────────────────────────
+    public class PaginatedResult {
+        @AuraEnabled public List<ScheduleInfo> records { get; set; }
+        @AuraEnabled public Integer totalRecords       { get; set; }
+    }
+
+    // ─────────────────────────────────────────────────
     //  Helper: clean up orphaned schedules in bulk
     //  If a job was deleted from Setup, mark record Inactive.
     // ─────────────────────────────────────────────────
@@ -47,7 +55,7 @@ public with sharing class DataArchiveScheduleController {
 
         for (Data_Archive_Schedule__c s : schedules) {
             if (s.Job_Id__c == null || !existingJobIds.contains(s.Job_Id__c)) {
-                s.Status__c = 'Inactive';
+                s.Status__c = 'In Active';
                 orphans.add(s);
             } else {
                 active.add(s);
@@ -101,27 +109,45 @@ public with sharing class DataArchiveScheduleController {
     }
 
     // ─────────────────────────────────────────────────
-    //  Get active schedules for a SPECIFIC object
+    //  Get ALL schedules for a SPECIFIC object
+    //  Returns Active + Inactive, sorted Active first
     // ─────────────────────────────────────────────────
     @AuraEnabled
     public static List<ScheduleInfo> getSchedulesForObject(String objectName) {
 
         List<ScheduleInfo> result = new List<ScheduleInfo>();
 
-        List<Data_Archive_Schedule__c> schedules = [
+        // Fetch all schedules for this object (Active + Inactive)
+        List<Data_Archive_Schedule__c> allSchedules = [
             SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
                    Preferred_Time__c, Day_Of_Week__c, Job_Id__c
             FROM Data_Archive_Schedule__c
             WHERE Object_Name__c = :objectName
-            AND Status__c = 'Active'
             ORDER BY CreatedDate DESC
         ];
 
-        // Auto-clean orphaned schedules whose jobs were deleted from Setup
-        schedules = cleanOrphanedSchedules(schedules);
+        // Separate Active vs Inactive so we only run orphan-cleanup on Active ones
+        List<Data_Archive_Schedule__c> activeSchedules   = new List<Data_Archive_Schedule__c>();
+        List<Data_Archive_Schedule__c> inactiveSchedules = new List<Data_Archive_Schedule__c>();
 
-        for (Data_Archive_Schedule__c s : schedules) {
+        for (Data_Archive_Schedule__c s : allSchedules) {
+            if (s.Status__c == 'Active') {
+                activeSchedules.add(s);
+            } else {
+                inactiveSchedules.add(s);
+            }
+        }
+
+        // Auto-clean orphaned active schedules whose cron jobs were deleted from Setup
+        List<Data_Archive_Schedule__c> cleanedActive = cleanOrphanedSchedules(activeSchedules);
+
+        // Build result: Active records first, then Inactive
+        List<Data_Archive_Schedule__c> ordered = new List<Data_Archive_Schedule__c>();
+        ordered.addAll(cleanedActive);
+        ordered.addAll(inactiveSchedules);
+
+        for (Data_Archive_Schedule__c s : ordered) {
             ScheduleInfo info   = new ScheduleInfo();
             info.id             = s.Id;
             info.objectName     = s.Object_Name__c;
@@ -137,6 +163,120 @@ public with sharing class DataArchiveScheduleController {
         }
 
         return result;
+    }
+
+    // ─────────────────────────────────────────────────
+    //  Get ALL active schedules — PAGINATED (server-side)
+    // ─────────────────────────────────────────────────
+    @AuraEnabled
+    public static PaginatedResult getActiveSchedulesPaginated(
+        Integer pageSize, Integer pageNumber
+    ) {
+        Integer safePage = (pageNumber != null && pageNumber > 0) ? pageNumber : 1;
+        Integer safeSize = (pageSize != null && pageSize > 0) ? pageSize : 5;
+        Integer offset   = (safePage - 1) * safeSize;
+
+        Integer total = [SELECT COUNT()
+                         FROM Data_Archive_Schedule__c
+                         WHERE Status__c = 'Active'];
+
+        List<Data_Archive_Schedule__c> schedules = [
+            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+                   Days__c, Status__c, Cron_Expression__c, CreatedDate,
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+            FROM Data_Archive_Schedule__c
+            WHERE Status__c = 'Active'
+            ORDER BY CreatedDate DESC
+            LIMIT :safeSize
+            OFFSET :offset
+        ];
+
+        schedules = cleanOrphanedSchedules(schedules);
+
+        List<ScheduleInfo> records = new List<ScheduleInfo>();
+        for (Data_Archive_Schedule__c s : schedules) {
+            ScheduleInfo info   = new ScheduleInfo();
+            info.id             = s.Id;
+            info.objectName     = s.Object_Name__c;
+            info.frequency      = s.Frequency__c;
+            info.dateField      = s.Date_Field__c;
+            info.days           = s.Days__c;
+            info.status         = s.Status__c;
+            info.cronExpression = s.Cron_Expression__c;
+            info.createdDate    = s.CreatedDate;
+            info.preferredTime  = s.Preferred_Time__c;
+            info.dayOfWeek      = s.Day_Of_Week__c;
+            records.add(info);
+        }
+
+        PaginatedResult pr = new PaginatedResult();
+        pr.records      = records;
+        pr.totalRecords = total;
+        return pr;
+    }
+
+    // ─────────────────────────────────────────────────
+    //  Get schedules for a SPECIFIC object — PAGINATED
+    // ─────────────────────────────────────────────────
+    @AuraEnabled
+    public static PaginatedResult getSchedulesForObjectPaginated(
+        String objectName, Integer pageSize, Integer pageNumber
+    ) {
+        Integer safePage = (pageNumber != null && pageNumber > 0) ? pageNumber : 1;
+        Integer safeSize = (pageSize != null && pageSize > 0) ? pageSize : 5;
+        Integer offset   = (safePage - 1) * safeSize;
+
+        Integer total = [SELECT COUNT()
+                         FROM Data_Archive_Schedule__c
+                         WHERE Object_Name__c = :objectName];
+
+        List<Data_Archive_Schedule__c> allScheds = [
+            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+                   Days__c, Status__c, Cron_Expression__c, CreatedDate,
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+            FROM Data_Archive_Schedule__c
+            WHERE Object_Name__c = :objectName
+            ORDER BY Status__c ASC, CreatedDate DESC
+            LIMIT :safeSize
+            OFFSET :offset
+        ];
+
+        List<Data_Archive_Schedule__c> activeSchedules   = new List<Data_Archive_Schedule__c>();
+        List<Data_Archive_Schedule__c> inactiveSchedules = new List<Data_Archive_Schedule__c>();
+        for (Data_Archive_Schedule__c s : allScheds) {
+            if (s.Status__c == 'Active') {
+                activeSchedules.add(s);
+            } else {
+                inactiveSchedules.add(s);
+            }
+        }
+
+        List<Data_Archive_Schedule__c> cleanedActive = cleanOrphanedSchedules(activeSchedules);
+
+        List<Data_Archive_Schedule__c> ordered = new List<Data_Archive_Schedule__c>();
+        ordered.addAll(cleanedActive);
+        ordered.addAll(inactiveSchedules);
+
+        List<ScheduleInfo> records = new List<ScheduleInfo>();
+        for (Data_Archive_Schedule__c s : ordered) {
+            ScheduleInfo info   = new ScheduleInfo();
+            info.id             = s.Id;
+            info.objectName     = s.Object_Name__c;
+            info.frequency      = s.Frequency__c;
+            info.dateField      = s.Date_Field__c;
+            info.days           = s.Days__c;
+            info.status         = s.Status__c;
+            info.cronExpression = s.Cron_Expression__c;
+            info.createdDate    = s.CreatedDate;
+            info.preferredTime  = s.Preferred_Time__c;
+            info.dayOfWeek      = s.Day_Of_Week__c;
+            records.add(info);
+        }
+
+        PaginatedResult pr = new PaginatedResult();
+        pr.records      = records;
+        pr.totalRecords = total;
+        return pr;
     }
 
     // ─────────────────────────────────────────────────
@@ -228,7 +368,7 @@ public with sharing class DataArchiveScheduleController {
         );
 
         // ── Save schedule record ──────────────────────
-        insert new Data_Archive_Schedule__c(
+        Data_Archive_Schedule__c newSchedule = new Data_Archive_Schedule__c(
             Object_Name__c     = objectName,
             Frequency__c       = frequency,
             Date_Field__c      = dateField,
@@ -239,8 +379,9 @@ public with sharing class DataArchiveScheduleController {
             Preferred_Time__c  = preferredTime,
             Day_Of_Week__c     = dayOfWeek
         );
+        insert newSchedule;
 
-        return 'Schedule Created Successfully';
+        return newSchedule.Id;
     }
 
 
@@ -313,7 +454,7 @@ public with sharing class DataArchiveScheduleController {
             }
         }
 
-        schedule.Status__c = 'Stopped';
+        schedule.Status__c = 'In Active';
         update schedule;
         return 'Schedule deactivated successfully';
     }

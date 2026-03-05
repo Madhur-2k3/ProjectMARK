@@ -31,17 +31,27 @@ export default class SObjectCombox extends LightningElement {
     }
 
     handleSearch(event) {
-        this.changed=true;
-        
-        const key = event.target.value.toLowerCase();
-        this.searchTerm = key;
+        this.changed = true;
+
+        const raw = event.target.value;
+        const key = raw.toLowerCase();
+        this.searchTerm = raw;
+
+        // If the user clears the search field, reset the selection and notify parent
+        if (raw === '') {
+            this.selectedSObject = '';
+            this.objectLabel = '';
+            this.filteredOptions = this.sobjectOptions;
+            this.dispatchEvent(
+                new CustomEvent('objectselected', { detail: null })
+            );
+            return;
+        }
 
         this.filteredOptions = this.sobjectOptions.filter(opt =>
             opt.label.toLowerCase().includes(key) ||
             opt.value.toLowerCase().includes(key)
         );
-        
-        
     }
 
     handleSelect(event) {

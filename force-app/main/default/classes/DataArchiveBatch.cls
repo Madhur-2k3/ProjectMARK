@@ -1232,10 +1232,11 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     }
 
     // ===================== CONSTRUCTOR =====================
-    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,String archiveName) {
         this.objectName   = objectName;
         this.fields       = normalizeFields(fieldsCsv);
         this.soqlQuery    = soqlQuery;
+        this.archiveRecordName = archiveName;
 
         this.parentHeader     = String.join(this.fields, ',') + '\n';
         this.currentParentCsv = this.parentHeader;
@@ -1356,7 +1357,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
         Data_Archive__c archiveRecord = new Data_Archive__c(
             Parent_Object__c = this.objectName,
             Fields__c        = String.join(this.fields, ','),
-            Status__c        = 'Archive In Progress'
+            Status__c        = 'Archive In Progress',
+            Name             = this.archiveRecordName
         );
         insert archiveRecord;
 

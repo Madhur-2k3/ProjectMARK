@@ -1,11 +1,12 @@
 import { LightningElement } from 'lwc';
+import { NavigationMixin } from 'lightning/navigation';
 import scheduleArchive
     from '@salesforce/apex/DataArchiveScheduleController.scheduleArchive';
 
 import { ShowToastEvent }
     from 'lightning/platformShowToastEvent';
 
-export default class DataArchiveSelection extends LightningElement {
+export default class DataArchiveSelection extends NavigationMixin(LightningElement) {
 
     booleanFlag = true;     // Archive default ON
     unArchiveFlag = false;
@@ -109,23 +110,39 @@ export default class DataArchiveSelection extends LightningElement {
         const scheduleData = event.detail;
 
         scheduleArchive({
-            objectName:    scheduleData.object,
-            frequency:     scheduleData.frequency,
-            dateField:     scheduleData.criteria.whereClause || 'FilterCriteria',
-            days:          0,
-            filterValue:   scheduleData.criteria.whereClause,
+            objectName: scheduleData.object,
+            frequency: scheduleData.frequency,
+            dateField: scheduleData.criteria.whereClause || 'FilterCriteria',
+            days: 0,
+            filterValue: scheduleData.criteria.whereClause,
             preferredTime: scheduleData.preferredTime,
-            dayOfWeek:     scheduleData.dayOfWeek
+            dayOfWeek: scheduleData.dayOfWeek
         })
-            .then(result => {
+            .then(recordId => {
 
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: result,
-                        variant: 'success'
-                    })
-                );
+                // Build the record page URL
+                this[NavigationMixin.GenerateUrl]({
+                    type: 'standard__recordPage',
+                    attributes: {
+                        recordId: recordId,
+                        objectApiName: 'Data_Archive_Schedule__c',
+                        actionName: 'view'
+                    }
+                }).then(url => {
+                    this.dispatchEvent(
+                        new ShowToastEvent({
+                            title: 'Success',
+                            message: 'Schedule Created Successfully! {0}',
+                            messageData: [
+                                {
+                                    url: url,
+                                    label: 'View Data Archive Schedule Record'
+                                }
+                            ],
+                            variant: 'success'
+                        })
+                    );
+                });
 
                 this.closeAllModals();
             })
