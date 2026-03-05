@@ -394,8 +394,11 @@ public with sharing class S3Controller {
         // Get just the file name (after last slash)
         String fName = key.contains('/') ? key.substringAfterLast('/') : key;
 
-        // Remove extension(s): strip .enc, then .csv
+        // Remove extension(s): strip .enc, .zip, then .csv
         if (fName.endsWith('.enc')) {
+            fName = fName.substringBeforeLast('.');
+        }
+        if (fName.endsWith('.zip')) {
             fName = fName.substringBeforeLast('.');
         }
         if (fName.contains('.')) {
@@ -544,6 +547,18 @@ public with sharing class S3Controller {
 
         Blob aesKey = EncodingUtil.base64Decode(archives[0].Encryption_Key__c);
         Blob decrypted = Crypto.decryptWithManagedIV('AES256', aesKey, encryptedBlob);
+
+        // Check if the data is ZIP-compressed (.csv.zip.enc)
+        if (s3Key != null && s3Key.toLowerCase().contains('.zip.enc')) {
+            // Decompress using ZipReader
+            Compression.ZipReader zr = new Compression.ZipReader(decrypted);
+            List<Compression.ZipEntry> entries = zr.getEntries();
+            if (!entries.isEmpty()) {
+                Blob csvBlob = zr.extract(entries[0]);
+                return csvBlob.toString();
+            }
+        }
+
         return decrypted.toString();
     }
 

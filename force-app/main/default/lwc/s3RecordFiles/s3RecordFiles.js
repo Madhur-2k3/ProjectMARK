@@ -226,7 +226,7 @@ export default class S3RecordFiles extends LightningElement {
     _getEffectiveExt(fileName, ext) {
         if (ext === 'enc' && fileName) {
             const lower = fileName.toLowerCase();
-            if (lower.endsWith('.csv.enc')) return 'csv';
+            if (lower.endsWith('.csv.zip.enc') || lower.endsWith('.csv.enc')) return 'csv';
             if (lower.endsWith('.txt.enc')) return 'txt';
             if (lower.endsWith('.json.enc')) return 'json';
         }

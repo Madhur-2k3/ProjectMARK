@@ -50,13 +50,19 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
                     partSuffix = '_' + versionRecord.Description.replace(' ', '_');
                 }
 
-                // Build S3 key with .csv.enc extension
-                String s3FileName = String.valueOf(archiveRecordId) + '/' + versionRecord.Title + partSuffix + '.csv.enc';
+                // Build S3 key with .csv.zip.enc extension
+                String s3FileName = String.valueOf(archiveRecordId) + '/' + versionRecord.Title + partSuffix + '.csv.zip.enc';
 
-                // Encrypt the CSV data
+                // Compress + Encrypt the CSV data
                 String base64Body = '';
                 if (versionRecord.VersionData != null) {
-                    Blob encrypted = Crypto.encryptWithManagedIV('AES256', aesKey, versionRecord.VersionData);
+                    // Step 1: Compress using ZipWriter
+                    Compression.ZipWriter zw = new Compression.ZipWriter();
+                    zw.addEntry('data.csv', null, Datetime.now(), Compression.Method.DEFLATED, versionRecord.VersionData);
+                    Blob compressed = zw.getArchive();
+
+                    // Step 2: Encrypt the compressed data
+                    Blob encrypted = Crypto.encryptWithManagedIV('AES256', aesKey, compressed);
                     base64Body = EncodingUtil.base64Encode(encrypted);
                 }
 

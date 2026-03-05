@@ -364,22 +364,22 @@ private class S3ControllerTest {
 
     @IsTest
     static void testExtractObjectNameFromKey_EncryptedFile() {
-        // Pattern: recordId/Account_Account_-_DA-0001.csv.enc
-        String result = S3Controller.extractObjectNameFromKey('recId/Account_Account_-_DA-0001.csv.enc');
-        System.assertEquals('Account', result, 'Should extract Account from encrypted file key');
+        // Pattern: recordId/Account_Account_-_DA-0001.csv.zip.enc
+        String result = S3Controller.extractObjectNameFromKey('recId/Account_Account_-_DA-0001.csv.zip.enc');
+        System.assertEquals('Account', result, 'Should extract Account from compressed+encrypted file key');
     }
 
     @IsTest
     static void testExtractObjectNameFromKey_EncExtensionOnly() {
         String result = S3Controller.extractObjectNameFromKey('recId/Account_Account_-_DA-0001.csv.enc');
-        System.assertEquals('Account', result, 'Should extract Account from encrypted file key');
+        System.assertEquals('Account', result, 'Should extract Account from encrypt-only file key');
     }
 
     // ─── extractArchiveIdFromKey ─────────────────────────────────────
 
     @IsTest
     static void testExtractArchiveIdFromKey_Success() {
-        String result = S3Controller.extractArchiveIdFromKey('a0B5g00000ABC12/Account_-_DA-0001.csv.enc');
+        String result = S3Controller.extractArchiveIdFromKey('a0B5g00000ABC12/Account_-_DA-0001.csv.zip.enc');
         System.assertEquals('a0B5g00000ABC12', result, 'Should return archive ID prefix');
     }
 
