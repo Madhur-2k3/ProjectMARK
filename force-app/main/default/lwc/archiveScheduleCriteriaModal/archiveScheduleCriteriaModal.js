@@ -9,6 +9,17 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
     isLoading = true;
     @track fieldsData = [];
     @track currentWhereClause = '';
+    @track scheduleName = '';
+
+    // Auto-populate schedule name with object + today's date
+    connectedCallback() {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+        this.scheduleName = `${this.selectedObject || 'Archive'} - ${dateStr}`;
+    }
 
     // ── Wire: load fields ──
     @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
@@ -17,8 +28,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
         if (data) {
             this.fieldsData = data.map(f => ({
                 apiName: f.apiName,
-                label:   f.label,
-                type:    f.fieldType
+                label: f.label,
+                type: f.fieldType
             }));
             this.isLoading = false;
         } else if (error) {
@@ -31,7 +42,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
     // ── Getters ──
 
     get isNextDisabled() {
-        return !this.currentWhereClause || this.currentWhereClause.trim() === '';
+        return !this.currentWhereClause || this.currentWhereClause.trim() === '' ||
+            !this.scheduleName || this.scheduleName.trim() === '';
     }
 
     // ── Event Handlers ──
@@ -40,11 +52,16 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
         this.currentWhereClause = event.detail;
     }
 
+    handleNameChange(event) {
+        this.scheduleName = event.detail.value;
+    }
+
     handleNext() {
         this.dispatchEvent(
             new CustomEvent('criteriaselected', {
                 detail: {
-                    whereClause: this.currentWhereClause
+                    whereClause: this.currentWhereClause,
+                    scheduleName: this.scheduleName
                 }
             })
         );

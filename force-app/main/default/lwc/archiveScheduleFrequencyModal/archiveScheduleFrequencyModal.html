@@ -17,26 +17,22 @@
 
             <div class="slds-modal__content slds-p-around_medium">
 
-                <!-- ─── Schedule Name ─── -->
-                <lightning-input label="Data Archive Schedule Record Name" type="text" value={scheduleName}
-                    maxlength="80" required placeholder="Enter a name for the schedule record"
-                    onchange={handleNameChange} class="slds-m-bottom_medium">
-                </lightning-input>
-
                 <!-- ─── Frequency Selection ─── -->
                 <lightning-radio-group label="Choose Frequency" options={frequencyOptions} value={selectedFrequency}
                     onchange={handleFrequencyChange}>
                 </lightning-radio-group>
 
-                <!-- ─── Preferred Time (always visible) ─── -->
-                <div class="slds-m-top_medium">
-                    <lightning-input type="time" label="Preferred Execution Time" value={preferredTime}
-                        onchange={handleTimeChange}>
-                    </lightning-input>
-                    <p class="slds-text-color_weak slds-m-top_xx-small" style="font-size: 11px;">
-                        Select when the archive job should run.
-                    </p>
-                </div>
+                <!-- ─── Preferred Time (visible after frequency selected) ─── -->
+                <template if:true={selectedFrequency}>
+                    <div class="slds-m-top_medium">
+                        <lightning-input type="time" label="Preferred Execution Time" value={preferredTime}
+                            onchange={handleTimeChange}>
+                        </lightning-input>
+                        <p class="slds-text-color_weak slds-m-top_xx-small" style="font-size: 11px;">
+                            Select when the archive job should run.
+                        </p>
+                    </div>
+                </template>
 
                 <!-- ─── Day of Week (Weekly only) ─── -->
                 <template if:true={showDayOfWeek}>

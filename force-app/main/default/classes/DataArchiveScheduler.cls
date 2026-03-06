@@ -4,17 +4,20 @@ public with sharing class DataArchiveScheduler implements Schedulable {
     private String criteriaField;
     private Integer days;
     private String filterValue;
+    private String scheduleName;
 
     public DataArchiveScheduler(
         String objectName,
         String criteriaField,
         Integer days,
-        String filterValue
+        String filterValue,
+        String scheduleName
     ){
         this.objectName    = objectName;
         this.criteriaField = criteriaField;
         this.days          = days;
         this.filterValue   = filterValue;
+        this.scheduleName  = scheduleName;
     }
 
     public void execute(SchedulableContext sc) {
@@ -41,7 +44,7 @@ public with sharing class DataArchiveScheduler implements Schedulable {
             ' WHERE ' + whereClause;
 
         DataArchiveBatch batch =
-            new DataArchiveBatch(objectName, fieldsCsv, soql);
+            new DataArchiveBatch(objectName, fieldsCsv, soql,scheduleName);
 
         Database.executeBatch(batch, 200);
     }

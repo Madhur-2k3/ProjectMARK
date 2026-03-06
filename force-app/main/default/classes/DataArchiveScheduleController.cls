@@ -290,7 +290,8 @@ public with sharing class DataArchiveScheduleController {
         Integer days,
         String  filterValue,
         String  preferredTime,
-        String  dayOfWeek
+        String  dayOfWeek,
+        String  scheduleName
     ){
 
         // ── Clean up orphaned schedules first ────────
@@ -356,6 +357,23 @@ public with sharing class DataArchiveScheduleController {
             'Archive_' + objectName + '_' +
             Datetime.now().getTime();
 
+        
+
+        // ── Save schedule record (without Job_Id; set after scheduling) ──
+        Data_Archive_Schedule__c newSchedule = new Data_Archive_Schedule__c(
+            Name               = scheduleName,
+            Object_Name__c     = objectName,
+            Frequency__c       = frequency,
+            Date_Field__c      = dateField,
+            Days__c            = days,
+            Cron_Expression__c = cronExp,
+            Status__c          = 'Active',
+            Preferred_Time__c  = preferredTime,
+            Day_Of_Week__c     = dayOfWeek
+        );
+        insert newSchedule;
+
+        // ── Schedule the job (after insert so we can use newSchedule.Name) ──
         Id jobId = System.schedule(
             jobName,
             cronExp,
@@ -363,24 +381,14 @@ public with sharing class DataArchiveScheduleController {
                 objectName,
                 dateField,
                 days,
-                filterValue
+                filterValue,
+                newSchedule.Name
             )
         );
 
-        // ── Save schedule record ──────────────────────
-        Data_Archive_Schedule__c newSchedule = new Data_Archive_Schedule__c(
-            Object_Name__c     = objectName,
-            Frequency__c       = frequency,
-            Date_Field__c      = dateField,
-            Days__c            = days,
-            Cron_Expression__c = cronExp,
-            Job_Id__c          = jobId,
-            Status__c          = 'Active',
-            Preferred_Time__c  = preferredTime,
-            Day_Of_Week__c     = dayOfWeek
-        );
-        insert newSchedule;
-
+        // ── Update the schedule record with the Job Id ──
+        newSchedule.Job_Id__c = jobId;
+        update newSchedule;
         return newSchedule.Id;
     }
 

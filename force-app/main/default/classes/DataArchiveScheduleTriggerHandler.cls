@@ -36,7 +36,7 @@ public with sharing class DataArchiveScheduleTriggerHandler {
     @future
     public static void reactivateSchedules(Set<Id> recIds) {
         List<Data_Archive_Schedule__c> fullRecords = [
-            SELECT Id, Job_Id__c, Object_Name__c,
+            SELECT Id, Name, Job_Id__c, Object_Name__c,
                    Frequency__c, Date_Field__c, Days__c,
                    Preferred_Time__c, Day_Of_Week__c
             FROM Data_Archive_Schedule__c
@@ -74,7 +74,8 @@ public with sharing class DataArchiveScheduleTriggerHandler {
                     rec.Object_Name__c,
                     rec.Date_Field__c,
                     rec.Days__c != null ? Integer.valueOf(rec.Days__c) : 0,
-                    null  // filterValue not persisted; scheduler uses date-based filter
+                    null,       // filterValue not persisted; scheduler uses date-based filter
+                    rec.Name    // pass the schedule record name
                 )
             );
 

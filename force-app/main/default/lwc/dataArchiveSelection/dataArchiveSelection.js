@@ -21,6 +21,7 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     selectedFrequency;
     selectedCriteria;
     selectedObject;
+    scheduleName;
 
     get archiveClass() {
         return this.booleanFlag
@@ -88,6 +89,7 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     // Criteria selected → open Frequency modal
     handleCriteriaSelected(event) {
         this.selectedCriteria = event.detail;
+        this.scheduleName = event.detail.scheduleName;
         this.showCriteriaModal = false;
         this.showScheduleModal = true;
     }
@@ -116,7 +118,8 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
             days: 0,
             filterValue: scheduleData.criteria.whereClause,
             preferredTime: scheduleData.preferredTime,
-            dayOfWeek: scheduleData.dayOfWeek
+            dayOfWeek: scheduleData.dayOfWeek,
+            scheduleName: scheduleData.scheduleName
         })
             .then(recordId => {
 

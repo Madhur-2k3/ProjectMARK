@@ -11,6 +11,12 @@
 
             <div class="slds-modal__content slds-p-around_medium">
 
+                <!-- Schedule Name Input -->
+                <lightning-input label="Data Archive Schedule Name" type="text" value={scheduleName} maxlength="80"
+                    required placeholder="Enter a name for the schedule" onchange={handleNameChange}
+                    class="slds-m-bottom_medium">
+                </lightning-input>
+
                 <!-- Loading spinner -->
                 <template if:true={isLoading}>
                     <div class="slds-align_absolute-center slds-p-around_large">
@@ -19,28 +25,17 @@
                 </template>
 
                 <template if:false={isLoading}>
-                    <c-filter-builder
-                        criteria-only
-                        fields={fieldsData}
-                        onwherechange={handleWhereClauseChange}>
+                    <c-filter-builder criteria-only fields={fieldsData} onwherechange={handleWhereClauseChange}>
                     </c-filter-builder>
                 </template>
 
             </div>
 
             <footer class="slds-modal__footer slds-modal__footer_directional">
-                <lightning-button
-                    label="Previous"
-                    variant="neutral"
-                    icon-name="utility:back"
-                    onclick={handlePrevious}
+                <lightning-button label="Previous" variant="neutral" icon-name="utility:back" onclick={handlePrevious}
                     class="slds-m-right_x-small">
                 </lightning-button>
-                <lightning-button
-                    label="Next"
-                    variant="brand"
-                    onclick={handleNext}
-                    disabled={isNextDisabled}>
+                <lightning-button label="Next" variant="brand" onclick={handleNext} disabled={isNextDisabled}>
                 </lightning-button>
             </footer>
 
