@@ -505,6 +505,7 @@ export default class FilterBuilder extends LightningElement {
 
     handleArchiveNameChange(event) {
         this.archiveName = event.detail.value;
+        console.log("Archive Name:", this.archiveName);
     }
 
     get isStartArchiveDisabled() {
@@ -542,7 +543,8 @@ export default class FilterBuilder extends LightningElement {
         archiveSelectedRecords({
             objectName: this.objectname,
             recordIds: ids,
-            fieldsCsv: this.selectedFieldApiList.join(',')
+            fieldsCsv: this.selectedFieldApiList.join(','),
+            archiveName: this.archiveName
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;
@@ -569,7 +571,8 @@ export default class FilterBuilder extends LightningElement {
         archiveAllRecords({
             objectName: this.objectname,
             fieldsCsv: this.selectedFieldApiList.join(','),
-            fullQuery: this.query
+            fullQuery: this.query,
+            archiveName: this.archiveName
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;
