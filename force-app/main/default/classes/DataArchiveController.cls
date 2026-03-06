@@ -8,14 +8,15 @@ public with sharing class DataArchiveController {
         String objectName,
         List<Id> recordIds,
         String fieldsCsv,
-        String archiveName
+        String archiveName,
+        List<String> selectedChildObjects
     ) {
         if (recordIds == null || recordIds.isEmpty()) {
             throw new AuraHandledException('Select at least one record to archive.');
         }
 
         String soql = buildSoqlForSelected(objectName, recordIds, fieldsCsv);
-        return executeBatchArchive(objectName, fieldsCsv, soql, archiveName);
+        return executeBatchArchive(objectName, fieldsCsv, soql, archiveName, selectedChildObjects);
     }
 
     /* =====================================================
@@ -26,14 +27,15 @@ public with sharing class DataArchiveController {
         String objectName,
         String fieldsCsv,
         String fullQuery,
-        String archiveName
+        String archiveName,
+        List<String> selectedChildObjects
     ) {
         if (String.isBlank(fullQuery)) {
             throw new AuraHandledException('Full query is required.');
         }
 
         String finalQuery = replaceSelect(fullQuery, fieldsCsv);
-        return executeBatchArchive(objectName, fieldsCsv, finalQuery, archiveName);
+        return executeBatchArchive(objectName, fieldsCsv, finalQuery, archiveName, selectedChildObjects);
     }
 
     /* =====================================================
@@ -43,11 +45,12 @@ public with sharing class DataArchiveController {
         String objectName,
         String fieldsCsv,
         String soql,
-        String archiveName
+        String archiveName,
+        List<String> selectedChildObjects
     ) {
         validateInputs(objectName, fieldsCsv);
 
-        DataArchiveBatch batch = new DataArchiveBatch(objectName, fieldsCsv, soql, archiveName);
+        DataArchiveBatch batch = new DataArchiveBatch(objectName, fieldsCsv, soql, archiveName, selectedChildObjects);
         Id batchJobId = Database.executeBatch(batch, 2000);
 
         return batchJobId;

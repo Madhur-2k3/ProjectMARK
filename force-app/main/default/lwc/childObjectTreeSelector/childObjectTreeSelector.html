@@ -1,0 +1,87 @@
+<template>
+    <!-- Loading State -->
+    <template if:true={isLoading}>
+        <div class="tree-loading">
+            <lightning-spinner alternative-text="Loading child objects..." size="small" variant="brand">
+            </lightning-spinner>
+            <p class="loading-text">Discovering child objects…</p>
+        </div>
+    </template>
+
+    <!-- Error State -->
+    <template if:true={hasError}>
+        <div class="tree-error">
+            <lightning-icon icon-name="utility:error" size="small" variant="error" class="slds-m-right_x-small">
+            </lightning-icon>
+            <span>{errorMessage}</span>
+        </div>
+    </template>
+
+    <!-- Tree Content -->
+    <template if:false={isLoading}>
+        <template if:false={hasError}>
+
+            <!-- No children -->
+            <template if:false={hasChildren}>
+                <div class="tree-empty">
+                    <lightning-icon icon-name="utility:info" size="small" class="slds-m-right_x-small">
+                    </lightning-icon>
+                    <span>No child objects found for this object.</span>
+                </div>
+            </template>
+
+            <!-- Has children -->
+            <template if:true={hasChildren}>
+
+                <!-- Header -->
+                <div class="tree-header">
+                    <h3 class="tree-title">
+                        <lightning-icon icon-name="utility:hierarchy" size="x-small" class="slds-m-right_xx-small">
+                        </lightning-icon>
+                        Select Child Objects to Archive
+                    </h3>
+                    <p class="tree-summary">{selectionSummary}</p>
+                </div>
+
+                <!-- Select / Deselect All -->
+                <div class="tree-actions">
+                    <lightning-button label="Select All" variant="neutral" icon-name="utility:multi_select_checkbox"
+                        onclick={handleSelectAll} class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button label="Deselect All" variant="neutral" icon-name="utility:clear"
+                        onclick={handleDeselectAll}>
+                    </lightning-button>
+                </div>
+
+                <!-- Tree Nodes -->
+                <div class="tree-container">
+                    <template for:each={flatNodes} for:item="node">
+                        <div key={node.key} class="tree-node" style={node.indentStyle}>
+
+                            <span class="tree-connector">{node.connector}</span>
+
+                            <label class="tree-label">
+                                <input type="checkbox" checked={node.isSelected} data-object={node.objectName}
+                                    onchange={handleToggle} class="tree-checkbox" />
+
+                                <span class="tree-object-label">
+                                    {node.objectLabel}
+                                </span>
+                                <span class="tree-object-api">
+                                    ({node.objectName})
+                                </span>
+                            </label>
+
+                            <template if:true={node.hasChildren}>
+                                <lightning-icon icon-name="utility:chevronright" size="xx-small"
+                                    class="tree-expand-icon">
+                                </lightning-icon>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+
+        </template>
+    </template>
+</template>

@@ -14,7 +14,7 @@
         <template lwc:if={showToggle}>
             <template if:true={showModal}>
                 <section role="dialog" tabindex="-1" aria-modal="true" aria-labelledby="modal-heading-01"
-                    class="slds-modal slds-fade-in-open">
+                    class="slds-modal slds-fade-in-open slds-modal_large">
                     <div class="slds-modal__container">
                         <header class="slds-modal__header">
                             <button class="slds-button slds-button_icon slds-modal__close" title="Close"
@@ -22,24 +22,49 @@
                                 <lightning-icon icon-name="utility:close" alternative-text="close"
                                     size="small"></lightning-icon>
                             </button>
-                            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">Archive Records</h2>
+                            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+                                Archive Records — Step {archiveModalStep} of 2
+                            </h2>
                         </header>
                         <div class="slds-modal__content slds-p-around_medium">
 
-                            <lightning-input label="Data Archive Record Name" type="text" value={archiveName}
-                                maxlength="80" required placeholder="Enter a name for the archive record"
-                                onchange={handleArchiveNameChange} class="slds-m-bottom_medium">
-                            </lightning-input>
+                            <!-- STEP 1: Archive Name -->
+                            <template if:true={isArchiveStep1}>
+                                <lightning-input label="Data Archive Record Name" type="text" value={archiveName}
+                                    maxlength="80" required placeholder="Enter a name for the archive record"
+                                    onchange={handleArchiveNameChange} class="slds-m-bottom_medium">
+                                </lightning-input>
 
-                            <p class="slds-m-bottom_x-small">{modalMessage}</p>
-                            <p><b>NOTE: </b>{note}</p>
+                                <p class="slds-m-bottom_x-small">{modalMessage}</p>
+                                <p><b>NOTE: </b>{note}</p>
+                            </template>
+
+                            <!-- STEP 2: Child Object Selection -->
+                            <template if:true={isArchiveStep2}>
+                                <c-child-object-tree-selector object-name={objectname}
+                                    onselectionchange={handleChildSelectionChange}>
+                                </c-child-object-tree-selector>
+                            </template>
 
                         </div>
                         <footer class="slds-modal__footer footer">
                             <lightning-button variant="neutral" label="Cancel" onclick={closeModal}></lightning-button>
-                            <lightning-button variant="brand" label="Start Archive" icon-name="utility:archive"
-                                onclick={confirmArchive} disabled={isStartArchiveDisabled}>
-                            </lightning-button>
+
+                            <template if:true={isArchiveStep1}>
+                                <lightning-button variant="brand" label="Next: Select Child Objects"
+                                    icon-name="utility:forward" onclick={handleArchiveModalNext}
+                                    disabled={isStartArchiveDisabled}>
+                                </lightning-button>
+                            </template>
+
+                            <template if:true={isArchiveStep2}>
+                                <lightning-button variant="neutral" label="Back" onclick={handleArchiveModalPrevious}
+                                    class="slds-m-right_x-small">
+                                </lightning-button>
+                                <lightning-button variant="brand" label="Start Archive" icon-name="utility:archive"
+                                    onclick={confirmArchive}>
+                                </lightning-button>
+                            </template>
                         </footer>
                     </div>
                 </section>

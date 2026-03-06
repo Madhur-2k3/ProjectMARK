@@ -11,17 +11,17 @@ private class DataArchiveControllerTest {
     @IsTest
     static void testArchiveSelectedRecords_NullInputs() {
         try {
-            DataArchiveController.archiveSelectedRecords(null, null, null);
+            DataArchiveController.archiveSelectedRecords(null, null, null, null, null);
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
 
         try {
-            DataArchiveController.archiveSelectedRecords('Account', null, 'Name');
+            DataArchiveController.archiveSelectedRecords('Account', null, 'Name', null, null);
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
 
         try {
-            DataArchiveController.archiveSelectedRecords('Account', new List<Id>(), null);
+            DataArchiveController.archiveSelectedRecords('Account', new List<Id>(), null, null, null);
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
     }
@@ -29,7 +29,7 @@ private class DataArchiveControllerTest {
     @IsTest
     static void testValidations_NoRecordsFound_AndInvalidInputs() {
         try {
-            DataArchiveController.archiveAllRecords('Account', 'Name', '');
+            DataArchiveController.archiveAllRecords('Account', 'Name', '', null, null);
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
 
@@ -37,7 +37,9 @@ private class DataArchiveControllerTest {
             DataArchiveController.archiveSelectedRecords(
                 'Account',
                 new List<Id>(),
-                'Name'
+                'Name',
+                null,
+                null
             );
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
@@ -47,7 +49,9 @@ private class DataArchiveControllerTest {
             DataArchiveController.archiveSelectedRecords(
                 'Invalid__c',
                 new List<Id>{a.Id},
-                'Name'
+                'Name',
+                null,
+                null
             );
             System.assert(false, 'Should throw');
         } catch (Exception e) {}
@@ -59,7 +63,7 @@ private class DataArchiveControllerTest {
     static void testArchiveAllRecords_InvalidSoql() {
         try {
             // This string has no ' from ' (with spaces), so replaceSelect throws
-            DataArchiveController.archiveAllRecords('Account', 'Name', 'SELECTWHERENOFROMHERE');
+            DataArchiveController.archiveAllRecords('Account', 'Name', 'SELECTWHERENOFROMHERE', null, null);
             System.assert(false, 'Should throw for invalid SOQL');
         } catch (AuraHandledException e) {
             System.assert(e.getMessage() != null, 'Should have error message');
@@ -71,7 +75,7 @@ private class DataArchiveControllerTest {
     @IsTest
     static void testArchiveAllRecords_BlankObjectName() {
         try {
-            DataArchiveController.archiveAllRecords('', 'Name', 'SELECT Id FROM Account');
+            DataArchiveController.archiveAllRecords('', 'Name', 'SELECT Id FROM Account', null, null);
             System.assert(false, 'Should throw for blank object');
         } catch (AuraHandledException e) {
             System.assert(e.getMessage() != null);
@@ -81,7 +85,7 @@ private class DataArchiveControllerTest {
     @IsTest
     static void testArchiveAllRecords_BlankFields() {
         try {
-            DataArchiveController.archiveAllRecords('Account', '', 'SELECT Id FROM Account');
+            DataArchiveController.archiveAllRecords('Account', '', 'SELECT Id FROM Account', null, null);
             System.assert(false, 'Should throw for blank fields');
         } catch (AuraHandledException e) {
             System.assert(e.getMessage() != null);
@@ -98,7 +102,9 @@ private class DataArchiveControllerTest {
         Id archiveId = DataArchiveController.archiveSelectedRecords(
             'Account',
             new List<Id>{ a.Id },
-            'Name'
+            'Name',
+            null,
+            null
         );
         Test.stopTest();
 
@@ -115,7 +121,9 @@ private class DataArchiveControllerTest {
         Id archiveId = DataArchiveController.archiveAllRecords(
             'Account',
             'Name',
-            query
+            query,
+            null,
+            null
         );
         Test.stopTest();
 
@@ -178,7 +186,9 @@ private class DataArchiveControllerTest {
         Id archiveId = DataArchiveController.archiveSelectedRecords(
             'Account',
             new List<Id>{ a.Id },
-            'Id,Name'
+            'Id,Name',
+            null,
+            null
         );
         Test.stopTest();
 

@@ -45,6 +45,8 @@ export default class FilterBuilder extends LightningElement {
     modalMessage = '';
     note = '';
     archiveName = '';
+    archiveModalStep = 1;
+    selectedChildObjects = [];
 
     closeTable() {
         this.showTable = false;
@@ -512,9 +514,31 @@ export default class FilterBuilder extends LightningElement {
         return !this.archiveName || this.archiveName.trim().length === 0;
     }
 
+    get isArchiveStep1() {
+        return this.archiveModalStep === 1;
+    }
+
+    get isArchiveStep2() {
+        return this.archiveModalStep === 2;
+    }
+
+    handleArchiveModalNext() {
+        this.archiveModalStep = 2;
+    }
+
+    handleArchiveModalPrevious() {
+        this.archiveModalStep = 1;
+    }
+
+    handleChildSelectionChange(event) {
+        this.selectedChildObjects = event.detail.selectedObjects || [];
+    }
+
     closeModal() {
         this.showModal = false;
         this.archiveName = '';
+        this.archiveModalStep = 1;
+        this.selectedChildObjects = [];
     }
 
     confirmArchive() {
@@ -544,7 +568,8 @@ export default class FilterBuilder extends LightningElement {
             objectName: this.objectname,
             recordIds: ids,
             fieldsCsv: this.selectedFieldApiList.join(','),
-            archiveName: this.archiveName
+            archiveName: this.archiveName,
+            selectedChildObjects: this.selectedChildObjects
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;
@@ -572,7 +597,8 @@ export default class FilterBuilder extends LightningElement {
             objectName: this.objectname,
             fieldsCsv: this.selectedFieldApiList.join(','),
             fullQuery: this.query,
-            archiveName: this.archiveName
+            archiveName: this.archiveName,
+            selectedChildObjects: this.selectedChildObjects
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;

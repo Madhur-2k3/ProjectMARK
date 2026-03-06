@@ -1231,8 +1231,17 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
         }
     }
 
-    // ===================== CONSTRUCTOR =====================
-    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,String archiveName) {
+    // ===================== CONSTRUCTORS (backward-compatible overloads) =====================
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
+        this(objectName, fieldsCsv, soqlQuery, null, null);
+    }
+
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery, String archiveName) {
+        this(objectName, fieldsCsv, soqlQuery, archiveName, null);
+    }
+
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
+                            String archiveName, List<String> selectedChildObjects) {
         this.objectName   = objectName;
         this.fields       = normalizeFields(fieldsCsv);
         this.soqlQuery    = soqlQuery;
@@ -1243,7 +1252,23 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
 
         System.debug('========== DISCOVERING CHAIN ==========');
         discoverChain(this.objectName, 1);
-        System.debug('Total objects in chain: ' + childMetadataMap.size());
+        System.debug('Total objects discovered: ' + childMetadataMap.size());
+
+        // Filter to only user-selected child objects
+        if (selectedChildObjects != null && !selectedChildObjects.isEmpty()) {
+            Set<String> allowed = new Set<String>(selectedChildObjects);
+            List<String> toRemove = new List<String>();
+            for (String objName : childMetadataMap.keySet()) {
+                if (!allowed.contains(objName)) {
+                    toRemove.add(objName);
+                }
+            }
+            for (String objName : toRemove) {
+                childMetadataMap.remove(objName);
+            }
+            System.debug('After filtering to user selection: ' + childMetadataMap.size() + ' objects');
+        }
+
         System.debug('');
 
         // Print full tree
