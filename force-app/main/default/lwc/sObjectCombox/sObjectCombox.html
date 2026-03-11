@@ -1,71 +1,55 @@
 <template>
-    <lightning-card title="Select an Object">
-        <div class="object-and-field-container">
-                <!-- Search -->
-            <div class="slds-p-around_medium">
-            <lightning-input 
-                type="search"
-                label="Search Object"
-                onchange={handleSearch}
-                value={searchTerm}
-                placeholder="Search Object...">
-            </lightning-input>
-            </div>
+    <div class="object-and-field-container">
 
-            <!-- Object List -->
-            <template if:true={filteredOptions}>
-            <ul class="slds-box slds-m-horizontal_medium"
-                style="max-height:200px; overflow-y:auto;">
-                
+        <!-- Card Header -->
+        <div class="section-header">
+            <div class="section-header-icon">
+                <lightning-icon icon-name="utility:search" size="x-small" class="icon-white"></lightning-icon>
+            </div>
+            <div>
+                <h2>Select an Object</h2>
+                <p class="section-header-subtitle">Search and pick a Salesforce object to archive</p>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-area">
+            <lightning-input type="search" label="Search Object" onchange={handleSearch} value={searchTerm}
+                placeholder="Start typing to search objects...">
+            </lightning-input>
+        </div>
+
+        <!-- Object List (only shows when user has typed) -->
+        <template if:true={filteredOptions}>
+            <ul class="object-list">
                 <template for:each={filteredOptions} for:item="opt">
-                    <li key={opt.value}
-                        value={opt.label}
-                        class="slds-p-around_small slds-border_bottom clickable"
-                        data-value={opt.value}
-                        data-label={opt.label}
-                        onclick={handleSelect}>
+                    <li key={opt.value} value={opt.label} class="object-list-item" data-value={opt.value}
+                        data-label={opt.label} onclick={handleSelect}>
                         {opt.label}
                     </li>
                 </template>
-
             </ul>
-            </template>
-
-            <!-- Child 1: Field Selector -->
-            <template if:true={selectedSObject}>
-            <c-field-selector
-                selected-object={selectedSObject}
-                onfieldchange={handleFieldChange}>
-            </c-field-selector>
-            </template>
-        </div>
-        <!-- Child 2: Filter Builder (hidden when hide-filter is set) -->
-        <template lwc:if={showFilter}>
-            <template if:true={finalFieldsForApex.length}>
-                <c-filter-builder
-                    tablecolumnsname={datatablecolumns}
-                    selectfields={finalFieldsForApex}
-                    fields={allFieldsForFilter}
-                    onwherechange={handleWhereClauseChange}
-                    selectobject={selectedSObject}
-                    query={finalQuery}
-                    conditions={whereClause}
-                    objectname={selectedSObject}
-                    objectlabel={objectLabel}
-                    changed={changed}>
-                </c-filter-builder>
-            </template>
         </template>
 
-        
-
-        <!-- FINAL QUERY PREVIEW -->
-        <!-- <template if:true={finalQuery}>
-            <div class="slds-p-around_medium">
-                <p><strong>Final SOQL Query:</strong></p>
-                <code>{finalQuery}</code>
+        <!-- Child 1: Field Selector -->
+        <template if:true={selectedSObject}>
+            <div class="inner-content">
+                <c-field-selector selected-object={selectedSObject} onfieldchange={handleFieldChange}>
+                </c-field-selector>
             </div>
-        </template> -->
+        </template>
 
-    </lightning-card>
+    </div>
+
+    <!-- Child 2: Filter Builder (hidden when hide-filter is set) -->
+    <template lwc:if={showFilter}>
+        <template if:true={finalFieldsForApex.length}>
+            <c-filter-builder tablecolumnsname={datatablecolumns} selectfields={finalFieldsForApex}
+                fields={allFieldsForFilter} onwherechange={handleWhereClauseChange} selectobject={selectedSObject}
+                query={finalQuery} conditions={whereClause} objectname={selectedSObject} objectlabel={objectLabel}
+                changed={changed}>
+            </c-filter-builder>
+        </template>
+    </template>
+
 </template>

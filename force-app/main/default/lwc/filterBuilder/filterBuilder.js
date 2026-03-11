@@ -522,6 +522,14 @@ export default class FilterBuilder extends LightningElement {
         return this.archiveModalStep === 2;
     }
 
+    get step1Class() {
+        return this.archiveModalStep === 1 ? 'step-item step-active' : 'step-item step-done';
+    }
+
+    get step2Class() {
+        return this.archiveModalStep === 2 ? 'step-item step-active' : 'step-item';
+    }
+
     handleArchiveModalNext() {
         this.archiveModalStep = 2;
     }
