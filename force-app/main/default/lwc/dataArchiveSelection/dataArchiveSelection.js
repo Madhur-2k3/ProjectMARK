@@ -16,12 +16,14 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     showScheduleModal = false;
     showCriteriaModal = false;
     showObjectModal = false;
+    showChildObjectModal = false;
 
     // Store selections
     selectedFrequency;
     selectedCriteria;
     selectedObject;
     scheduleName;
+    selectedChildObjects;
 
     get archiveClass() {
         return this.booleanFlag
@@ -86,12 +88,25 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
         this.showCriteriaModal = true;
     }
 
-    // Criteria selected → open Frequency modal
+    // Criteria selected → open Child Object selection modal
     handleCriteriaSelected(event) {
         this.selectedCriteria = event.detail;
         this.scheduleName = event.detail.scheduleName;
         this.showCriteriaModal = false;
+        this.showChildObjectModal = true;
+    }
+
+    // Child objects selected → open Frequency modal
+    handleChildObjectsSelected(event) {
+        this.selectedChildObjects = event.detail.selectedChildObjects;
+        this.showChildObjectModal = false;
         this.showScheduleModal = true;
+    }
+
+    // Previous from Child Object → back to Criteria modal
+    handleChildObjectPrevious() {
+        this.showChildObjectModal = false;
+        this.showCriteriaModal = true;
     }
 
     // Previous from Criteria → back to Object modal
@@ -100,10 +115,10 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
         this.showObjectModal = true;
     }
 
-    // Previous from Frequency → back to Criteria modal
+    // Previous from Frequency → back to Child Object modal
     handleFrequencyPrevious() {
         this.showScheduleModal = false;
-        this.showCriteriaModal = true;
+        this.showChildObjectModal = true;
     }
 
     // Frequency selected and scheduling complete
@@ -119,7 +134,8 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
             filterValue: scheduleData.criteria.whereClause,
             preferredTime: scheduleData.preferredTime,
             dayOfWeek: scheduleData.dayOfWeek,
-            scheduleName: scheduleData.scheduleName
+            scheduleName: scheduleData.scheduleName,
+            selectedChildObjects: scheduleData.selectedChildObjects
         })
             .then(recordId => {
 
@@ -166,6 +182,7 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
         this.showScheduleModal = false;
         this.showCriteriaModal = false;
         this.showObjectModal = false;
+        this.showChildObjectModal = false;
     }
 
 }

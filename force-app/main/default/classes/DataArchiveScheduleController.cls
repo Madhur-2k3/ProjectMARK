@@ -14,6 +14,7 @@ public with sharing class DataArchiveScheduleController {
         @AuraEnabled public Datetime createdDate   { get; set; }
         @AuraEnabled public String preferredTime   { get; set; }
         @AuraEnabled public String dayOfWeek       { get; set; }
+        @AuraEnabled public String selectedChildObjects { get; set; }
     }
 
     // ─────────────────────────────────────────────────
@@ -81,7 +82,8 @@ public with sharing class DataArchiveScheduleController {
         List<Data_Archive_Schedule__c> schedules = [
             SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
-                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
+                   Selected_Child_Objects__c
             FROM Data_Archive_Schedule__c
             WHERE Status__c = 'Active'
             ORDER BY CreatedDate DESC
@@ -102,6 +104,7 @@ public with sharing class DataArchiveScheduleController {
             info.createdDate    = s.CreatedDate;
             info.preferredTime  = s.Preferred_Time__c;
             info.dayOfWeek      = s.Day_Of_Week__c;
+            info.selectedChildObjects = s.Selected_Child_Objects__c;
             result.add(info);
         }
 
@@ -121,7 +124,8 @@ public with sharing class DataArchiveScheduleController {
         List<Data_Archive_Schedule__c> allSchedules = [
             SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
-                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
+                   Selected_Child_Objects__c
             FROM Data_Archive_Schedule__c
             WHERE Object_Name__c = :objectName
             ORDER BY CreatedDate DESC
@@ -159,6 +163,7 @@ public with sharing class DataArchiveScheduleController {
             info.createdDate    = s.CreatedDate;
             info.preferredTime  = s.Preferred_Time__c;
             info.dayOfWeek      = s.Day_Of_Week__c;
+            info.selectedChildObjects = s.Selected_Child_Objects__c;
             result.add(info);
         }
 
@@ -183,7 +188,8 @@ public with sharing class DataArchiveScheduleController {
         List<Data_Archive_Schedule__c> schedules = [
             SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
-                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
+                   Selected_Child_Objects__c
             FROM Data_Archive_Schedule__c
             WHERE Status__c = 'Active'
             ORDER BY CreatedDate DESC
@@ -206,6 +212,7 @@ public with sharing class DataArchiveScheduleController {
             info.createdDate    = s.CreatedDate;
             info.preferredTime  = s.Preferred_Time__c;
             info.dayOfWeek      = s.Day_Of_Week__c;
+            info.selectedChildObjects = s.Selected_Child_Objects__c;
             records.add(info);
         }
 
@@ -233,7 +240,8 @@ public with sharing class DataArchiveScheduleController {
         List<Data_Archive_Schedule__c> allScheds = [
             SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
-                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c
+                   Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
+                   Selected_Child_Objects__c
             FROM Data_Archive_Schedule__c
             WHERE Object_Name__c = :objectName
             ORDER BY Status__c ASC, CreatedDate DESC
@@ -270,6 +278,7 @@ public with sharing class DataArchiveScheduleController {
             info.createdDate    = s.CreatedDate;
             info.preferredTime  = s.Preferred_Time__c;
             info.dayOfWeek      = s.Day_Of_Week__c;
+            info.selectedChildObjects = s.Selected_Child_Objects__c;
             records.add(info);
         }
 
@@ -291,7 +300,8 @@ public with sharing class DataArchiveScheduleController {
         String  filterValue,
         String  preferredTime,
         String  dayOfWeek,
-        String  scheduleName
+        String  scheduleName,
+        List<String> selectedChildObjects
     ){
 
         // ── Clean up orphaned schedules first ────────
@@ -359,6 +369,11 @@ public with sharing class DataArchiveScheduleController {
 
         
 
+        // ── Build child objects CSV for storage ──────────
+        String childObjectsCsv = (selectedChildObjects != null && !selectedChildObjects.isEmpty())
+            ? String.join(selectedChildObjects, ',')
+            : null;
+
         // ── Save schedule record (without Job_Id; set after scheduling) ──
         Data_Archive_Schedule__c newSchedule = new Data_Archive_Schedule__c(
             Name               = scheduleName,
@@ -369,7 +384,8 @@ public with sharing class DataArchiveScheduleController {
             Cron_Expression__c = cronExp,
             Status__c          = 'Active',
             Preferred_Time__c  = preferredTime,
-            Day_Of_Week__c     = dayOfWeek
+            Day_Of_Week__c     = dayOfWeek,
+            Selected_Child_Objects__c = childObjectsCsv
         );
         insert newSchedule;
 
@@ -382,7 +398,8 @@ public with sharing class DataArchiveScheduleController {
                 dateField,
                 days,
                 filterValue,
-                newSchedule.Name
+                newSchedule.Name,
+                selectedChildObjects
             )
         );
 

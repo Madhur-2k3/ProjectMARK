@@ -5,6 +5,7 @@ export default class ArchiveScheduleFrequencyModal extends LightningElement {
     @api selectedObject;
     @api selectedCriteria;
     @api scheduleName;
+    @api selectedChildObjects;
     selectedFrequency;
     preferredTime = '02:00';
     selectedDayOfWeek = 'MON';
@@ -82,7 +83,8 @@ export default class ArchiveScheduleFrequencyModal extends LightningElement {
                     object: this.selectedObject,
                     preferredTime: this.preferredTime,
                     dayOfWeek: this.selectedDayOfWeek,
-                    scheduleName: this.scheduleName
+                    scheduleName: this.scheduleName,
+                    selectedChildObjects: this.selectedChildObjects
                 }
             })
         );

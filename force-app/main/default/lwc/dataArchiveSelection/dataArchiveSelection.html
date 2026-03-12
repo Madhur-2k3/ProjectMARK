@@ -82,10 +82,19 @@
         </c-archive-schedule-criteria-modal>
     </template>
 
-    <!-- STEP 3: FREQUENCY MODAL (FINAL) -->
+    <!-- STEP 3: CHILD OBJECT SELECTION MODAL -->
+    <template if:true={showChildObjectModal}>
+        <c-archive-schedule-child-object-modal selected-object={selectedObject}
+            onchildobjectsselected={handleChildObjectsSelected}
+            onprevious={handleChildObjectPrevious} onclose={closeAllModals}>
+        </c-archive-schedule-child-object-modal>
+    </template>
+
+    <!-- STEP 4: FREQUENCY MODAL (FINAL) -->
     <template if:true={showScheduleModal}>
         <c-archive-schedule-frequency-modal selected-object={selectedObject} selected-criteria={selectedCriteria}
-            schedule-name={scheduleName} onschedulecomplete={handleScheduleComplete}
+            schedule-name={scheduleName} selected-child-objects={selectedChildObjects}
+            onschedulecomplete={handleScheduleComplete}
             onprevious={handleFrequencyPrevious} onclose={closeAllModals}>
         </c-archive-schedule-frequency-modal>
     </template>

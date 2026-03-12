@@ -1,0 +1,49 @@
+<template>
+    <section class="slds-modal slds-fade-in-open">
+        <div class="slds-modal__container">
+
+            <header class="slds-modal__header">
+
+                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleClose}>
+                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small">
+                    </lightning-icon>
+                </button>
+
+                <h2 class="slds-modal__title">
+                    Select Child Objects to Archive
+                </h2>
+                <p class="slds-text-color_weak slds-m-top_xx-small" style="font-size: 12px;">
+                    Choose which related child objects should be included when this scheduled archive runs.
+                </p>
+
+            </header>
+
+            <div class="slds-modal__content slds-p-around_medium">
+
+                <c-child-object-tree-selector
+                    object-name={selectedObject}
+                    onselectionchange={handleSelectionChange}>
+                </c-child-object-tree-selector>
+
+            </div>
+
+            <footer class="slds-modal__footer slds-modal__footer_directional">
+                <lightning-button label="Previous" variant="neutral" icon-name="utility:back"
+                    onclick={handlePrevious} class="slds-m-right_x-small">
+                </lightning-button>
+
+                <div>
+                    <lightning-button label="Skip (Archive All Children)" variant="neutral"
+                        onclick={handleSkip} class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button label="Next" variant="brand" icon-name="utility:forward"
+                        icon-position="right" onclick={handleNext}>
+                    </lightning-button>
+                </div>
+            </footer>
+
+        </div>
+    </section>
+
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

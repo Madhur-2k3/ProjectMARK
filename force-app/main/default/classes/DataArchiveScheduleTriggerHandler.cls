@@ -38,7 +38,8 @@ public with sharing class DataArchiveScheduleTriggerHandler {
         List<Data_Archive_Schedule__c> fullRecords = [
             SELECT Id, Name, Job_Id__c, Object_Name__c,
                    Frequency__c, Date_Field__c, Days__c,
-                   Preferred_Time__c, Day_Of_Week__c
+                   Preferred_Time__c, Day_Of_Week__c,
+                   Selected_Child_Objects__c
             FROM Data_Archive_Schedule__c
             WHERE Id IN :recIds
         ];
@@ -67,6 +68,12 @@ public with sharing class DataArchiveScheduleTriggerHandler {
                 'Archive_' + rec.Object_Name__c + '_' +
                 Datetime.now().getTime();
 
+            // Parse stored child objects back into a List
+            List<String> childObjects = null;
+            if (rec.Selected_Child_Objects__c != null && rec.Selected_Child_Objects__c != '') {
+                childObjects = rec.Selected_Child_Objects__c.split(',');
+            }
+
             Id newJobId = System.schedule(
                 jobName,
                 cronExp,
@@ -75,7 +82,8 @@ public with sharing class DataArchiveScheduleTriggerHandler {
                     rec.Date_Field__c,
                     rec.Days__c != null ? Integer.valueOf(rec.Days__c) : 0,
                     null,       // filterValue not persisted; scheduler uses date-based filter
-                    rec.Name    // pass the schedule record name
+                    rec.Name,   // pass the schedule record name
+                    childObjects
                 )
             );
 
