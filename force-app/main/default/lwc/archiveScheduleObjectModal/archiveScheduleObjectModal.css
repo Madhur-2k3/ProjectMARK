@@ -40,7 +40,7 @@
 .panel-title {
     font-weight: 600;
     font-size: 13px;
-    color: #032d60;
+    color: #0b5cab;
 }
 
 .schedule-table-wrapper {
@@ -62,7 +62,7 @@
 .page-info {
     font-size: 13px;
     font-weight: 600;
-    color: #032d60;
+    color: #0b5cab;
 }
 
 .freq-badge {
@@ -91,9 +91,9 @@
    OBJECT-SPECIFIC SCHEDULE ALERT
 ===================================================== */
 .object-schedule-alert {
-    background: #fef3cd;
-    border: 1px solid #f0c36d;
-    border-left: 4px solid #f0a30a;
+    background: #e8f4fd;
+    border: 1px solid #b4d6f0;
+    border-left: 4px solid #0176d3;
     border-radius: 6px;
     padding: 12px 14px;
     animation: fadeIn 0.2s ease;
@@ -107,5 +107,5 @@
 .alert-title {
     font-weight: 700;
     font-size: 13px;
-    color: #6b5900;
+    color: #0b5cab;
 }

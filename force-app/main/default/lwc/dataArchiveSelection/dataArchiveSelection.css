@@ -29,7 +29,7 @@
 .app-logo {
     width: 40px;
     height: 40px;
-    background: #005fb2;
+    background: rgba(255,255,255,0.2);
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -92,7 +92,7 @@
 
 /* Active toggle */
 .toggle-btn.active {
-    background: #014486;
+    background: #0176d3;
     color: #ffffff;
 }
 
@@ -147,9 +147,9 @@
     display: none;
     z-index: 1000;
     max-width: 300px;
-    background: #032d60;
+    background: #0b5cab;
     border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
 /* Show tooltip on hover */

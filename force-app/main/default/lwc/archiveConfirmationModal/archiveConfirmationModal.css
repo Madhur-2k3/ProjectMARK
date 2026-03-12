@@ -2,7 +2,7 @@
  * HEADER
  * ===================================================== */
 .confirm-header {
-    background: linear-gradient(135deg, #7c2d12 0%, #9a3412 50%, #b45309 100%);
+    background: linear-gradient(135deg, #0176d3 0%, #4BA3E3 100%);
     text-align: center;
     padding: 1.5rem;
 }
@@ -135,7 +135,7 @@
 }
 
 .parent-item {
-    background: #f4f6f9;
+    background: #f0f7ff;
     font-weight: 600;
 }
 
