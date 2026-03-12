@@ -300,8 +300,59 @@
         </template>
     </template>
     <template if:true={isLoading}>
-        <lightning-spinner alternative-text="Processing..." size="medium" variant="brand">
-        </lightning-spinner>
+        <div class="archive-spinner-overlay">
+            <div class="archive-spinner-card">
+
+                <!-- Sheets Animation -->
+                <div class="sheets-container">
+
+                    <!-- Back stack (already archived) -->
+                    <div class="sheet-stack">
+                        <div class="stacked-sheet stacked-3"></div>
+                        <div class="stacked-sheet stacked-2"></div>
+                        <div class="stacked-sheet stacked-1"></div>
+                    </div>
+
+                    <!-- Active sheet being written -->
+                    <div class="active-sheet">
+                        <!-- Sheet header bar -->
+                        <div class="sheet-header-bar"></div>
+
+                        <!-- Animated rows being written -->
+                        <div class="sheet-row row-1"></div>
+                        <div class="sheet-row row-2"></div>
+                        <div class="sheet-row row-3"></div>
+                        <div class="sheet-row row-4"></div>
+                        <div class="sheet-row row-5"></div>
+                        <div class="sheet-row row-6"></div>
+
+                        <!-- Green checkmark that appears -->
+                        <div class="sheet-check">&#10003;</div>
+                    </div>
+
+                    <!-- Sheet flying to stack -->
+                    <div class="flying-sheet">
+                        <div class="flying-sheet-inner">
+                            <div class="fs-header"></div>
+                            <div class="fs-line"></div>
+                            <div class="fs-line short"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <h3 class="archive-spinner-title">Creating Archive Sheets</h3>
+                <p class="archive-spinner-subtitle">Building spreadsheets from your records&hellip;</p>
+
+                <!-- Progress dots -->
+                <div class="archive-dots">
+                    <span class="archive-dot"></span>
+                    <span class="archive-dot"></span>
+                    <span class="archive-dot"></span>
+                </div>
+
+            </div>
+        </div>
     </template>
 
     <!-- <div class="soql-preview">

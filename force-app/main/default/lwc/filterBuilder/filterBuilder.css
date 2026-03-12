@@ -443,3 +443,276 @@
     border-top: 1px solid #e8e8e8;
     background: #fafafa;
 }
+
+
+/* ═══════════════════════════════════════════════════════
+   CUSTOM ARCHIVE SPINNER — SHEETS CREATION
+   ═══════════════════════════════════════════════════════ */
+
+/* Full-screen overlay */
+.archive-spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(3, 45, 96, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: spinnerFadeIn 0.3s ease-out;
+}
+
+@keyframes spinnerFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Card */
+.archive-spinner-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(1, 118, 211, 0.1);
+    padding: 44px 56px 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: spinnerSlideUp 0.35s ease-out;
+}
+
+@keyframes spinnerSlideUp {
+    from { transform: translateY(30px) scale(0.95); opacity: 0; }
+    to   { transform: translateY(0) scale(1);       opacity: 1; }
+}
+
+/* ── Sheets Container ── */
+.sheets-container {
+    width: 150px;
+    height: 140px;
+    position: relative;
+    margin-bottom: 24px;
+}
+
+/* ── Back Stack (already-finished sheets) ── */
+.sheet-stack {
+    position: absolute;
+    bottom: 0;
+    left: 10px;
+}
+
+.stacked-sheet {
+    width: 80px;
+    height: 100px;
+    background: #ffffff;
+    border: 1.5px solid #b4d6f0;
+    border-radius: 4px 4px 2px 2px;
+    position: absolute;
+    bottom: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Slight offsets to create a stack look */
+.stacked-3 {
+    left: -4px;
+    bottom: 4px;
+    background: #e8f4fd;
+    border-color: #c5dff0;
+    transform: rotate(-2deg);
+}
+
+.stacked-2 {
+    left: -1px;
+    bottom: 2px;
+    background: #f0f8ff;
+    border-color: #bad8ef;
+    transform: rotate(0.5deg);
+}
+
+.stacked-1 {
+    left: 1px;
+    bottom: 0;
+    background: #ffffff;
+    border-color: #a8d0ec;
+    transform: rotate(1deg);
+    animation: stackPulse 3s ease-in-out infinite;
+}
+
+@keyframes stackPulse {
+    0%, 100% { transform: rotate(1deg) translateY(0); }
+    50%      { transform: rotate(1deg) translateY(-2px); }
+}
+
+/* ── Active Sheet (currently being written) ── */
+.active-sheet {
+    width: 86px;
+    height: 108px;
+    background: #ffffff;
+    border: 2px solid #0176d3;
+    border-radius: 5px 5px 3px 3px;
+    position: absolute;
+    bottom: 4px;
+    right: 8px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(1, 118, 211, 0.2),
+                0 0 0 3px rgba(1, 118, 211, 0.06);
+    animation: sheetFloat 3s ease-in-out infinite;
+}
+
+@keyframes sheetFloat {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+}
+
+/* Sheet header bar — looks like a spreadsheet header row */
+.sheet-header-bar {
+    width: 100%;
+    height: 14px;
+    background: linear-gradient(135deg, #0176d3, #032d60);
+    border-radius: 3px 3px 0 0;
+    position: relative;
+}
+
+/* Sheet data rows that animate in like lines being written */
+.sheet-row {
+    height: 3px;
+    border-radius: 1.5px;
+    margin: 7px 8px 0;
+    background: #d8eaf7;
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: writeRow 3s ease-out infinite;
+}
+
+.row-1 { animation-delay: 0s;    width: 70%; }
+.row-2 { animation-delay: 0.3s;  width: 55%; }
+.row-3 { animation-delay: 0.6s;  width: 65%; }
+.row-4 { animation-delay: 0.9s;  width: 45%; }
+.row-5 { animation-delay: 1.2s;  width: 60%; }
+.row-6 { animation-delay: 1.5s;  width: 50%; }
+
+@keyframes writeRow {
+    0%       { transform: scaleX(0);  background: #d8eaf7; }
+    15%      { transform: scaleX(1);  background: #a3d0f5; }
+    30%, 70% { transform: scaleX(1);  background: #d8eaf7; }
+    85%      { transform: scaleX(1);  background: #c0e0f8; opacity: 1; }
+    100%     { transform: scaleX(1);  background: #d8eaf7; opacity: 0.5; }
+}
+
+/* Checkmark that pulses after rows complete */
+.sheet-check {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #2e844a;
+    opacity: 0;
+    animation: checkPop 3s ease-in-out infinite;
+}
+
+@keyframes checkPop {
+    0%, 60%  { opacity: 0; transform: scale(0.3); }
+    75%      { opacity: 1; transform: scale(1.2); }
+    85%, 100% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Flying Sheet (sheet peeling off and going to stack) ── */
+.flying-sheet {
+    position: absolute;
+    width: 80px;
+    height: 100px;
+    top: 10px;
+    right: 12px;
+    opacity: 0;
+    animation: sheetFly 3s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.flying-sheet-inner {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border: 1.5px solid #b4d6f0;
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fs-header {
+    width: 100%;
+    height: 12px;
+    background: linear-gradient(135deg, #0176d3, #0b5cab);
+    border-radius: 3px 3px 0 0;
+}
+
+.fs-line {
+    height: 3px;
+    background: #d8eaf7;
+    border-radius: 1.5px;
+    margin: 7px 8px 0;
+    width: 65%;
+}
+
+.fs-line.short {
+    width: 45%;
+}
+
+@keyframes sheetFly {
+    0%, 78%  { opacity: 0; transform: translate(0, 0) scale(1) rotate(0deg); }
+    82%      { opacity: 0.9; transform: translate(-10px, -10px) scale(0.95) rotate(-3deg); }
+    92%      { opacity: 0.7; transform: translate(-50px, 10px) scale(0.85) rotate(-6deg); }
+    100%     { opacity: 0; transform: translate(-60px, 18px) scale(0.8) rotate(-4deg); }
+}
+
+/* ── Text ── */
+.archive-spinner-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #032d60;
+    margin: 0 0 4px;
+    letter-spacing: 0.3px;
+}
+
+.archive-spinner-subtitle {
+    font-size: 13px;
+    color: #706e6b;
+    margin: 0 0 20px;
+}
+
+/* ── Animated Dots ── */
+.archive-dots {
+    display: flex;
+    gap: 8px;
+}
+
+.archive-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #0176d3;
+    animation: dotBounce 1.4s ease-in-out infinite;
+}
+
+.archive-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.archive-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes dotBounce {
+    0%, 80%, 100% {
+        transform: scale(0.6);
+        opacity: 0.4;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
