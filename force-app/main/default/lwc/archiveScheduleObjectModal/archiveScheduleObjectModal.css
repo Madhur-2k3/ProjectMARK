@@ -1,4 +1,24 @@
 /* =====================================================
+   MODAL HEADER – Blue Theme
+===================================================== */
+.modal-header-blue {
+    background: linear-gradient(135deg, #0176d3 0%, #4BA3E3 100%) !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.modal-header-blue .slds-modal__title {
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.modal-header-blue .slds-modal__close {
+    --sds-c-icon-color-foreground-default: #fff;
+    color: #fff;
+}
+
+/* =====================================================
    VIEW ALL SCHEDULES BUTTON ROW
 ===================================================== */
 .view-schedules-btn-row {

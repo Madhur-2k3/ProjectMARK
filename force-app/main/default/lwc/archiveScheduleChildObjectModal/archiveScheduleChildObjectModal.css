@@ -61,6 +61,7 @@
 
 .warning-icon {
     flex-shrink: 0;
+    --sds-c-icon-color-foreground-default: #e6e20e;
 }
 
 .warning-title {

@@ -27,19 +27,25 @@
 .section-header-icon {
     width: 36px;
     height: 36px;
-    background: linear-gradient(135deg, #0176d3, #4BA3E3);
+    background: #ffffff;
+    border: 1.5px solid #d8dde6;
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 6px rgba(1, 118, 211, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --sds-c-icon-color-foreground-default: #0176d3;
+}
+
+.icon-white {
+    --sds-c-icon-color-foreground-default: #0176d3;
 }
 
 .section-header h2 {
     margin: 0;
     font-weight: 700;
     font-size: 16px;
-    color: #0b5cab;
+    color: #3e3e3c;
     letter-spacing: 0.2px;
 }
 
