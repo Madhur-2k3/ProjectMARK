@@ -63,6 +63,13 @@ export default class ChildObjectTreeSelector extends LightningElement {
             .map(n => n.objectName);
     }
 
+    @api
+    getUnselectedObjects() {
+        return this.flatNodes
+            .filter(n => !n.isSelected)
+            .map(n => ({ objectName: n.objectName, objectLabel: n.objectLabel }));
+    }
+
     /* =====================================================
      * FLATTEN — convert tree into flat list with depth info
      * ===================================================== */

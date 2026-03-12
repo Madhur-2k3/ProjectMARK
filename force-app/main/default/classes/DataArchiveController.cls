@@ -95,6 +95,20 @@ public with sharing class DataArchiveController {
     }
 
     /* =====================================================
+     *   CHECK ARCHIVE RECORD STATUS
+     * ===================================================== */
+    @AuraEnabled
+    public static String getArchiveStatus(Id archiveRecordId) {
+        List<Data_Archive__c> archives = [
+            SELECT Status__c
+            FROM Data_Archive__c
+            WHERE Id = :archiveRecordId
+            LIMIT 1
+        ];
+        return archives.isEmpty() ? null : archives[0].Status__c;
+    }
+
+    /* =====================================================
      *   SOQL HELPERS
      * ===================================================== */
     private static String buildSoqlForSelected(

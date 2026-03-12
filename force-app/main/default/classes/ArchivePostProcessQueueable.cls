@@ -22,6 +22,16 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
         if (!parentIds.isEmpty()) {
             CascadeDeleteHelper.deleteParentWithRelations(parentObjectApi, parentIds);
         }
+
+        // Update archive status to 'Completed' to signal that deletion is done
+        try {
+            update new Data_Archive__c(
+                Id = archiveRecordId,
+                Status__c = 'Completed'
+            );
+        } catch (Exception ex) {
+            System.debug('ArchivePostProcessQueueable: failed to update archive status: ' + ex.getMessage());
+        }
     }
 
     private void uploadArchiveFilesToS3() {

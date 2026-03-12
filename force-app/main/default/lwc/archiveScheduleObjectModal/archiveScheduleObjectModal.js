@@ -22,7 +22,12 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
     allScheduleColumns = [
         { label: 'Object', fieldName: 'objectName', type: 'text' },
         { label: 'Criteria', fieldName: 'dateField', type: 'text' },
-        { label: 'Frequency', fieldName: 'frequency', type: 'text' },
+        { 
+            label: 'Frequency', 
+            fieldName: 'frequency', 
+            type: 'text',
+            cellAttributes: { class: { fieldName: 'frequencyCssClass' } }
+        },
         { label: 'Time', fieldName: 'preferredTime', type: 'text' },
         {
             label: 'Status',
@@ -42,7 +47,12 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
     // ── Object-schedule datatable columns ──
     objectScheduleColumns = [
         { label: 'Criteria', fieldName: 'dateField', type: 'text' },
-        { label: 'Frequency', fieldName: 'frequency', type: 'text' },
+        { 
+            label: 'Frequency', 
+            fieldName: 'frequency', 
+            type: 'text',
+            cellAttributes: { class: { fieldName: 'frequencyCssClass' } }
+        },
         {
             label: 'Status',
             fieldName: 'statusDisplay',
@@ -71,7 +81,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
                     statusDisplay: s.status === 'Active' ? '● Active' : '● In Active',
                     statusCssClass: s.status === 'Active'
                         ? 'slds-text-color_success'
-                        : 'slds-text-color_error'
+                        : 'slds-text-color_error',
+                    frequencyCssClass: this.getFrequencyBadgeClass(s.frequency)
                 }));
                 this.allTotalRecords = result.totalRecords;
                 console.log('All schedules page:', JSON.stringify(result));
@@ -101,7 +112,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
                     statusDisplay: s.status === 'Active' ? '● Active' : '● In Active',
                     statusCssClass: s.status === 'Active'
                         ? 'slds-text-color_success'
-                        : 'slds-text-color_error'
+                        : 'slds-text-color_error',
+                    frequencyCssClass: this.getFrequencyBadgeClass(s.frequency)
                 }));
                 this.objTotalRecords = result.totalRecords;
                 this.hasExistingSchedule = result.totalRecords > 0;
@@ -116,8 +128,23 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
     }
 
     // ───────────────────────────────────
-    //  GETTERS
+    //  GETTERS & HELPERS
     // ───────────────────────────────────
+    
+    getFrequencyBadgeClass(frequency) {
+        if (!frequency) return 'slds-badge';
+        const freq = frequency.toUpperCase();
+        if (freq === 'DAILY') {
+            return 'slds-badge slds-theme_success';
+        } else if (freq === 'WEEKLY') {
+            return 'slds-badge slds-theme_warning';
+        } else if (freq === 'MONTHLY') {
+            return 'slds-badge slds-theme_info';
+        } else if (freq === 'YEARLY') {
+            return 'slds-badge slds-theme_error';
+        }
+        return 'slds-badge';
+    }
 
     get isDisabled() {
         return !this.selectedObject;

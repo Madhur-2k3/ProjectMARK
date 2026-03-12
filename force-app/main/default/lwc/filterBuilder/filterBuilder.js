@@ -5,6 +5,7 @@ import archiveSelectedRecords from '@salesforce/apex/DataArchiveController.archi
 import archiveAllRecords from '@salesforce/apex/DataArchiveController.archiveAllRecords';
 import getBatchStatus from '@salesforce/apex/DataArchiveController.getBatchStatus';
 import getArchiveRecordId from '@salesforce/apex/DataArchiveController.getArchiveRecordId';
+import getArchiveStatus from '@salesforce/apex/DataArchiveController.getArchiveStatus';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FilterBuilder extends LightningElement {
@@ -47,6 +48,11 @@ export default class FilterBuilder extends LightningElement {
     archiveName = '';
     archiveModalStep = 1;
     selectedChildObjects = [];
+
+    // Warning popup state
+    @track showWarningPopup = false;
+    @track unselectedObjects = [];
+    @track unselectedCount = 0;
 
     closeTable() {
         this.showTable = false;
@@ -550,6 +556,23 @@ export default class FilterBuilder extends LightningElement {
     }
 
     confirmArchive() {
+        const treeSelector = this.template.querySelector('c-child-object-tree-selector');
+        
+        let unselected = [];
+        if (treeSelector) {
+            unselected = treeSelector.getUnselectedObjects();
+        }
+
+        if (unselected.length > 0) {
+            this.unselectedObjects = unselected;
+            this.unselectedCount = unselected.length;
+            this.showWarningPopup = true;
+        } else {
+            this.executeArchival();
+        }
+    }
+
+    executeArchival() {
         if (this.masterSelectedIds.size > 0) {
             this.showModal = false;
             this.archiveSelected();
@@ -558,6 +581,15 @@ export default class FilterBuilder extends LightningElement {
             this.showModal = false;
             this.archiveAll();
         }
+    }
+
+    handleWarningConfirm() {
+        this.showWarningPopup = false;
+        this.executeArchival();
+    }
+
+    handleWarningCancel() {
+        this.showWarningPopup = false;
     }
 
     // =====================================================
@@ -679,6 +711,10 @@ export default class FilterBuilder extends LightningElement {
                     })
                 );
 
+                // Poll the archive record status until the queueable
+                // finishes deletion and sets it to 'Completed'
+                await this.waitForArchiveComplete(archiveId);
+
                 this.dispatchEvent(new CustomEvent('refreshdata'));
                 this.loadRecords();
             }
@@ -687,6 +723,29 @@ export default class FilterBuilder extends LightningElement {
         } finally {
             this.isLoading = false;
         }
+    }
+
+    async waitForArchiveComplete(archiveId) {
+        const maxRetries = 20;
+        const delayMs = 3000;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            // eslint-disable-next-line @lwc/lwc/no-async-operation
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+
+            try {
+                const status = await getArchiveStatus({ archiveRecordId: archiveId });
+                console.log(`Archive status poll attempt ${attempt}: ${status}`);
+
+                if (status === 'Completed') {
+                    return;
+                }
+            } catch (error) {
+                console.error('Error polling archive status:', error);
+            }
+        }
+
+        console.log('Max retries reached waiting for archive completion');
     }
 
     // =====================================================

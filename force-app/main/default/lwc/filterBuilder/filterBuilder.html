@@ -309,5 +309,64 @@
             <code>{whereClause}</code>
         </div> -->
 
+    <!-- ═══════════════════════════════════════════════════
+         WARNING POPUP — Unselected objects will be deleted
+         ═══════════════════════════════════════════════════ -->
+    <template if:true={showWarningPopup}>
+        <div class="warning-overlay">
+            <div class="warning-card">
+
+                <!-- Warning Header -->
+                <div class="warning-header">
+                    <lightning-icon icon-name="utility:warning" variant="warning" size="medium"
+                        class="warning-icon">
+                    </lightning-icon>
+                    <h2 class="warning-title">Warning: Unselected Objects Will Be Permanently Deleted</h2>
+                </div>
+
+                <!-- Warning Body -->
+                <div class="warning-body">
+                    <p class="warning-note">
+                        Only the <strong>selected</strong> child objects will be archived and stored safely.
+                        The following <strong>unselected</strong> child objects and their records will be
+                        <strong>permanently deleted</strong> and <strong>cannot be recovered</strong>.
+                    </p>
+
+                    <!-- Unselected Objects Count Badge -->
+                    <div class="warning-count-badge">
+                        <lightning-icon icon-name="utility:ban" size="xx-small" class="slds-m-right_xx-small">
+                        </lightning-icon>
+                        <span>{unselectedCount} child object(s) will NOT be archived</span>
+                    </div>
+
+                    <!-- Unselected Objects List -->
+                    <div class="warning-list-container">
+                        <template for:each={unselectedObjects} for:item="obj">
+                            <div key={obj.objectName} class="warning-list-item">
+                                <lightning-icon icon-name="utility:delete" size="xx-small"
+                                    class="delete-icon slds-m-right_x-small">
+                                </lightning-icon>
+                                <span class="obj-label">{obj.objectLabel}</span>
+                                <span class="obj-api">({obj.objectName})</span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Warning Footer -->
+                <div class="warning-footer">
+                    <lightning-button label="Go Back" variant="neutral"
+                        icon-name="utility:back" onclick={handleWarningCancel}
+                        class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button label="I Understand, Proceed" variant="destructive"
+                        icon-name="utility:check" icon-position="left"
+                        onclick={handleWarningConfirm}>
+                    </lightning-button>
+                </div>
+
+            </div>
+        </div>
+    </template>
 
 </template>
