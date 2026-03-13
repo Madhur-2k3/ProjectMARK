@@ -19,7 +19,7 @@ private class CascadeDeleteQueueableTest {
             ids.add(a.Id);
         }
         Test.startTest();
-        System.enqueueJob(new CascadeDeleteQueueable('Account', ids));
+        Database.executeBatch(new CascadeDeleteQueueable('Account', ids), 200);
         Test.stopTest();
         // No assertion needed, just ensure no error
     }
@@ -27,8 +27,8 @@ private class CascadeDeleteQueueableTest {
     @IsTest
     static void testQueueable_NullAndEmpty() {
         Test.startTest();
-        System.enqueueJob(new CascadeDeleteQueueable('Account', null));
-        System.enqueueJob(new CascadeDeleteQueueable('Account', new List<Id>()));
+        Database.executeBatch(new CascadeDeleteQueueable('Account', null), 200);
+        Database.executeBatch(new CascadeDeleteQueueable('Account', new List<Id>()), 200);
         Test.stopTest();
     }
 
@@ -37,7 +37,7 @@ private class CascadeDeleteQueueableTest {
         List<Account> accts = [SELECT Id FROM Account LIMIT 1];
         List<Id> ids = new List<Id>{accts.isEmpty() ? null : accts[0].Id};
         Test.startTest();
-        System.enqueueJob(new CascadeDeleteQueueable('InvalidObject__c', ids));
+        Database.executeBatch(new CascadeDeleteQueueable('InvalidObject__c', ids), 200);
         Test.stopTest();
     }
 }
