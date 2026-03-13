@@ -5,6 +5,8 @@ public with sharing class DataArchiveScheduleController {
     // ─────────────────────────────────────────────────
     public class ScheduleInfo {
         @AuraEnabled public String id              { get; set; }
+        @AuraEnabled public String name            { get; set; }
+        @AuraEnabled public String recordUrl       { get; set; }
         @AuraEnabled public String objectName      { get; set; }
         @AuraEnabled public String frequency       { get; set; }
         @AuraEnabled public String dateField       { get; set; }
@@ -80,7 +82,7 @@ public with sharing class DataArchiveScheduleController {
         List<ScheduleInfo> result = new List<ScheduleInfo>();
 
         List<Data_Archive_Schedule__c> schedules = [
-            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+            SELECT Id, Name, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
                    Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
                    Selected_Child_Objects__c
@@ -95,6 +97,8 @@ public with sharing class DataArchiveScheduleController {
         for (Data_Archive_Schedule__c s : schedules) {
             ScheduleInfo info   = new ScheduleInfo();
             info.id             = s.Id;
+            info.name           = s.Name;
+            info.recordUrl      = '/' + s.Id;
             info.objectName     = s.Object_Name__c;
             info.frequency      = s.Frequency__c;
             info.dateField      = s.Date_Field__c;
@@ -122,7 +126,7 @@ public with sharing class DataArchiveScheduleController {
 
         // Fetch all schedules for this object (Active + Inactive)
         List<Data_Archive_Schedule__c> allSchedules = [
-            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+            SELECT Id, Name, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
                    Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
                    Selected_Child_Objects__c
@@ -154,6 +158,8 @@ public with sharing class DataArchiveScheduleController {
         for (Data_Archive_Schedule__c s : ordered) {
             ScheduleInfo info   = new ScheduleInfo();
             info.id             = s.Id;
+            info.name           = s.Name;
+            info.recordUrl      = '/' + s.Id;
             info.objectName     = s.Object_Name__c;
             info.frequency      = s.Frequency__c;
             info.dateField      = s.Date_Field__c;
@@ -186,7 +192,7 @@ public with sharing class DataArchiveScheduleController {
                          WHERE Status__c = 'Active'];
 
         List<Data_Archive_Schedule__c> schedules = [
-            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+            SELECT Id, Name, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
                    Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
                    Selected_Child_Objects__c
@@ -203,6 +209,8 @@ public with sharing class DataArchiveScheduleController {
         for (Data_Archive_Schedule__c s : schedules) {
             ScheduleInfo info   = new ScheduleInfo();
             info.id             = s.Id;
+            info.name           = s.Name;
+            info.recordUrl      = '/' + s.Id;
             info.objectName     = s.Object_Name__c;
             info.frequency      = s.Frequency__c;
             info.dateField      = s.Date_Field__c;
@@ -238,7 +246,7 @@ public with sharing class DataArchiveScheduleController {
                          WHERE Object_Name__c = :objectName];
 
         List<Data_Archive_Schedule__c> allScheds = [
-            SELECT Id, Object_Name__c, Frequency__c, Date_Field__c,
+            SELECT Id, Name, Object_Name__c, Frequency__c, Date_Field__c,
                    Days__c, Status__c, Cron_Expression__c, CreatedDate,
                    Preferred_Time__c, Day_Of_Week__c, Job_Id__c,
                    Selected_Child_Objects__c
@@ -269,6 +277,8 @@ public with sharing class DataArchiveScheduleController {
         for (Data_Archive_Schedule__c s : ordered) {
             ScheduleInfo info   = new ScheduleInfo();
             info.id             = s.Id;
+            info.name           = s.Name;
+            info.recordUrl      = '/' + s.Id;
             info.objectName     = s.Object_Name__c;
             info.frequency      = s.Frequency__c;
             info.dateField      = s.Date_Field__c;
@@ -286,6 +296,33 @@ public with sharing class DataArchiveScheduleController {
         pr.records      = records;
         pr.totalRecords = total;
         return pr;
+    }
+
+    // ── Backward Compatibility Overload (7 params) ────────
+    public static String scheduleArchive(
+        String  objectName,
+        String  frequency,
+        String  dateField,
+        Integer days,
+        String  filterValue,
+        String  preferredTime,
+        String  dayOfWeek
+    ){
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, 'Schedule_' + Datetime.now().getTime(), null);
+    }
+
+    // ── Backward Compatibility Overload (8 params) ────────
+    public static String scheduleArchive(
+        String  objectName,
+        String  frequency,
+        String  dateField,
+        Integer days,
+        String  filterValue,
+        String  preferredTime,
+        String  dayOfWeek,
+        String  scheduleName
+    ){
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, null);
     }
 
     // ─────────────────────────────────────────────────
@@ -450,6 +487,37 @@ public with sharing class DataArchiveScheduleController {
 
         // Default — daily at preferred time
         return sec + ' ' + min + ' ' + hr + ' * * ?';
+    }
+
+    // ─────────────────────────────────────────────────
+    //  Update schedule status (inline edit from LWC)
+    // ─────────────────────────────────────────────────
+    @AuraEnabled
+    public static void updateScheduleStatus(Id scheduleId, String status) {
+        List<Data_Archive_Schedule__c> schedules = [
+            SELECT Id, Job_Id__c, Status__c
+            FROM Data_Archive_Schedule__c
+            WHERE Id = :scheduleId
+            LIMIT 1
+        ];
+
+        if (schedules.isEmpty()) {
+            throw new AuraHandledException('Schedule record not found.');
+        }
+
+        Data_Archive_Schedule__c schedule = schedules[0];
+
+        // If changing to Inactive, abort the cron job
+        if (status == 'In Active' && schedule.Job_Id__c != null) {
+            try {
+                System.abortJob(schedule.Job_Id__c);
+            } catch (Exception e) {
+                // Job may already have been deleted
+            }
+        }
+
+        schedule.Status__c = status;
+        update schedule;
     }
 
     // ─────────────────────────────────────────────────

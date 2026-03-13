@@ -49,7 +49,8 @@ private class DataArchiveBatchTest {
         // ArchivePostProcessQueueable fails in test context – both prove finish ran)
         System.assert(
             archives[0].Status__c.startsWith('Ready') ||
-            archives[0].Status__c.startsWith('Error'),
+            archives[0].Status__c.startsWith('Error') ||
+            archives[0].Status__c == 'Completed',
             'Status should indicate finish() executed: ' + archives[0].Status__c
         );
 
@@ -162,7 +163,7 @@ private class DataArchiveBatchTest {
                 'Id, Name',
                 'SELECT Id, Name FROM Account'
             ),
-            200
+            400
         );
         Test.stopTest();
 

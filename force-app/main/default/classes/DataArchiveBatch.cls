@@ -1193,7 +1193,7 @@
 public class DataArchiveBatch implements Database.Batchable<SObject>, Database.Stateful {
 
     // ===================== CONSTANTS =====================
-    private static final Integer MAX_CSV_SIZE_BYTES = 60 * 1024 ; // 60KB
+    private static final Integer MAX_CSV_SIZE_BYTES = 50 * 1024 *1024 ; // 50MB
 
     // ===================== STATE VARIABLES =====================
     private String objectName;

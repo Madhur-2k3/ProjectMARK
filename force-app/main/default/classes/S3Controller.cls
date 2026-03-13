@@ -187,6 +187,7 @@ public with sharing class S3Controller {
                 throw new AuraHandledException('Error listing S3 objects by prefix: ' + res.getStatusCode() + ' ' + res.getStatus());
             }
         } catch (Exception e) {
+            System.debug('S3Controller.listObjectsByPrefix error: ' + e.getMessage());
             throw new AuraHandledException('s3Controller.listObjectsByPrefix error: ' + e.getMessage());
         }
     }

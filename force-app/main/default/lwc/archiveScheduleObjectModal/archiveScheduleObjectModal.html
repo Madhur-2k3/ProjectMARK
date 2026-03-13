@@ -4,7 +4,8 @@
 
             <header class="slds-modal__header modal-header-blue">
 
-                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleClose}>
+                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close"
+                    onclick={handleClose}>
                     <lightning-icon icon-name="utility:close" alternative-text="close" size="small" variant="inverse">
                     </lightning-icon>
                 </button>
@@ -36,9 +37,9 @@
 
                         <template if:true={hasAllSchedules}>
                             <div class="schedule-table-wrapper">
-                                <lightning-datatable key-field="id" data={allSchedules} columns={allScheduleColumns}
-                                    hide-checkbox-column>
-                                </lightning-datatable>
+                                <c-custom-datatable key-field="id" data={allSchedules} columns={allScheduleColumns}
+                                    hide-checkbox-column onpicklistchange={handlePicklistChange}>
+                                </c-custom-datatable>
                             </div>
 
                             <!-- Pagination Controls -->
@@ -85,9 +86,10 @@
                         <!-- Object-specific schedules TABLE (expandable) -->
                         <template if:true={showObjectScheduleTable}>
                             <div class="schedule-table-wrapper slds-m-top_small">
-                                <lightning-datatable key-field="id" data={objectSchedules}
-                                    columns={objectScheduleColumns} hide-checkbox-column>
-                                </lightning-datatable>
+                                <c-custom-datatable key-field="id" data={objectSchedules}
+                                    columns={objectScheduleColumns} hide-checkbox-column
+                                    onpicklistchange={handlePicklistChange}>
+                                </c-custom-datatable>
                             </div>
 
                             <!-- Object-schedules Pagination -->

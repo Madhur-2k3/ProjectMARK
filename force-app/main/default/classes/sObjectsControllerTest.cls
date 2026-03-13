@@ -86,6 +86,42 @@ private class sObjectsControllerTest {
             }
         }
         System.assert(hasContact, 'Expected Contact as a child of Account');
-    
-}
+    }
+
+    @IsTest
+    static void testWrappers_PropertyCoverage() {
+        Test.startTest();
+        // Cover FieldInfoWrapper
+        sObjectsController.FieldInfoWrapper fi = new sObjectsController.FieldInfoWrapper('LBL', 'API', 'STR', false);
+        fi.label = 'NewLBL';
+        fi.apiName = 'NewAPI';
+        fi.fieldType = 'NewSTR';
+        fi.isRequired = true;
+        
+        System.assertEquals('NewLBL', fi.label);
+        System.assertEquals('NewAPI', fi.apiName);
+        System.assertEquals('NewSTR', fi.fieldType);
+        System.assertEquals(true, fi.isRequired);
+        
+        // Cover SObjectInfo
+        sObjectsController.SObjectInfo si = new sObjectsController.SObjectInfo('LBL', 'API');
+        si.label = 'NewLBL';
+        si.apiName = 'NewAPI';
+        
+        System.assertEquals('NewLBL', si.label);
+        System.assertEquals('NewAPI', si.apiName);
+        
+        // Cover ChildRelationshipInfo
+        sObjectsController.ChildRelationshipInfo cr = new sObjectsController.ChildRelationshipInfo();
+        cr.childObject = 'TestChild';
+        cr.relationshipField = 'TestField';
+        cr.relationshipName = 'TestRel';
+        cr.relationshipType = 'TestType';
+        
+        System.assertEquals('TestChild', cr.childObject);
+        System.assertEquals('TestField', cr.relationshipField);
+        System.assertEquals('TestRel', cr.relationshipName);
+        System.assertEquals('TestType', cr.relationshipType);
+        Test.stopTest();
+    }
 }

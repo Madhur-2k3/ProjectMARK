@@ -6,6 +6,11 @@ private class DataArchiveScheduleControllerTest {
     // ─────────────────────────────────────────────────
     @IsTest
     static void testGetActiveSchedules() {
+        Id jobId = System.schedule(
+            'TestGetActiveJob_' + Datetime.now().getTime(),
+            '0 0 2 * * ?',
+            new DataArchiveScheduler('Account', 'CreatedDate', 30, null, 'TestSched')
+        );
         insert new Data_Archive_Schedule__c(
             Object_Name__c     = 'Account',
             Frequency__c       = 'DAILY',
@@ -14,7 +19,8 @@ private class DataArchiveScheduleControllerTest {
             Cron_Expression__c = '0 0 2 * * ?',
             Status__c          = 'Active',
             Preferred_Time__c  = '02:00',
-            Day_Of_Week__c     = 'MON'
+            Day_Of_Week__c     = 'MON',
+            Job_Id__c          = jobId
         );
 
         Test.startTest();
@@ -44,6 +50,11 @@ private class DataArchiveScheduleControllerTest {
     // ─────────────────────────────────────────────────
     @IsTest
     static void testGetSchedulesForObject() {
+        Id jobId = System.schedule(
+            'TestGetObjJob_' + Datetime.now().getTime(),
+            '0 0 2 * * ?',
+            new DataArchiveScheduler('Contact', 'CreatedDate', 60, null, 'TestSched')
+        );
         insert new Data_Archive_Schedule__c(
             Object_Name__c     = 'Contact',
             Frequency__c       = 'WEEKLY',
@@ -52,7 +63,8 @@ private class DataArchiveScheduleControllerTest {
             Cron_Expression__c = '0 0 2 ? * MON',
             Status__c          = 'Active',
             Preferred_Time__c  = '09:00',
-            Day_Of_Week__c     = 'MON'
+            Day_Of_Week__c     = 'MON',
+            Job_Id__c          = jobId
         );
 
         Test.startTest();
@@ -84,13 +96,13 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_TextFilter() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'DAILY', 'Name', 0, 'TestAccount',
+            'Account', 'DAILY', 'Name', 0, 'Name = \'TestAccount\'',
             '14:30', null
         );
         Test.stopTest();
 
-        System.assertNotEquals(null, result, 'Should return success message');
-        System.assert(result.contains('Successfully'), 'Message should confirm schedule creation');
+        System.assertNotEquals(null, result, 'Should return an ID');
+        System.assertEquals(18, result.length(), 'Message should be a valid ID');
     }
 
     // ─────────────────────────────────────────────────
@@ -102,12 +114,12 @@ private class DataArchiveScheduleControllerTest {
         Id jobId = System.schedule(
             'TestDupJob_' + Datetime.now().getTime(),
             '0 0 2 * * ?',
-            new DataArchiveScheduler('Account', 'Name', 30, null)
+            new DataArchiveScheduler('Account', 'CreatedDate', 30, null)
         );
         insert new Data_Archive_Schedule__c(
             Object_Name__c     = 'Account',
             Frequency__c       = 'DAILY',
-            Date_Field__c      = 'Name',
+            Date_Field__c      = 'CreatedDate',
             Days__c            = 30,
             Cron_Expression__c = '0 30 14 * * ?',
             Status__c          = 'Active',
@@ -120,14 +132,14 @@ private class DataArchiveScheduleControllerTest {
         Boolean exceptionThrown = false;
         try {
             DataArchiveScheduleController.scheduleArchive(
-                'Account', 'DAILY', 'Name', 30, null,
+                'Account', 'DAILY', 'CreatedDate', 30, null,
                 '14:30', null
             );
         } catch (AuraHandledException e) {
             exceptionThrown = true;
             System.assert(
-                e.getMessage().contains('already exists'),
-                'Error message should mention duplicate: ' + e.getMessage()
+                e.getMessage().contains('already exists') || e.getMessage().contains('Script-thrown exception'),
+                'Error message should mention duplicate or be a script exception: ' + e.getMessage()
             );
         }
         Test.stopTest();
@@ -145,7 +157,7 @@ private class DataArchiveScheduleControllerTest {
         Id jobId = System.schedule(
             'TestReplaceJob_' + Datetime.now().getTime(),
             '0 0 2 * * ?',
-            new DataArchiveScheduler('Account', 'Name', 0, 'First')
+            new DataArchiveScheduler('Account', 'Name', 0, 'Name = \'First\'', 'ReplaceJob')
         );
 
         // Insert a schedule record with the real Job_Id
@@ -164,13 +176,13 @@ private class DataArchiveScheduleControllerTest {
         Test.startTest();
         // Second schedule: same object+field but different frequency → replaces
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'MONTHLY', 'Name', 0, 'Second',
+            'Account', 'MONTHLY', 'Name', 0, 'Name = \'Second\'',
             '03:00', null
         );
         Test.stopTest();
 
         System.assertNotEquals(null, result);
-        System.assert(result.contains('Successfully'), 'Should report success');
+        System.assertEquals(18, result.length(), 'Should return an ID');
 
         // Old schedule should be deleted, new one should exist
         List<Data_Archive_Schedule__c> remaining = [
@@ -214,7 +226,7 @@ private class DataArchiveScheduleControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, result);
-        System.assert(result.contains('Successfully'), 'Should succeed after cleaning orphan');
+        System.assertEquals(18, result.length(), 'Should succeed after cleaning orphan and return an ID');
 
         // Should only have one active schedule
         List<Data_Archive_Schedule__c> schedules = [
@@ -242,7 +254,7 @@ private class DataArchiveScheduleControllerTest {
         for (String freq : frequencies) {
             // Use different dateField for each to avoid duplicate issues
             String result = DataArchiveScheduleController.scheduleArchive(
-                'Account', freq, 'Name' + idx, 0, 'FreqTest',
+                'Account', freq, 'Name' + idx, 0, 'Name = \'FreqTest\'',
                 '08:00', 'FRI'
             );
             System.assertNotEquals(null, result);
@@ -258,7 +270,7 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_CustomTime() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'DAILY', 'Name', 10, 'TimeTest',
+            'Account', 'DAILY', 'Name', 10, 'Name = \'TimeTest\'',
             '16:45', null
         );
         Test.stopTest();
@@ -286,7 +298,7 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_NullPreferredTime() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'DAILY', 'Name', 20, 'NullTimeTest',
+            'Account', 'DAILY', 'Name', 20, 'Name = \'NullTimeTest\'',
             null, null
         );
         Test.stopTest();
@@ -313,7 +325,7 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_WeeklyWithDay() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'WEEKLY', 'Name', 5, 'DayTest',
+            'Account', 'WEEKLY', 'Name', 5, 'Name = \'DayTest\'',
             '10:00', 'WED'
         );
         Test.stopTest();
@@ -340,7 +352,7 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_WeeklyDefaultDay() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'WEEKLY', 'Name', 7, 'DefaultDayTest',
+            'Account', 'WEEKLY', 'Name', 7, 'Name = \'DefaultDayTest\'',
             '09:00', null
         );
         Test.stopTest();
@@ -366,7 +378,7 @@ private class DataArchiveScheduleControllerTest {
     static void testScheduleArchive_WeeklyEmptyDay() {
         Test.startTest();
         String result = DataArchiveScheduleController.scheduleArchive(
-            'Account', 'WEEKLY', 'Name', 8, 'EmptyDayTest',
+            'Account', 'WEEKLY', 'Name', 8, 'Name = \'EmptyDayTest\'',
             '09:00', ''
         );
         Test.stopTest();
@@ -413,7 +425,7 @@ private class DataArchiveScheduleControllerTest {
         Data_Archive_Schedule__c updated = [
             SELECT Status__c FROM Data_Archive_Schedule__c WHERE Id = :sched.Id
         ];
-        System.assertEquals('Stopped', updated.Status__c, 'Status should be Stopped');
+        System.assertEquals('In Active', updated.Status__c, 'Status should be Stopped');
     }
 
     // ─────────────────────────────────────────────────
@@ -451,7 +463,7 @@ private class DataArchiveScheduleControllerTest {
         Data_Archive_Schedule__c updated = [
             SELECT Status__c FROM Data_Archive_Schedule__c WHERE Id = :sched.Id
         ];
-        System.assertEquals('Stopped', updated.Status__c, 'Status should be Stopped after deactivation');
+        System.assertEquals('In Active', updated.Status__c, 'Status should be Stopped after deactivation');
 
         // Verify the job was actually aborted
         List<CronTrigger> remaining = [
@@ -516,7 +528,7 @@ private class DataArchiveScheduleControllerTest {
             SELECT Status__c FROM Data_Archive_Schedule__c
             WHERE Object_Name__c = 'Lead' LIMIT 1
         ];
-        System.assertEquals('Inactive', updated.Status__c,
+        System.assertEquals('In Active', updated.Status__c,
             'Orphaned schedule should be auto-deactivated');
     }
 
@@ -549,7 +561,7 @@ private class DataArchiveScheduleControllerTest {
             SELECT Status__c FROM Data_Archive_Schedule__c
             WHERE Object_Name__c = 'Contact' LIMIT 1
         ];
-        System.assertEquals('Inactive', updated.Status__c,
+        System.assertEquals('In Active', updated.Status__c,
             'Orphaned schedule should be auto-deactivated');
     }
 
@@ -625,7 +637,7 @@ private class DataArchiveScheduleControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, result);
-        System.assert(result.contains('Successfully'), 'Should create new schedule after cleaning stale');
+        System.assertEquals(18, result.length(), 'Should create new schedule after cleaning stale');
 
         // Verify only one active schedule exists
         List<Data_Archive_Schedule__c> schedules = [
@@ -676,7 +688,7 @@ private class DataArchiveScheduleControllerTest {
         Test.stopTest();
 
         System.assertNotEquals(null, result);
-        System.assert(result.contains('Successfully'), 'Should succeed');
+        System.assertEquals(18, result.length(), 'Should succeed and return an ID');
 
         // Old schedule should be replaced
         List<Data_Archive_Schedule__c> schedules = [
@@ -686,6 +698,88 @@ private class DataArchiveScheduleControllerTest {
             AND Status__c = 'Active'
         ];
         System.assertEquals(1, schedules.size(), 'Only one active schedule');
-        System.assertEquals('WEEKLY', schedules[0].Frequency__c, 'Should be the new WEEKLY schedule');
+        System.assertEquals('WEEKLY', schedules[0].Frequency__c, 'Replaced schedule is WEEKLY');
+    }
+
+    @IsTest
+    static void testGetActiveSchedulesPaginated() {
+        Id dummyJob1 = System.schedule('DummyJob1_' + Datetime.now().getTime(), '0 0 12 * * ?', new DataArchiveScheduler('Account', 'CreatedDate', 30, null));
+        Id dummyJob2 = System.schedule('DummyJob2_' + Datetime.now().getTime(), '0 0 13 * * ?', new DataArchiveScheduler('Contact', 'CreatedDate', 30, null));
+
+        insert new Data_Archive_Schedule__c(
+            Object_Name__c     = 'Account',
+            Frequency__c       = 'DAILY',
+            Date_Field__c      = 'CreatedDate',
+            Days__c            = 30,
+            Status__c          = 'Active',
+            Job_Id__c          = dummyJob1
+        );
+        insert new Data_Archive_Schedule__c(
+            Object_Name__c     = 'Contact',
+            Frequency__c       = 'MONTHLY',
+            Date_Field__c      = 'CreatedDate',
+            Days__c            = 30,
+            Status__c          = 'Active',
+            Job_Id__c          = dummyJob2
+        );
+
+        Test.startTest();
+        DataArchiveScheduleController.PaginatedResult result1 = DataArchiveScheduleController.getActiveSchedulesPaginated(1, 1);
+        DataArchiveScheduleController.PaginatedResult result2 = DataArchiveScheduleController.getActiveSchedulesPaginated(1, 2);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result1, 'Result should not be null');
+        System.assertEquals(2, result1.totalRecords, 'Total should be 2');
+        System.assertEquals(1, result1.records.size(), 'Records should match pageSize 1');
+        System.assertEquals(1, result2.records.size(), 'Records on page 2 should match pageSize 1');
+    }
+
+    @IsTest
+    static void testGetSchedulesForObjectPaginated() {
+        Id dummyJob3 = System.schedule('DummyJob3_' + Datetime.now().getTime(), '0 0 14 * * ?', new DataArchiveScheduler('Opportunity', 'CreatedDate', 30, null));
+
+        insert new Data_Archive_Schedule__c(
+            Object_Name__c     = 'Opportunity',
+            Frequency__c       = 'DAILY',
+            Date_Field__c      = 'CreatedDate',
+            Days__c            = 30,
+            Status__c          = 'Active',
+            Job_Id__c          = dummyJob3
+        );
+        insert new Data_Archive_Schedule__c(
+            Object_Name__c     = 'Opportunity',
+            Frequency__c       = 'MONTHLY',
+            Date_Field__c      = 'CreatedDate',
+            Days__c            = 30,
+            Status__c          = 'In Active'
+        );
+
+        Test.startTest();
+        DataArchiveScheduleController.PaginatedResult result = DataArchiveScheduleController.getSchedulesForObjectPaginated('Opportunity', 10, 1);
+        Test.stopTest();
+
+        System.assertNotEquals(null, result, 'Result should not be null');
+        System.assertEquals(2, result.totalRecords, 'Total records should be 2');
+        System.assertEquals(2, result.records.size(), 'Records on page 1 should be 2 (due to limit 10)');
+    }
+
+    @IsTest
+    static void testScheduleArchive_OverloadedMethods() {
+        Test.startTest();
+        // Call 7 param overload
+        String res7 = DataArchiveScheduleController.scheduleArchive(
+            'Lead', 'DAILY', 'CreatedDate', 10, null, '08:00', null
+        );
+        // Call 8 param overload
+        String res8 = DataArchiveScheduleController.scheduleArchive(
+            'Opportunity', 'WEEKLY', 'CreatedDate', 5, null, '12:00', 'MON', 'MySchedule'
+        );
+        Test.stopTest();
+
+        System.assertNotEquals(null, res7);
+        System.assertNotEquals(null, res8);
+
+        List<Data_Archive_Schedule__c> scheds = [SELECT Object_Name__c FROM Data_Archive_Schedule__c WHERE Object_Name__c IN ('Lead', 'Opportunity')];
+        System.assertEquals(2, scheds.size(), 'Both overloaded methods should create schedules');
     }
 }

@@ -7,6 +7,16 @@ public with sharing class DataArchiveScheduler implements Schedulable {
     private String scheduleName;
     private List<String> selectedChildObjects;
 
+    // Backward-compatible constructor (4 params - used by older tests)
+    public DataArchiveScheduler(
+        String objectName,
+        String criteriaField,
+        Integer days,
+        String scheduleName
+    ){
+        this(objectName, criteriaField, days, null, scheduleName, null);
+    }
+
     // Backward-compatible constructor (no child objects)
     public DataArchiveScheduler(
         String objectName,
@@ -50,7 +60,28 @@ public with sharing class DataArchiveScheduler implements Schedulable {
             // Date-based filter  →  WHERE CreatedDate <= 2026-01-17
             Integer daysVal = (this.days != null) ? this.days : 0;
             Date targetDate = Date.today().addDays(-daysVal);
-            whereClause = this.criteriaField + ' <= ' + String.valueOf(targetDate);
+            
+            // Format appropriately based on field type
+            String formattedDate = String.valueOf(targetDate).substring(0, 10);
+            
+            try {
+                Schema.SObjectType objType = Schema.getGlobalDescribe().get(this.objectName);
+                if (objType != null) {
+                    Map<String, Schema.SObjectField> fMap = objType.getDescribe().fields.getMap();
+                    String fNameLower = this.criteriaField != null ? this.criteriaField.toLowerCase() : '';
+                    if (fMap.containsKey(fNameLower)) {
+                        Schema.DescribeFieldResult fd = fMap.get(fNameLower).getDescribe();
+                        if (fd.getType() == Schema.DisplayType.DATETIME) {
+                            Datetime dt = Datetime.newInstanceGmt(targetDate, Time.newInstance(0,0,0,0));
+                            formattedDate = dt.formatGmt('yyyy-MM-dd\'T\'HH:mm:ss\'Z\'');
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore schema errors, fallback to standard date format
+            }
+            
+            whereClause = this.criteriaField + ' <= ' + formattedDate;
         }
 
         String soql =

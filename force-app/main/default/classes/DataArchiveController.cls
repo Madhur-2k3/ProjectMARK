@@ -3,6 +3,14 @@ public with sharing class DataArchiveController {
     /* =====================================================
      *   ARCHIVE SELECTED RECORDS (ASYNC)
      * ===================================================== */
+    public static Id archiveSelectedRecords(String objectName, List<Id> recordIds, String fieldsCsv) {
+        return archiveSelectedRecords(objectName, recordIds, fieldsCsv, 'Archive_' + Datetime.now().getTime(), null);
+    }
+    
+    public static Id archiveSelectedRecords(String objectName, List<Id> recordIds, String fieldsCsv, String archiveName) {
+        return archiveSelectedRecords(objectName, recordIds, fieldsCsv, archiveName, null);
+    }
+
     @AuraEnabled
     public static Id archiveSelectedRecords(
         String objectName,
@@ -22,6 +30,14 @@ public with sharing class DataArchiveController {
     /* =====================================================
      *   ARCHIVE ALL RECORDS (ASYNC)
      * ===================================================== */
+    public static Id archiveAllRecords(String objectName, String fieldsCsv, String fullQuery) {
+        return archiveAllRecords(objectName, fieldsCsv, fullQuery, 'Archive_' + Datetime.now().getTime(), null);
+    }
+
+    public static Id archiveAllRecords(String objectName, String fieldsCsv, String fullQuery, String archiveName) {
+        return archiveAllRecords(objectName, fieldsCsv, fullQuery, archiveName, null);
+    }
+
     @AuraEnabled
     public static Id archiveAllRecords(
         String objectName,

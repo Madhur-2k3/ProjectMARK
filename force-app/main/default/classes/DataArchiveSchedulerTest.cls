@@ -6,7 +6,7 @@ private class DataArchiveSchedulerTest {
         // Non-empty filterValue → text-based WHERE clause path
         // Avoids DateTime vs Date format issue with date-based filter
         DataArchiveScheduler sched =
-            new DataArchiveScheduler('Account', 'Name', 0, 'Acme');
+            new DataArchiveScheduler('Account', 'Name', 0, 'Name = \'Acme\'', 'TestSchedule');
 
         Test.startTest();
         sched.execute(null);
@@ -26,7 +26,7 @@ private class DataArchiveSchedulerTest {
         // Use a Date field (not DateTime) to avoid format mismatch
         // LastActivityDate is a Date field on Account
         DataArchiveScheduler sched =
-            new DataArchiveScheduler('Account', 'LastActivityDate', 30, '');
+            new DataArchiveScheduler('Account', 'LastActivityDate', 30, '', 'TestSchedule');
 
         Test.startTest();
         sched.execute(null);
@@ -46,7 +46,7 @@ private class DataArchiveSchedulerTest {
         // null days → defaults to 0, empty filterValue → date-based path
         // Use LastActivityDate (Date type, not DateTime) to avoid SOQL error
         DataArchiveScheduler sched =
-            new DataArchiveScheduler('Account', 'LastActivityDate', null, '');
+            new DataArchiveScheduler('Account', 'LastActivityDate', null, '', 'TestSchedule');
 
         Test.startTest();
         sched.execute(null);
