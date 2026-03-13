@@ -619,6 +619,7 @@ export default class FilterBuilder extends LightningElement {
             })
             .catch(err => this.showError(JSON.stringify(err)))
             .finally(() => {
+                setTimeout(() => {}, 5000);
                 this.isLoading = false;
             });
     }

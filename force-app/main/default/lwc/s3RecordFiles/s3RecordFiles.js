@@ -353,31 +353,48 @@ export default class S3RecordFiles extends LightningElement {
 
     /**
      * Extracts object name from S3 key (client-side version).
-     * Pattern: recordId/ObjectName_ObjectName_-_DA-XXXX.csv
+     * Extracts object name from S3 key (client-side version).
+     * Supports patterns like:
+     *   recordId/ObjectName_ObjectName_-_DA-XXXX.csv
+     *   recordId/ObjectName Part N_ObjectName_-_Bulk_Archive.csv.zip.enc
      */
     _extractObjectNameFromKey(key) {
         if (!key) return null;
         let fName = key.includes('/') ? key.substring(key.lastIndexOf('/') + 1) : key;
-        const dotIdx = fName.lastIndexOf('.');
-        if (dotIdx > 0) fName = fName.substring(0, dotIdx);
 
-        // Look for "_-_DA-" delimiter
-        const daIdx = fName.indexOf('_-_DA-');
-        if (daIdx > 0) {
-            const beforeDA = fName.substring(0, daIdx);
-            // Pattern: ObjectName_ObjectName → first part is the object
-            // For custom objects like Booking__c_Booking__c, find __c suffix
-            for (const suffix of ['__c', '__mdt', '__e', '__b', '__x']) {
-                const sIdx = beforeDA.indexOf(suffix);
-                if (sIdx > 0) {
-                    return beforeDA.substring(0, sIdx + suffix.length);
-                }
+        // Strip ALL known extensions (.csv, .zip, .enc, etc.) from the end
+        fName = fName.replace(/\.(csv|zip|enc|txt|json|xml|xlsx|xls|pdf)+$/gi, '');
+        // Handle chained extensions like .csv.zip.enc
+        fName = fName.replace(/\.(csv|zip|enc|txt|json|xml|xlsx|xls|pdf)+$/gi, '');
+
+        if (!fName) return null;
+
+        // Look for known delimiters: "_-_DA-", "_-_Bulk_Archive", "_-_"
+        const delimiters = ['_-_DA-', '_-_Bulk_Archive', '_-_Bulk-Archive', '_-_'];
+        let beforeDelimiter = null;
+
+        for (const delim of delimiters) {
+            const idx = fName.indexOf(delim);
+            if (idx > 0) {
+                beforeDelimiter = fName.substring(0, idx);
+                break;
             }
-            // Standard object: first segment before _
-            const usIdx = beforeDA.indexOf('_');
-            return usIdx > 0 ? beforeDA.substring(0, usIdx) : beforeDA;
         }
-        return null;
+
+        if (!beforeDelimiter) return null;
+
+        // For custom objects like "Booking__c Part 2_Booking__c" or "Booking__c_Booking__c"
+        // find the first occurrence of a custom suffix
+        for (const suffix of ['__c', '__mdt', '__e', '__b', '__x']) {
+            const sIdx = beforeDelimiter.indexOf(suffix);
+            if (sIdx > 0) {
+                return beforeDelimiter.substring(0, sIdx + suffix.length);
+            }
+        }
+        // Standard object: first segment before _ (but not __)
+        // e.g. "Account_Account" → "Account"
+        const match = beforeDelimiter.match(/^([A-Za-z][A-Za-z0-9]*)/);
+        return match ? match[1] : beforeDelimiter;
     }
 
     /**
