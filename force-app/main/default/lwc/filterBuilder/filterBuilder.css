@@ -63,6 +63,11 @@
     margin-right: 10px;
 }
 
+.ui-disabled {
+    pointer-events: none;
+    user-select: none;
+}
+
 .demo {
     display: flex;
     justify-content: flex-end;
@@ -684,6 +689,13 @@
     font-size: 13px;
     color: #706e6b;
     margin: 0 0 20px;
+}
+
+.archive-spinner-progress {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0b5cab;
+    margin: 0 0 16px;
 }
 
 /* ── Animated Dots ── */

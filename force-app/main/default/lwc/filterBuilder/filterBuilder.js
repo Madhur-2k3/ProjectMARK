@@ -17,14 +17,30 @@ export default class FilterBuilder extends LightningElement {
     batchJobId = null;
     archiveRecordId = null;
     batchPollingInterval = null;
-
+    static BATCH_SCOPE_SIZE = 2000; 
     @api selectfields = [];
     @api fields = [];
     @api selectobject;
     @api query;
+    archiveTotalRecords = 0;
+    archiveProcessedRecords = 0;
+    archiveProgressMessage = 'Preparing archive...';
     @api conditions;
     @api objectname;
     @api objectlabel;
+    
+    get mainContainerClass() {
+        return this.isLoading
+            ? 'slds-p-horizontal_large conditions-builder-container ui-disabled'
+            : 'slds-p-horizontal_large conditions-builder-container';
+    }
+    
+    get archiveProgressText() {
+        if (this.archiveTotalRecords > 0) {
+            return `${this.archiveProcessedRecords.toLocaleString()} / ${this.archiveTotalRecords.toLocaleString()} records processed`;
+        }
+        return this.archiveProgressMessage;
+    }
     @api tablecolumnsname = [];
     @api changed;
     @api criteriaOnly = false;
@@ -603,6 +619,9 @@ export default class FilterBuilder extends LightningElement {
         }
 
         this.isLoading = true;
+        this.archiveTotalRecords = ids.length;
+        this.archiveProcessedRecords = 0;
+        this.archiveProgressMessage = 'Preparing archive...';
 
         archiveSelectedRecords({
             objectName: this.objectname,
@@ -617,10 +636,9 @@ export default class FilterBuilder extends LightningElement {
                 this.startBatchPolling();
                 this.masterSelectedIds.clear();
             })
-            .catch(err => this.showError(JSON.stringify(err)))
-            .finally(() => {
-                setTimeout(() => {}, 5000);
+            .catch(err => {
                 this.isLoading = false;
+                this.showError(err);
             });
     }
 
@@ -633,6 +651,9 @@ export default class FilterBuilder extends LightningElement {
         }
 
         this.isLoading = true;
+        this.archiveTotalRecords = this.totalRecords || 0;
+        this.archiveProcessedRecords = 0;
+        this.archiveProgressMessage = 'Preparing archive...';
 
         archiveAllRecords({
             objectName: this.objectname,
@@ -646,9 +667,9 @@ export default class FilterBuilder extends LightningElement {
                 this.showToast('Success', 'Archive batch job started. Monitoring progress...', 'success');
                 this.startBatchPolling();
             })
-            .catch(err => this.showError(err))
-            .finally(() => {
+            .catch(err => {
                 this.isLoading = false;
+                this.showError(err);
             });
     }
 
@@ -657,6 +678,7 @@ export default class FilterBuilder extends LightningElement {
     // =====================================================
     startBatchPolling() {
         this.stopBatchPolling();
+        this.isLoading = true;
 
         this.batchPollingInterval = setInterval(() => {
             this.checkBatchStatus();
@@ -678,7 +700,24 @@ export default class FilterBuilder extends LightningElement {
 
             console.log('Batch Status:', status.status);
 
+            const processedChunks = Number(status.processed || 0);
+            const totalChunks = Number(status.total || 0);
+
+            if (this.archiveTotalRecords === 0 && totalChunks > 0) {
+                this.archiveTotalRecords = totalChunks * FilterBuilder.BATCH_SCOPE_SIZE;
+            }
+
+            if (this.archiveTotalRecords > 0) {
+                this.archiveProcessedRecords = Math.min(
+                    this.archiveTotalRecords,
+                    processedChunks * FilterBuilder.BATCH_SCOPE_SIZE
+                );
+                this.archiveProgressMessage = 'Archiving records...';
+            }
+
             if (status.status === 'Completed') {
+                this.archiveProcessedRecords = this.archiveTotalRecords;
+                this.archiveProgressMessage = 'Finalizing delete process...';
                 this.stopBatchPolling();
                 this.handleBatchCompletion();
             } else if (status.status === 'Failed' || status.status === 'Aborted') {
@@ -689,6 +728,7 @@ export default class FilterBuilder extends LightningElement {
         } catch (error) {
             console.error('Error checking batch status:', error);
             this.stopBatchPolling();
+            this.isLoading = false;
         }
     }
 
@@ -729,6 +769,7 @@ export default class FilterBuilder extends LightningElement {
     async waitForArchiveComplete(archiveId) {
         const maxRetries = 20;
         const delayMs = 3000;
+        this.archiveProgressMessage = 'Finalizing delete process...';
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             // eslint-disable-next-line @lwc/lwc/no-async-operation
@@ -739,6 +780,7 @@ export default class FilterBuilder extends LightningElement {
                 console.log(`Archive status poll attempt ${attempt}: ${status}`);
 
                 if (status === 'Completed') {
+                    this.archiveProgressMessage = 'Archive completed.';
                     return;
                 }
             } catch (error) {

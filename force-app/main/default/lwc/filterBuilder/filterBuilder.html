@@ -1,5 +1,5 @@
 <template>
-    <div class="slds-p-horizontal_large conditions-builder-container">
+    <div class={mainContainerClass}>
         <template lwc:if={showToggle}>
             <div class="header">
                 <lightning-button-group>
@@ -343,6 +343,7 @@
 
                 <h3 class="archive-spinner-title">Creating Archive Sheets</h3>
                 <p class="archive-spinner-subtitle">Building spreadsheets from your records&hellip;</p>
+                <p class="archive-spinner-progress">{archiveProgressText}</p>
 
                 <!-- Progress dots -->
                 <div class="archive-dots">
