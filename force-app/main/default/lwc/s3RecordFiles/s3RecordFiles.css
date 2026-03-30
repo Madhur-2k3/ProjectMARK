@@ -180,3 +180,42 @@
 .preview-audio {
     width: 80%;
 }
+
+/* Pagination styles */
+.csv-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* padding: 0.75rem 0.5rem 0; */
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    border-top: 1px solid #e5e5e5;
+    background-color: #f3f3f3;
+    border-radius: 0 0 4px 4px;
+    gap: 2rem;
+}
+
+.csv-pagination__size {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    /* min-width: 120px; */
+}
+
+/* Adjust combobox standard margin to align properly in flex container */
+.csv-pagination__size lightning-combobox {
+    margin-bottom: 0;
+    width: 70px;
+}
+
+.csv-pagination__info {
+    font-size: 0.8125rem;
+    color: #444444;
+    font-weight: 500;
+}
+
+.csv-pagination__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}

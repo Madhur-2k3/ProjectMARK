@@ -10,17 +10,19 @@ public with sharing class ChildObjectTreeController {
         @AuraEnabled public String       parentObjectName;
         @AuraEnabled public Integer      depth;
         @AuraEnabled public Boolean      isSelected;
+        @AuraEnabled public String       relationshipType; // 'Master-Detail' or 'Lookup'
         @AuraEnabled public List<ChildNode> children;
 
         public ChildNode(String objectName, String objectLabel,
                          String relationshipField, String parentObjectName,
-                         Integer depth) {
+                         Integer depth, String relationshipType) {
             this.objectName        = objectName;
             this.objectLabel       = objectLabel;
             this.relationshipField = relationshipField;
             this.parentObjectName  = parentObjectName;
             this.depth             = depth;
             this.isSelected        = true;
+            this.relationshipType  = relationshipType;
             this.children          = new List<ChildNode>();
         }
     }
@@ -87,7 +89,7 @@ public with sharing class ChildObjectTreeController {
 
     /* =====================================================
      *   RECURSIVE DISCOVERY
-     *   — only follows master-detail (cascade-delete) rels
+     *   — follows both master-detail and lookup rels
      *   — skips system objects automatically
      *   — max depth = 5
      * ===================================================== */
@@ -95,7 +97,7 @@ public with sharing class ChildObjectTreeController {
                                                      Integer depth,
                                                      Set<String> visited) {
         List<ChildNode> nodes = new List<ChildNode>();
-        if (depth > 5) return nodes;
+        if (depth > Integer.valueOf(Label.MAX_CHAIN_DEPTH)) return nodes;
 
         Schema.SObjectType objType = Schema.getGlobalDescribe().get(parentObjName);
         if (objType == null) return nodes;
@@ -105,13 +107,19 @@ public with sharing class ChildObjectTreeController {
 
         for (Schema.ChildRelationship childRel : childRels) {
 
-            // Only master-detail (cascade-delete)
-            if (!childRel.isCascadeDelete()) continue;
+            // Include both master-detail and lookup relationships
+            // Skip non-Reference field types (e.g., indirect lookups)
+            Schema.DescribeFieldResult fieldDesc = childRel.getField().getDescribe();
+            if (fieldDesc.getType() != Schema.DisplayType.REFERENCE) continue;
 
-            Schema.DescribeSObjectResult childDescribe =
+            // Determine relationship type
+            Boolean isCascade = childRel.isCascadeDelete();
+            String relType = isCascade ? 'Master-Detail' : 'Lookup';
+
+            Schema.DescribeSObjectResult childDescribe =  
                 childRel.getChildSObject().getDescribe();
             String childObjectName   = childDescribe.getName();
-            String relationshipField = childRel.getField().getDescribe().getName();
+            String relationshipField = fieldDesc.getName();
             String relationshipName  = childRel.getRelationshipName();
 
             // Skip if no relationship name
@@ -137,7 +145,8 @@ public with sharing class ChildObjectTreeController {
                 childDescribe.getLabel(),
                 relationshipField,
                 parentObjName,
-                depth
+                depth,
+                relType
             );
 
             // Recurse into children

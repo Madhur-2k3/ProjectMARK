@@ -1,11 +1,7 @@
 public class DataArchiveBatch implements Database.Batchable<SObject>, Database.Stateful {
 
     // ===================== CONSTANTS =====================
-    private static final Integer MAX_CSV_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-    // Use String.length() with a safety multiplier instead of Blob.valueOf().size()
-    // to avoid allocating heap for Blob copies. UTF-8 worst-case is 3x for non-ASCII.
-    // Most Salesforce data is ASCII, so 2x is a safe upper bound.
-    private static final Integer MAX_CSV_LENGTH = MAX_CSV_SIZE_BYTES / 2; // ~2.5M chars
+    private static final Integer MAX_CSV_LENGTH = Integer.valueOf(Label.MAX_CSV_LENGTH);
 
     // ===================== STATE VARIABLES =====================
     private String objectName;
@@ -42,7 +38,6 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             this.parentObjectName  = parentObjectName;
         }
     }
-
     // ===================== CONSTRUCTORS (backward-compatible overloads) =====================
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
         this(objectName, fieldsCsv, soqlQuery, null, null);
@@ -55,7 +50,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
                             String archiveName, List<String> selectedChildObjects) {
         this.objectName   = objectName;
-        this.fields       = normalizeFields(fieldsCsv);
+        this.fields       = filterAccessibleFields(objectName, normalizeFields(fieldsCsv));
         this.soqlQuery    = soqlQuery;
         this.archiveRecordName = archiveName;
 
@@ -80,27 +75,12 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             }
             System.debug('After filtering to user selection: ' + childMetadataMap.size() + ' objects');
         }
-
         System.debug('');
-
-        // Print full tree
-        for (Integer d = 1; d <= 10; d++) {
-            for (ChildMetadata m : childMetadataMap.values()) {
-                if (m.depth == d) {
-                    String indent = '';
-                    for (Integer i = 0; i < d; i++) indent += '  ';
-                    System.debug(indent + '[Depth ' + d + '] '
-                               + m.objectName
-                               + ' → parent: ' + m.parentObjectName
-                               + ' via: '      + m.relationshipField);
-                }
-            }
-        }
     }
 
     // ===================== RECURSIVE CHAIN DISCOVERY =====================
     private void discoverChain(String parentObjName, Integer depth) {
-        if (depth > 10) return;
+        if (depth > Integer.valueOf(Label.MAX_CHAIN_DEPTH)) return;
 
         Schema.SObjectType objType = Schema.getGlobalDescribe().get(parentObjName);
         if (objType == null) return;
@@ -109,12 +89,14 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
 
         for (Schema.ChildRelationship childRel : childRels) {
 
-            // ONLY master-detail (cascade delete = true)
-            if (!childRel.isCascadeDelete()) continue;
+            // Include both master-detail and lookup relationships
+            // Skip non-Reference field types (e.g., indirect lookups)
+            Schema.DescribeFieldResult fieldDesc = childRel.getField().getDescribe();
+            if (fieldDesc.getType() != Schema.DisplayType.REFERENCE) continue;
 
             Schema.DescribeSObjectResult childDescribe = childRel.getChildSObject().getDescribe();
             String childObjectName   = childDescribe.getName();
-            String relationshipField = childRel.getField().getDescribe().getName();
+            String relationshipField = fieldDesc.getName();
             String relationshipName  = childRel.getRelationshipName();
 
             // Prevent infinite loops
@@ -144,7 +126,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
                 parentObjName
             ));
 
-            System.debug('Found [depth-' + depth + ']: ' + childObjectName
+            String relType = childRel.isCascadeDelete() ? 'Master-Detail' : 'Lookup';
+            System.debug('Found [depth-' + depth + '] [' + relType + ']: ' + childObjectName
                        + ' (parent: ' + parentObjName + ')');
 
             // RECURSE: find children of this child
@@ -207,7 +190,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
         System.debug('Parent Object  : ' + this.objectName);
         System.debug('Chain Objects  : ' + childMetadataMap.size());
 
-        return Database.getQueryLocator(this.soqlQuery + ' WITH SECURITY_ENFORCED');
+        return Database.getQueryLocator(this.soqlQuery);
     }
 
     // ===================== EXECUTE =====================
@@ -417,6 +400,29 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             if (!String.isBlank(f)) fields.add(f.trim());
         }
         return fields;
+    }
+
+    // Filter parent fields to only those the running user can actually read
+    private List<String> filterAccessibleFields(String objName, List<String> fields) {
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objName);
+        if (objType == null) return fields;
+
+        Map<String, Schema.SObjectField> fieldMap = objType.getDescribe().fields.getMap();
+        List<String> accessible = new List<String>();
+
+        for (String f : fields) {
+            String key = f.toLowerCase();
+            if (fieldMap.containsKey(key) && fieldMap.get(key).getDescribe().isAccessible()) {
+                accessible.add(f);
+            } else if (f.contains('.')) {
+                // Relationship fields (e.g. Owner.Name) — keep them; they'll fail
+                // gracefully in buildSingleCsvRow if parent is null
+                accessible.add(f);
+            } else {
+                System.debug('Dropping inaccessible field: ' + f);
+            }
+        }
+        return accessible;
     }
 
     private static String escapeCsv(String v) {

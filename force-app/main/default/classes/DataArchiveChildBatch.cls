@@ -9,7 +9,7 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
         public String       parentObjectName;
     }
 
-    private static final Integer MAX_CSV_LENGTH = (5 * 1024 * 1024) / 2;
+    private static final Integer MAX_CSV_LENGTH = Integer.valueOf(Label.MAX_CSV_LENGTH);
 
     private Id              archiveRecordId;
     private String          archiveRecordName;

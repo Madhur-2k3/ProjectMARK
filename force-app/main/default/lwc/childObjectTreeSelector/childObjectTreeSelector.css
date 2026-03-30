@@ -134,3 +134,27 @@
     margin-left: 0.25rem;
     color: #0176d3;
 }
+
+/* ---------- Relationship Type Badge ---------- */
+.tree-rel-badge {
+    font-size: 0.625rem;
+    font-weight: 600;
+    padding: 0.0625rem 0.375rem;
+    border-radius: 0.75rem;
+    margin-left: 0.375rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.tree-rel-master-detail {
+    background-color: #e8f0fe;
+    color: #0b5cab;
+    border: 1px solid #b4d6f0;
+}
+
+.tree-rel-lookup {
+    background-color: #e6f9ed;
+    color: #0e6027;
+    border: 1px solid #91d8a8;
+}

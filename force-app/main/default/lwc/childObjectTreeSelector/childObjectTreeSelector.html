@@ -70,6 +70,9 @@
                                 <span class="tree-object-api">
                                     ({node.objectName})
                                 </span>
+                                <span class={node.relationshipTypeBadgeClass}>
+                                    {node.relationshipType}
+                                </span>
                             </label>
 
                             <template if:true={node.hasChildren}>

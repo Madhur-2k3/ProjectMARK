@@ -79,6 +79,7 @@ export default class ChildObjectTreeSelector extends LightningElement {
 
         nodes.forEach((node, idx) => {
             const isLast = idx === nodes.length - 1;
+            const relType = node.relationshipType || 'Lookup';
             flat.push({
                 key: node.objectName,
                 objectName: node.objectName,
@@ -91,7 +92,11 @@ export default class ChildObjectTreeSelector extends LightningElement {
                 hasChildren: node.children && node.children.length > 0,
                 indentStyle: `padding-left: ${depth * 28}px`,
                 connector: isLast ? '└── ' : '├── ',
-                depthClass: `depth-${depth}`
+                depthClass: `depth-${depth}`,
+                relationshipType: relType,
+                relationshipTypeBadgeClass: relType === 'Master-Detail'
+                    ? 'tree-rel-badge tree-rel-master-detail'
+                    : 'tree-rel-badge tree-rel-lookup'
             });
 
             if (node.children && node.children.length > 0) {

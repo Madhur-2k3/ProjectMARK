@@ -47,6 +47,16 @@ export default class S3RecordFiles extends LightningElement {
     _previewExt = '';
     _previewFullKey = '';
 
+    // Pagination state
+    @track currentPage = 1;
+    @track pageSize = 50;
+    pageSizeOptions = [
+        { label: '10', value: 10 },
+        { label: '25', value: 25 },
+        { label: '50', value: 50 },
+        { label: '100', value: 100 }
+    ];
+
     // CSV filter state (filterBuilder integration)
     @track csvFieldMeta = [];    // [{apiName, label, type}] for filterBuilder
     @track csvObjectName = '';   // SObject name for filterBuilder
@@ -120,6 +130,34 @@ export default class S3RecordFiles extends LightningElement {
             return this._allCsvRows;
         }
         return this._allCsvRows.filter(row => this._evaluateWhereClause(row));
+    }
+
+    // Paginated rows — the rows actually rendered in the table
+    get paginatedCsvRows() {
+        const allFiltered = this.filteredCsvRows;
+        const start = (this.currentPage - 1) * this.pageSize;
+        const end = start + this.pageSize;
+        return allFiltered.slice(start, end);
+    }
+
+    get totalPages() {
+        return Math.max(1, Math.ceil(this.filteredCsvRows.length / this.pageSize));
+    }
+
+    get isFirstPage() {
+        return this.currentPage <= 1;
+    }
+
+    get isLastPage() {
+        return this.currentPage >= this.totalPages;
+    }
+
+    get pageInfo() {
+        const total = this.filteredCsvRows.length;
+        if (total === 0) return 'No rows';
+        const start = (this.currentPage - 1) * this.pageSize + 1;
+        const end = Math.min(this.currentPage * this.pageSize, total);
+        return `${start}–${end} of ${total}`;
     }
 
     // Row count label
@@ -335,10 +373,12 @@ export default class S3RecordFiles extends LightningElement {
     handleShowAllRecords() {
         this.csvFilterMode = 'all';
         this._csvWhereClause = '';
+        this.currentPage = 1;
     }
 
     handleShowFilterRecords() {
         this.csvFilterMode = 'filter';
+        this.currentPage = 1;
     }
 
     // ─── FilterBuilder Integration ───────────────────────────────
@@ -349,6 +389,30 @@ export default class S3RecordFiles extends LightningElement {
      */
     handleWhereChange(event) {
         this._csvWhereClause = event.detail || '';
+        this.currentPage = 1;
+    }
+
+    // ─── Pagination Handlers ─────────────────────────────────────
+
+    handleFirstPage() {
+        this.currentPage = 1;
+    }
+
+    handlePreviousPage() {
+        if (this.currentPage > 1) this.currentPage--;
+    }
+
+    handleNextPage() {
+        if (this.currentPage < this.totalPages) this.currentPage++;
+    }
+
+    handleLastPage() {
+        this.currentPage = this.totalPages;
+    }
+
+    handlePageSizeChange(event) {
+        this.pageSize = parseInt(event.detail.value, 10);
+        this.currentPage = 1;
     }
 
     /**

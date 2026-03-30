@@ -10,8 +10,8 @@ public class ChildArchiveQueueable implements Queueable {
     }
 
     // ===================== CONSTANTS =====================
-    private static final Integer PARENT_ID_CHUNK_SIZE = 2000;
-    private static final Integer MAX_CSV_LENGTH = (5 * 1024 * 1024) / 2; // ~2.5M chars
+    private static final Integer PARENT_ID_CHUNK_SIZE = Integer.valueOf(Label.PARENT_ID_CHUNK_SIZE);
+    private static final Integer MAX_CSV_LENGTH = Integer.valueOf(Label.MAX_CSV_LENGTH);
 
     // ===================== STATE =====================
     private Id              archiveRecordId;

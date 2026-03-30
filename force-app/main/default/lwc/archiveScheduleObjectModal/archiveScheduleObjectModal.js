@@ -1,4 +1,4 @@
-import { LightningElement, track } from 'lwc';
+import { LightningElement, track, wire } from 'lwc';
 import getActiveSchedulesPaginated
     from '@salesforce/apex/DataArchiveScheduleController.getActiveSchedulesPaginated';
 import getSchedulesForObjectPaginated
@@ -8,6 +8,7 @@ import deactivateSchedule
 import updateScheduleStatus
     from '@salesforce/apex/DataArchiveScheduleController.updateScheduleStatus';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 
 const PAGE_SIZE = 5;
 
@@ -20,6 +21,7 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
     showAllSchedulesPanel = false;
     allCurrentPage = 1;
     allTotalRecords = 0;
+    @track objectLabel = '';
 
     // ── All-schedule datatable columns ──
     allScheduleColumns = [
@@ -101,6 +103,21 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
     // ── Lifecycle ──
     connectedCallback() {
         this.loadActiveSchedules();
+    }
+
+
+    @wire(getObjectInfo, { objectApiName: '$selectedObject' })
+    wiredObjectInfo({ data, error }) {
+        // If parent passed a friendly label, use it
+        if (this.objectlabel) {
+            this.objectLabel = this.objectlabel;
+            return;
+        }
+        if (data) {
+            this.objectLabel = data?.label || this.objectname;
+        } else if (error) {
+            this.objectLabel = this.objectname;
+        }
     }
 
     // ───────────────────────────────────

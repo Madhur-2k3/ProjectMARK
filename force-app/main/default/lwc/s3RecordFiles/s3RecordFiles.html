@@ -136,7 +136,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <template for:each={filteredCsvRows} for:item="row">
+                                        <template for:each={paginatedCsvRows} for:item="row">
                                             <tr key={row.id} class="slds-hint-parent">
                                                 <template for:each={row.cells} for:item="cell">
                                                     <td key={cell.id} data-label={cell.value}>
@@ -147,6 +147,53 @@
                                         </template>
                                     </tbody>
                                 </table>
+                            </div>
+
+                            <!-- Pagination Controls -->
+                            <div class="csv-pagination">
+                                <div class="csv-pagination__size">
+                                    <lightning-combobox
+                                        label="Rows per page"
+                                        value={pageSize}
+                                        options={pageSizeOptions}
+                                        onchange={handlePageSizeChange}
+                                        variant="label-hidden"
+                                        dropdown-alignment="auto">
+                                    </lightning-combobox>
+                                </div>
+                                <div class="csv-pagination__info">
+                                    {pageInfo}
+                                </div>
+                                <div class="csv-pagination__nav">
+                                    <lightning-button-icon
+                                        icon-name="utility:jump_to_left"
+                                        alternative-text="First page"
+                                        title="First page"
+                                        disabled={isFirstPage}
+                                        onclick={handleFirstPage}>
+                                    </lightning-button-icon>
+                                    <lightning-button-icon
+                                        icon-name="utility:chevronleft"
+                                        alternative-text="Previous page"
+                                        title="Previous page"
+                                        disabled={isFirstPage}
+                                        onclick={handlePreviousPage}>
+                                    </lightning-button-icon>
+                                    <lightning-button-icon
+                                        icon-name="utility:chevronright"
+                                        alternative-text="Next page"
+                                        title="Next page"
+                                        disabled={isLastPage}
+                                        onclick={handleNextPage}>
+                                    </lightning-button-icon>
+                                    <lightning-button-icon
+                                        icon-name="utility:jump_to_right"
+                                        alternative-text="Last page"
+                                        title="Last page"
+                                        disabled={isLastPage}
+                                        onclick={handleLastPage}>
+                                    </lightning-button-icon>
+                                </div>
                             </div>
                         </template>
 
