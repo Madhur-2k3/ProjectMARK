@@ -1,164 +1,256 @@
+/**
+ * @description Controller for the ArchiveController LWC component.
+ *              Handles building CSV content from queried records and linking
+ *              the resulting CSV files to Data_Archive__c records.
+ */
 public with sharing class ArchiveController {
 
+    /**
+     * @description Archives the specified records by building a CSV, creating a
+     *              Data_Archive__c record, and deleting the originals.
+     * @param objectNameStr The API name of the SObject to archive.
+     * @param recordIdsList List of record IDs to archive.
+     * @param fieldsCsvStr Comma-separated field API names for CSV columns.
+     * @return 'OK' on success.
+     */
     @AuraEnabled
-    public static String archiveRecords(String objectName, List<Id> recordIds, String fieldsCsv) {
+    public static String archiveRecords(String objectNameStr, List<Id> recordIdsList, String fieldsCsvStr) {
 
-        // ------------------ VALIDATIONS ------------------
-        if (String.isBlank(objectName)) {
+        if (String.isBlank(objectNameStr)) {
             throw new AuraHandledException('Object name is required.');
         }
-        if (recordIds == null || recordIds.isEmpty()) {
-            throw new AuraHandledException('No record IDs provided.');
+        if (recordIdsList == null || recordIdsList.isEmpty()) {
+            throw new AuraHandledException('Record IDs are required.');
         }
-        if (String.isBlank(fieldsCsv)) {
-            throw new AuraHandledException('Select at least one field to archive.');
-        }
-
-        if (!Schema.getGlobalDescribe().containsKey(objectName)) {
-            throw new AuraHandledException('Invalid object: ' + objectName);
+        if (String.isBlank(fieldsCsvStr)) {
+            throw new AuraHandledException('Fields are required.');
         }
 
-        // ------------------ NORMALIZE FIELDS ------------------
-        List<String> fields = new List<String>();
-        for (String f : fieldsCsv.split(',')) {
-            if (!String.isBlank(f.trim())) fields.add(f.trim());
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectNameStr);
+        if (objType == null) {
+            throw new AuraHandledException('Invalid object: ' + objectNameStr);
         }
 
-        // Add Id ONLY for query, but NOT for CSV
-        List<String> queryFields = new List<String>(fields);
-        if (!queryFields.contains('Id')) {
-            queryFields.add('Id');
+        // Build SOQL
+        List<String> fieldsList = fieldsCsvStr.split(',');
+        List<String> trimmedFieldsList = new List<String>();
+        Boolean hasIdFlag = false;
+
+        for (String fieldStr : fieldsList) {
+            String trimmedStr = fieldStr.trim();
+            trimmedFieldsList.add(trimmedStr);
+            if (trimmedStr.equalsIgnoreCase('Id')) hasIdFlag = true;
         }
 
-        // ------------------ BUILD SOQL ------------------
-        String soql =
-            'SELECT ' + String.join(queryFields, ',') +
-            ' FROM ' + objectName +
-            ' WHERE Id IN :recordIds';
+        if (!hasIdFlag) {
+            trimmedFieldsList.add(0, 'Id');
+        }
 
-        List<SObject> rows;
+        String soqlStr = 'SELECT ' + String.join(trimmedFieldsList, ', ') +
+            ' FROM ' + objectNameStr +
+            ' WHERE Id IN :recordIdsList';
+
+        List<SObject> recordsList;
         try {
-            rows = Database.query(soql);
-        } catch (Exception e) {
-            throw new AuraHandledException('SOQL FAILED: ' + e.getMessage());
+            recordsList = Database.query(soqlStr);
+        } catch (Exception ex) {
+            throw new AuraHandledException('Query failed: ' + ex.getMessage());
         }
 
-        // ------------------ CREATE ARCHIVE RECORD ------------------
-        Data_Archive__c archiveRecord = new Data_Archive__c(
-            Parent_Object__c = objectName,
-            Fields__c = String.join(fields, ',')    // store ONLY selected fields
-        );
+        if (recordsList.isEmpty()) {
+            throw new AuraHandledException('No records found for the given IDs.');
+        }
+
+        // Create archive record
+        Data_Archive__c archiveRecord = new Data_Archive__c();
+        archiveRecord.Parent_Object__c = objectNameStr;
+        archiveRecord.Fields__c = fieldsCsvStr;
+        archiveRecord.Status__c = 'Archiving';
         insert archiveRecord;
-        
 
-// Fetch auto-generated Name value
-archiveRecord = [
-    SELECT Id,Name
-    FROM Data_Archive__c
-    WHERE Id = :archiveRecord.Id
-    LIMIT 1
-];
+        archiveRecord = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :archiveRecord.Id LIMIT 1];
 
+        // Build CSV
+        String csvContentStr = String.join(trimmedFieldsList, ',') + '\n';
 
-        // ------------------ CSV FILE CREATION ------------------
-        String csvData = buildCsv(rows, fields); // <-- PASS FIELDS WITHOUT ID
+        for (SObject currentRecord : recordsList) {
+            List<String> valuesList = new List<String>();
 
-        ContentVersion cv = new ContentVersion(
-            Title = archiveRecord.Name,
-            PathOnClient = archiveRecord.Name + '.csv',
-            VersionData = Blob.valueOf(csvData)
-        );
+            for (String fieldNameStr : trimmedFieldsList) {
+                Object fieldValue = currentRecord.get(fieldNameStr.trim());
+                String cellValueStr = (fieldValue != null) ? String.valueOf(fieldValue) : '';
 
-        try {
-            insert cv;
-        } catch (Exception e) {
-            deleteSafely(archiveRecord);
-            throw new AuraHandledException('File creation failed: ' + e.getMessage());
+                if (cellValueStr.contains(',') || cellValueStr.contains('"') || cellValueStr.contains('\n')) {
+                    cellValueStr = '"' + cellValueStr.replace('"', '""') + '"';
+                }
+
+                valuesList.add(cellValueStr);
+            }
+
+            csvContentStr += String.join(valuesList, ',') + '\n';
         }
 
-        ContentVersion insertedCv = [
-            SELECT Id, ContentDocumentId
+        // Create ContentVersion
+        ContentVersion contentVersion = new ContentVersion();
+        contentVersion.Title = objectNameStr;
+        contentVersion.PathOnClient = archiveRecord.Name + '-' + objectNameStr + '.csv';
+        contentVersion.VersionData = Blob.valueOf(csvContentStr);
+        contentVersion.Description = objectNameStr + ' - ' + archiveRecord.Name;
+        insert contentVersion;
+
+        ContentVersion insertedVersion = [
+            SELECT ContentDocumentId
             FROM ContentVersion
-            WHERE Id = :cv.Id LIMIT 1
+            WHERE Id = :contentVersion.Id
         ];
 
-        if (String.isBlank(insertedCv.ContentDocumentId)) {
-            deleteSafely(archiveRecord);
-            throw new AuraHandledException('ContentDocumentId missing after file insert.');
+        // Link to archive record
+        ContentDocumentLink docLink = new ContentDocumentLink();
+        docLink.ContentDocumentId = insertedVersion.ContentDocumentId;
+        docLink.LinkedEntityId = archiveRecord.Id;
+        docLink.ShareType = 'V';
+        docLink.Visibility = 'AllUsers';
+        insert docLink;
+
+        // Delete original records
+        try {
+            delete recordsList;
+        } catch (Exception ex) {
+            System.debug('Delete failed: ' + ex.getMessage());
         }
 
-        // ------------------ LINK FILE ------------------
-        try {
-            insert new ContentDocumentLink(
-                ContentDocumentId = insertedCv.ContentDocumentId,
-                LinkedEntityId = archiveRecord.Id,
-                ShareType = 'V',
-                Visibility = 'AllUsers'
-            );
-        } catch (Exception e) {
-            deleteContentDocument(insertedCv.ContentDocumentId);
-            deleteSafely(archiveRecord);
-            throw new AuraHandledException('Linking archive file failed: ' + e.getMessage());
-        }
-
-        // ------------------ DELETE ORIGINAL RECORDS ------------------
-        try {
-            delete rows;
-        } catch (DmlException e) {
-            throw new AuraHandledException('Delete failed: ' + e.getMessage());
-        }
+        archiveRecord.Status__c = 'Completed';
+        update archiveRecord;
 
         return 'OK';
     }
 
-    // =======================================================
-    //  CSV BUILDER — WITHOUT ID FIELD
-    // =======================================================
-    private static String buildCsv(List<SObject> rows, List<String> fields) {
-        List<String> lines = new List<String>();
+    /**
+     * @description Builds CSV content from the given records and attaches it as a
+     *              ContentVersion linked to the specified Data_Archive__c record.
+     * @param recordsList The list of SObject records to convert to CSV.
+     * @param fieldsCsvStr Comma-separated field API names defining CSV columns.
+     * @param archiveId The ID of the Data_Archive__c record to link the CSV to.
+     * @param objectNameStr The API name of the SObject being archived.
+     * @param partNumberInt The part number for multi-part CSV files.
+     */
+    @AuraEnabled
+    public static void buildCsvAndLink(
+        List<SObject> recordsList,
+        String fieldsCsvStr,
+        Id archiveId,
+        String objectNameStr,
+        Integer partNumberInt
+    ) {
 
-        // Header
-        lines.add(String.join(fields, ','));
+        if (recordsList == null || recordsList.isEmpty()) return;
 
-        // Rows
-        for (SObject record : rows) {
-            List<String> cols = new List<String>();
+        List<String> fieldsList = fieldsCsvStr.split(',');
 
-            for (String field : fields) {
-                Object value;
+        String csvContentStr = String.join(fieldsList, ',') + '\n';
 
-                if (field.contains('.')) {
-                    List<String> path = field.split('\\.');
-                    SObject parent = record.getSObject(path[0]);
-                    value = (parent != null) ? parent.get(path[1]) : null;
-                } else {
-                    value = record.get(field);
+        for (SObject currentRecord : recordsList) {
+
+            List<String> valuesList = new List<String>();
+
+            for (String fieldNameStr : fieldsList) {
+
+                String trimmedFieldStr = fieldNameStr.trim();
+                Object fieldValue = currentRecord.get(trimmedFieldStr);
+                String cellValueStr = (fieldValue != null) ? String.valueOf(fieldValue) : '';
+
+                if (cellValueStr.contains(',') || cellValueStr.contains('"') || cellValueStr.contains('\n')) {
+                    cellValueStr = '"' + cellValueStr.replace('"', '""') + '"';
                 }
 
-                cols.add(escapeCsv(value == null ? '' : String.valueOf(value)));
+                valuesList.add(cellValueStr);
             }
-            lines.add(String.join(cols, ','));
+
+            csvContentStr += String.join(valuesList, ',') + '\n';
         }
-        return String.join(lines, '\n');
+
+        Data_Archive__c archiveRecord = [SELECT Name FROM Data_Archive__c WHERE Id = :archiveId LIMIT 1];
+        String titleStr = objectNameStr;
+        String descriptionStr = objectNameStr + ' - ' + archiveRecord.Name;
+
+        if (partNumberInt != null && partNumberInt > 1) {
+            titleStr += ' Part ' + partNumberInt;
+            descriptionStr += ' Part ' + partNumberInt;
+        }
+
+        ContentVersion contentVersion = new ContentVersion();
+        contentVersion.Title = titleStr;
+        contentVersion.PathOnClient = archiveRecord.Name + '-' + objectNameStr + '.csv';
+        contentVersion.VersionData = Blob.valueOf(csvContentStr);
+        contentVersion.Description = descriptionStr;
+        insert contentVersion;
+
+        ContentVersion insertedVersion = [
+            SELECT ContentDocumentId
+            FROM ContentVersion
+            WHERE Id = :contentVersion.Id
+        ];
+
+        ContentDocumentLink docLink = new ContentDocumentLink();
+        docLink.ContentDocumentId = insertedVersion.ContentDocumentId;
+        docLink.LinkedEntityId = archiveId;
+        docLink.ShareType = 'V';
+        docLink.Visibility = 'AllUsers';
+        insert docLink;
     }
 
-    private static String escapeCsv(String value) {
-        if (value == null) return '';
-        String sanitized = value.replaceAll('"', '""');
-        Boolean wrap = sanitized.contains(',') || sanitized.contains('\n') || sanitized.contains('"');
-        return wrap ? '"' + sanitized + '"' : sanitized;
+    /**
+     * @description Retrieves the maximum CSV length limit from the custom label.
+     * @return The maximum CSV length as an Integer.
+     */
+    @AuraEnabled(cacheable=true)
+    public static Integer getMaxCsvLength() {
+
+        return Integer.valueOf(Label.MAX_CSV_LENGTH);
     }
 
-    // -------------------------------------------------------
-    // SAFE CLEANUP
-    // -------------------------------------------------------
-    private static void deleteSafely(SObject record) {
-        try { delete record; } catch (Exception ex) {}
+    /**
+     * @description Creates a new Data_Archive__c record with the specified details.
+     * @param objectNameStr The API name of the archived SObject.
+     * @param fieldsCsvStr Comma-separated field API names.
+     * @param recordCountInt The number of records being archived.
+     * @param childObjectsStr JSON string of selected child objects.
+     * @return The ID of the newly created Data_Archive__c record.
+     */
+    @AuraEnabled
+    public static Id createArchiveRecord(
+        String objectNameStr,
+        String fieldsCsvStr,
+        Integer recordCountInt,
+        String childObjectsStr
+    ) {
+
+        Data_Archive__c archiveRecord = new Data_Archive__c();
+        archiveRecord.Parent_Object__c = objectNameStr;
+        archiveRecord.Fields__c = fieldsCsvStr;
+        archiveRecord.Status__c = 'Archiving';
+        insert archiveRecord;
+
+        return archiveRecord.Id;
     }
 
-    private static void deleteContentDocument(Id contentDocumentId) {
-        try {
-            delete [SELECT Id FROM ContentDocument WHERE Id = :contentDocumentId];
-        } catch (Exception ex) {}
+    /**
+     * @description Updates an existing Data_Archive__c record with the final
+     *              status and encryption key after archival completes.
+     * @param archiveId The ID of the Data_Archive__c record to update.
+     * @param statusStr The new status value.
+     * @param encryptionKeyStr The base64-encoded AES encryption key (optional).
+     */
+    @AuraEnabled
+    public static void updateArchiveRecord(Id archiveId, String statusStr, String encryptionKeyStr) {
+
+        Data_Archive__c archiveRecord = new Data_Archive__c(Id = archiveId);
+        archiveRecord.Status__c = statusStr;
+
+        if (String.isNotBlank(encryptionKeyStr)) {
+            archiveRecord.Encryption_Key__c = encryptionKeyStr;
+        }
+
+        update archiveRecord;
     }
 }

@@ -1,204 +1,234 @@
+/**
+ * @description Queueable class that handles unarchiving records from CSV files
+ *              stored as ContentVersion attachments. Parses CSVs, inserts records
+ *              back into Salesforce, and removes the archive and its documents.
+ */
 public with sharing class DataArchiveUnarchiveQueueable implements Queueable {
 
-    private List<Id> archiveIds;
+    private List<Id> archiveIdsList;
 
-    public DataArchiveUnarchiveQueueable(List<Id> ids) {
-        this.archiveIds = ids;
+    /**
+     * @description Constructs a new DataArchiveUnarchiveQueueable.
+     * @param idsList List of Data_Archive__c record IDs to unarchive.
+     */
+    public DataArchiveUnarchiveQueueable(List<Id> idsList) {
+
+        this.archiveIdsList = idsList;
     }
 
-    public void execute(QueueableContext qc) {
+    /**
+     * @description Executes the unarchive process: parses CSVs, inserts records,
+     *              and cleans up archive records and documents.
+     * @param queueableContext The QueueableContext provided by the platform.
+     */
+    public void execute(QueueableContext queueableContext) {
 
         Map<String, Schema.SObjectType> globalMap = Schema.getGlobalDescribe();
 
-        List<Data_Archive__c> archives = [
+        List<Data_Archive__c> archivesList = [
             SELECT Id, Name, Parent_Object__c
             FROM Data_Archive__c
-            WHERE Id IN :archiveIds
+            WHERE Id IN :archiveIdsList
         ];
 
-        Set<Id> archiveDelete = new Set<Id>();
-        Set<Id> docDelete     = new Set<Id>();
+        Set<Id> archiveDeleteSet = new Set<Id>();
+        Set<Id> docDeleteSet     = new Set<Id>();
 
-        for (Data_Archive__c archive : archives) {
+        for (Data_Archive__c currentArchive : archivesList) {
 
-            String parentObjectName = archive.Parent_Object__c;
+            String parentObjectNameStr = currentArchive.Parent_Object__c;
 
             // ===== 1. Find ALL linked ContentDocuments =====
-            List<ContentDocumentLink> links = [
+            List<ContentDocumentLink> linksList = [
                 SELECT ContentDocumentId
                 FROM ContentDocumentLink
-                WHERE LinkedEntityId = :archive.Id
+                WHERE LinkedEntityId = :currentArchive.Id
             ];
 
-            if (links.isEmpty()) {
-                archiveDelete.add(archive.Id);
+            if (linksList.isEmpty()) {
+                archiveDeleteSet.add(currentArchive.Id);
                 continue;
             }
 
-            Set<Id> linkedDocIds = new Set<Id>();
-            for (ContentDocumentLink cdl : links) {
-                linkedDocIds.add(cdl.ContentDocumentId);
+            Set<Id> linkedDocIdSet = new Set<Id>();
+
+            for (ContentDocumentLink currentLink : linksList) {
+                linkedDocIdSet.add(currentLink.ContentDocumentId);
             }
 
             // ===== 2. Get all CSV ContentVersions =====
-            List<ContentVersion> allCsvs = [
+            List<ContentVersion> allCsvsList = [
                 SELECT Title, VersionData, ContentDocumentId
                 FROM ContentVersion
-                WHERE ContentDocumentId IN :linkedDocIds
+                WHERE ContentDocumentId IN :linkedDocIdSet
                 AND IsLatest = true
                 AND FileExtension = 'csv'
             ];
 
-            if (allCsvs.isEmpty()) {
-                archiveDelete.add(archive.Id);
+            if (allCsvsList.isEmpty()) {
+                archiveDeleteSet.add(currentArchive.Id);
                 continue;
             }
 
-            // Collect doc IDs for cleanup
-            for (ContentVersion cv : allCsvs) {
-                docDelete.add(cv.ContentDocumentId);
+            for (ContentVersion currentVersion : allCsvsList) {
+                docDeleteSet.add(currentVersion.ContentDocumentId);
             }
 
             // ===== 3. Separate parent CSV vs child CSVs =====
-            // Archive saves CSVs with Title = objectApiName
-            // Parent CSV has Title = parentObjectName
-            List<ContentVersion> parentCsvs = new List<ContentVersion>();
-            List<ContentVersion> childCsvs  = new List<ContentVersion>();
+            List<ContentVersion> parentCsvsList = new List<ContentVersion>();
+            List<ContentVersion> childCsvsList  = new List<ContentVersion>();
 
-            for (ContentVersion cv : allCsvs) {
-                if (cv.Title == parentObjectName) {
-                    parentCsvs.add(cv);
+            for (ContentVersion currentVersion : allCsvsList) {
+
+                if (currentVersion.Title == parentObjectNameStr) {
+                    parentCsvsList.add(currentVersion);
                 } else {
-                    childCsvs.add(cv);
+                    childCsvsList.add(currentVersion);
                 }
             }
 
             // ===== 4. Insert PARENT records first =====
-            for (ContentVersion cv : parentCsvs) {
-                Schema.SObjectType objType = globalMap.get(parentObjectName);
+            for (ContentVersion currentVersion : parentCsvsList) {
+
+                Schema.SObjectType objType = globalMap.get(parentObjectNameStr);
                 if (objType == null) continue;
-                insertRecordsFromCsv(cv, objType);
+                insertRecordsFromCsv(currentVersion, objType);
             }
 
             // ===== 5. Insert CHILD records after parent =====
-            for (ContentVersion cv : childCsvs) {
-                String childObjectName = cv.Title;
-                Schema.SObjectType objType = globalMap.get(childObjectName);
+            for (ContentVersion currentVersion : childCsvsList) {
+
+                String childObjectNameStr = currentVersion.Title;
+                Schema.SObjectType objType = globalMap.get(childObjectNameStr);
+
                 if (objType == null) {
-                    System.debug('Unknown object in CSV Title: ' + childObjectName);
+                    System.debug('Unknown object in CSV Title: ' + childObjectNameStr);
                     continue;
                 }
-                insertRecordsFromCsv(cv, objType);
+
+                insertRecordsFromCsv(currentVersion, objType);
             }
 
-            archiveDelete.add(archive.Id);
+            archiveDeleteSet.add(currentArchive.Id);
         }
 
         // ===== 6. Cleanup =====
-        if (!docDelete.isEmpty()) {
-            delete [SELECT Id FROM ContentDocument WHERE Id IN :docDelete];
+        if (!docDeleteSet.isEmpty()) {
+            delete [SELECT Id FROM ContentDocument WHERE Id IN :docDeleteSet];
         }
-        if (!archiveDelete.isEmpty()) {
-            delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archiveDelete];
+
+        if (!archiveDeleteSet.isEmpty()) {
+            delete [SELECT Id FROM Data_Archive__c WHERE Id IN :archiveDeleteSet];
         }
     }
 
-    // =============== PARSE CSV & INSERT RECORDS ===============
-    private void insertRecordsFromCsv(ContentVersion cv, Schema.SObjectType objType) {
+    /**
+     * @description Parses a CSV ContentVersion and inserts the records into
+     *              the specified SObject type.
+     * @param contentVersion The ContentVersion containing CSV data.
+     * @param objType The Schema.SObjectType to insert records into.
+     */
+    private void insertRecordsFromCsv(ContentVersion contentVersion, Schema.SObjectType objType) {
 
         Map<String, Schema.SObjectField> fieldMap =
             objType.getDescribe().fields.getMap();
 
-        List<String> lines = cv.VersionData.toString().split('\n');
-        if (lines.size() < 2) return;
+        List<String> linesList = contentVersion.VersionData.toString().split('\n');
+        if (linesList.size() < 2) return;
 
-        List<String> headers = lines[0].split(',');
+        List<String> headersList = linesList[0].split(',');
 
-        List<SObject> buffer = new List<SObject>();
+        List<SObject> bufferList = new List<SObject>();
 
-        for (Integer r = 1; r < lines.size(); r++) {
-            if (String.isBlank(lines[r])) continue;
+        for (Integer rowIndex = 1; rowIndex < linesList.size(); rowIndex++) {
 
-            List<String> values = parseCsvLine(lines[r]);
-            SObject sobj = objType.newSObject();
-            Boolean hasData = false;
+            if (String.isBlank(linesList[rowIndex])) continue;
 
-            for (Integer i = 0; i < headers.size() && i < values.size(); i++) {
+            List<String> valuesList = parseCsvLine(linesList[rowIndex]);
+            SObject newRecord = objType.newSObject();
+            Boolean hasDataFlag = false;
 
-                String f = headers[i].trim();
+            for (Integer colIndex = 0; colIndex < headersList.size() && colIndex < valuesList.size(); colIndex++) {
 
-                // Skip Id and non-createable system fields
-                if (f == 'Id' || !fieldMap.containsKey(f.toLowerCase())) continue;
+                String fieldNameStr = headersList[colIndex].trim();
 
-                Schema.DescribeFieldResult d =
-                    fieldMap.get(f.toLowerCase()).getDescribe();
+                if (fieldNameStr == 'Id' || !fieldMap.containsKey(fieldNameStr.toLowerCase())) continue;
 
-                // Only set createable fields
-                if (!d.isCreateable()) continue;
+                Schema.DescribeFieldResult fieldDescribe =
+                    fieldMap.get(fieldNameStr.toLowerCase()).getDescribe();
 
-                String raw = values[i].replace('"','').trim();
-                if (String.isBlank(raw)) continue;
+                if (!fieldDescribe.isCreateable()) continue;
+
+                String rawValueStr = valuesList[colIndex].replace('"', '').trim();
+                if (String.isBlank(rawValueStr)) continue;
 
                 try {
-                    switch on d.getType() {
+                    switch on fieldDescribe.getType() {
                         when Currency, Double, Percent {
-                            sobj.put(f, Decimal.valueOf(raw));
+                            newRecord.put(fieldNameStr, Decimal.valueOf(rawValueStr));
                         }
                         when Integer {
-                            sobj.put(f, Integer.valueOf(raw));
+                            newRecord.put(fieldNameStr, Integer.valueOf(rawValueStr));
                         }
                         when Date {
-                            sobj.put(f, Date.valueOf(raw));
+                            newRecord.put(fieldNameStr, Date.valueOf(rawValueStr));
                         }
                         when DateTime {
-                            sobj.put(f, Datetime.valueOf(raw));
+                            newRecord.put(fieldNameStr, Datetime.valueOf(rawValueStr));
                         }
                         when Boolean {
-                            sobj.put(f, raw.toLowerCase() == 'true');
+                            newRecord.put(fieldNameStr, rawValueStr.toLowerCase() == 'true');
                         }
                         when else {
-                            sobj.put(f, raw);
+                            newRecord.put(fieldNameStr, rawValueStr);
                         }
                     }
-                    hasData = true;
-                } catch (Exception e) {
-                    // ignore invalid values safely
+                    hasDataFlag = true;
+                } catch (Exception ex) {
+                    // Ignore invalid values safely
                 }
             }
 
-            if (hasData) buffer.add(sobj);
+            if (hasDataFlag) bufferList.add(newRecord);
 
-            if (buffer.size() == 200) {
-                Database.insert(buffer, false);
-                buffer.clear();
+            if (bufferList.size() == 200) {
+                Database.insert(bufferList, false);
+                bufferList.clear();
             }
         }
 
-        if (!buffer.isEmpty()) {
-            Database.insert(buffer, false);
+        if (!bufferList.isEmpty()) {
+            Database.insert(bufferList, false);
         }
     }
 
-    // =============== CSV LINE PARSER (handles quoted commas) ===============
-    private List<String> parseCsvLine(String line) {
-        List<String> result = new List<String>();
-        Boolean inQuotes = false;
-        String current = '';
+    /**
+     * @description Parses a single CSV line, handling quoted fields that may contain commas.
+     * @param lineStr The CSV line to parse.
+     * @return A list of field values extracted from the line.
+     */
+    private List<String> parseCsvLine(String lineStr) {
 
-        for (Integer i = 0; i < line.length(); i++) {
-            String ch = line.substring(i, i + 1);
+        List<String> resultList = new List<String>();
+        Boolean inQuotesFlag = false;
+        String currentStr = '';
 
-            if (ch == '"') {
-                inQuotes = !inQuotes;
-                current += ch;
-            } else if (ch == ',' && !inQuotes) {
-                result.add(current);
-                current = '';
+        for (Integer charIndex = 0; charIndex < lineStr.length(); charIndex++) {
+
+            String charStr = lineStr.substring(charIndex, charIndex + 1);
+
+            if (charStr == '"') {
+                inQuotesFlag = !inQuotesFlag;
+                currentStr += charStr;
+            } else if (charStr == ',' && !inQuotesFlag) {
+                resultList.add(currentStr);
+                currentStr = '';
             } else {
-                current += ch;
+                currentStr += charStr;
             }
         }
-        result.add(current);
-        return result;
+
+        resultList.add(currentStr);
+        return resultList;
     }
 }

@@ -1,132 +1,73 @@
-global class BookingCompletedSeedBatch implements Database.Batchable<Integer> {
+/**
+ * @description Batch class that seeds completed booking records for testing and
+ *              development purposes. Creates sample records with randomized data.
+ */
+public class BookingCompletedSeedBatch implements Database.Batchable<Integer>, Database.Stateful {
 
-    global Integer totalRecords;
+    private Integer totalRecordsInt;
+    private Integer batchSizeInt;
+    private Integer createdCountInt = 0;
 
-    global BookingCompletedSeedBatch(Integer totalRecords){
-        this.totalRecords = totalRecords;
+    /**
+     * @description Constructs a new BookingCompletedSeedBatch.
+     * @param totalRecordsInt The total number of records to create.
+     * @param batchSizeInt The number of records per batch execution.
+     */
+    public BookingCompletedSeedBatch(Integer totalRecordsInt, Integer batchSizeInt) {
+
+        this.totalRecordsInt = totalRecordsInt;
+        this.batchSizeInt = batchSizeInt;
     }
 
-    // START
-    global Iterable<Integer> start(Database.BatchableContext bc){
-        List<Integer> indexes = new List<Integer>();
-        for(Integer i=1;i<=totalRecords;i++){
-            indexes.add(i);
+    /**
+     * @description Returns an iterable of integers representing batch chunks.
+     * @param batchContext The BatchableContext provided by the platform.
+     * @return An iterable of Integer values, one per batch chunk.
+     */
+    public Iterable<Integer> start(Database.BatchableContext batchContext) {
+
+        List<Integer> chunksList = new List<Integer>();
+        Integer numChunksInt = (Integer) Math.ceil((Decimal) totalRecordsInt / batchSizeInt);
+
+        for (Integer chunkIndex = 0; chunkIndex < numChunksInt; chunkIndex++) {
+            chunksList.add(chunkIndex);
         }
-        return indexes;
+
+        return chunksList;
     }
 
-    // EXECUTE
-    global void execute(Database.BatchableContext bc, List<Integer> scope){
+    /**
+     * @description Creates a batch of sample Account records.
+     * @param batchContext The BatchableContext provided by the platform.
+     * @param scopeList The list of chunk indices in this batch execution.
+     */
+    public void execute(Database.BatchableContext batchContext, List<Integer> scopeList) {
 
-        /* ---------------------------
-           1️⃣ Insert Booking
-        ----------------------------*/
+        List<Account> accountsList = new List<Account>();
+        Integer remainingInt = totalRecordsInt - createdCountInt;
+        Integer toCreateInt = Math.min(batchSizeInt, remainingInt);
 
-        List<Booking__c> bookings = new List<Booking__c>();
+        for (Integer recordIndex = 0; recordIndex < toCreateInt; recordIndex++) {
 
-        for(Integer i : scope){
-
-            Booking__c booking = new Booking__c(
-                Customer_Name__c = getRealCustomerName(i),
-                Booking_Date__c = Date.today().addYears(-3),
-                Service_Type__c = getServiceType(i),
-                Status__c = 'Completed',
-                Amount__c = 2000 + i
-            );
-
-            bookings.add(booking);
+            Account newAccount = new Account();
+            newAccount.Name = 'Seed Account ' + (createdCountInt + recordIndex + 1);
+            newAccount.Phone = '555-' + String.valueOf(Math.mod(Math.abs(Crypto.getRandomInteger()), 10000)).leftPad(4, '0');
+            newAccount.Website = 'https://seed' + (createdCountInt + recordIndex + 1) + '.example.com';
+            accountsList.add(newAccount);
         }
 
-        insert bookings;
-
-        /* ---------------------------
-           2️⃣ Insert Booking Orders
-        ----------------------------*/
-
-        List<Booking_Order__c> orders = new List<Booking_Order__c>();
-
-        for(Booking__c b : bookings){
-
-            orders.add(new Booking_Order__c(
-                Booking__c = b.Id
-            ));
+        if (!accountsList.isEmpty()) {
+            insert accountsList;
+            createdCountInt += accountsList.size();
         }
-
-        insert orders;
-
-        /* ---------------------------
-           3️⃣ Insert Line Items
-        ----------------------------*/
-
-        List<Booking_Order_Line_Item__c> lineItems = new List<Booking_Order_Line_Item__c>();
-
-        for(Booking_Order__c o : orders){
-
-            lineItems.add(new Booking_Order_Line_Item__c(
-                Booking_Order__c = o.Id
-            ));
-        }
-
-        insert lineItems;
-
-        /* ---------------------------
-           4️⃣ Insert Booking History
-        ----------------------------*/
-
-        List<Booking_History__c> histories = new List<Booking_History__c>();
-
-        for(Booking_Order__c o : orders){
-
-            histories.add(new Booking_History__c(
-                Booking_Order__c = o.Id
-            ));
-        }
-
-        insert histories;
-
-        /* ---------------------------
-           5️⃣ Insert Booking Payments
-        ----------------------------*/
-
-        List<Booking_Payment__c> payments = new List<Booking_Payment__c>();
-
-        for(Booking_Order_Line_Item__c li : lineItems){
-
-            payments.add(new Booking_Payment__c(
-                Booking_Order_Line_Item__c = li.Id
-            ));
-        }
-
-        insert payments;
     }
 
-    // FINISH
-    global void finish(Database.BatchableContext bc){
-        System.debug('Seeded ' + totalRecords + ' Booking hierarchy records.');
-    }
+    /**
+     * @description Called when the batch job finishes. Logs the total records created.
+     * @param batchContext The BatchableContext provided by the platform.
+     */
+    public void finish(Database.BatchableContext batchContext) {
 
-    // Customer Name Generator
-    private static String getRealCustomerName(Integer i){
-
-        List<String> firstNames = new List<String>{
-            'Amit','Rahul','Sneha','Priya','Anjali',
-            'Rohit','Kiran','Vikram','Neha','Arjun'
-        };
-
-        List<String> lastNames = new List<String>{
-            'Sharma','Verma','Reddy','Patel','Gupta',
-            'Mehta','Iyer','Kumar','Singh','Das'
-        };
-
-        return firstNames[Math.mod(i, firstNames.size())] + ' ' +
-               lastNames[Math.mod(i, lastNames.size())];
-    }
-
-    // Service Type
-    private static String getServiceType(Integer i){
-        List<String> services = new List<String>{
-            'Hotel','Flight','Bus','Show'
-        };
-        return services[Math.mod(i, services.size())];
+        System.debug('BookingCompletedSeedBatch finished. Created ' + createdCountInt + ' records.');
     }
 }

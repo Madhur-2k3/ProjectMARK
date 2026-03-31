@@ -1,146 +1,126 @@
+/**
+ * @description Trigger handler for Data_Archive_Schedule__c records.
+ *              Manages scheduling and unscheduling of archive jobs when
+ *              schedule records are inserted, updated, or deleted.
+ */
 public with sharing class DataArchiveScheduleTriggerHandler {
 
-    // ─────────────────────────────────────────────────────────────
-    //  Called from DataArchiveScheduleTrigger (after update)
-    //  Detects records flipped from any non-Active status → 'Active'
-    //  and re-creates the cron job using the record's stored criteria.
-    // ─────────────────────────────────────────────────────────────
+    /**
+     * @description Handles after-insert logic: schedules archive jobs for
+     *              newly created active schedule records.
+     * @param newSchedulesList List of newly inserted Data_Archive_Schedule__c records.
+     */
+    public static void handleAfterInsert(List<Data_Archive_Schedule__c> newSchedulesList) {
+
+        for (Data_Archive_Schedule__c currentSchedule : newSchedulesList) {
+
+            if (currentSchedule.Status__c == 'Active' && String.isNotBlank(currentSchedule.Cron_Expression__c)) {
+                scheduleJob(currentSchedule);
+            }
+        }
+    }
+
+    /**
+     * @description Handles after-update logic: reschedules or unschedules archive jobs
+     *              based on changes to schedule records.
+     * @param newSchedulesList List of updated Data_Archive_Schedule__c records (new values).
+     * @param oldSchedulesMap Map of old Data_Archive_Schedule__c records keyed by ID.
+     */
     public static void handleAfterUpdate(
-        List<Data_Archive_Schedule__c> newRecords,
-        Map<Id, Data_Archive_Schedule__c> oldMap
+        List<Data_Archive_Schedule__c> newSchedulesList,
+        Map<Id, Data_Archive_Schedule__c> oldSchedulesMap
     ) {
-        Set<Id> toActivateIds = new Set<Id>();
 
-        for (Data_Archive_Schedule__c rec : newRecords) {
-            Data_Archive_Schedule__c old = oldMap.get(rec.Id);
+        for (Data_Archive_Schedule__c currentSchedule : newSchedulesList) {
 
-            // Only process records where status just changed TO 'Active'
-            if (rec.Status__c == 'Active' && old.Status__c != 'Active') {
-                toActivateIds.add(rec.Id);
-            }
-        }
+            Data_Archive_Schedule__c oldSchedule = oldSchedulesMap.get(currentSchedule.Id);
 
-        if (toActivateIds.isEmpty()) return;
+            Boolean wasActiveFlag = oldSchedule.Status__c == 'Active';
+            Boolean isActiveFlag = currentSchedule.Status__c == 'Active';
 
-        reactivateSchedules(toActivateIds);
-    }
+            if (isActiveFlag && String.isNotBlank(currentSchedule.Cron_Expression__c)) {
 
-    // ─────────────────────────────────────────────────────────────
-    //  For each newly-activated record:
-    //   1. Abort any stale job that is still registered
-    //   2. Build a new cron expression from stored settings
-    //   3. Schedule a fresh DataArchiveScheduler job
-    //   4. Write the new Job_Id__c + Cron_Expression__c back
-    // ─────────────────────────────────────────────────────────────
-    // @future only supports primitive types — pass record IDs and re-query inside
-    @future
-    public static void reactivateSchedules(Set<Id> recIds) {
-        List<Data_Archive_Schedule__c> fullRecords = [
-            SELECT Id, Name, Job_Id__c, Object_Name__c,
-                   Frequency__c, Date_Field__c, Days__c,
-                   Preferred_Time__c, Day_Of_Week__c,
-                   Selected_Child_Objects__c
-            FROM Data_Archive_Schedule__c
-            WHERE Id IN :recIds
-        ];
-
-        List<Data_Archive_Schedule__c> toUpdate = new List<Data_Archive_Schedule__c>();
-
-        for (Data_Archive_Schedule__c rec : fullRecords) {
-
-            // Abort any still-existing stale cron job for this record
-            if (rec.Job_Id__c != null) {
-                try {
-                    System.abortJob(rec.Job_Id__c);
-                } catch (Exception e) {
-                    // Already gone from Setup — that's fine
+                if (wasActiveFlag) {
+                    unscheduleJob(currentSchedule.Id);
                 }
+
+                scheduleJob(currentSchedule);
+
+            } else if (!isActiveFlag && wasActiveFlag) {
+                unscheduleJob(currentSchedule.Id);
             }
-
-            // Build cron expression from stored frequency + time settings
-            String cronExp = buildCronExpression(
-                rec.Frequency__c,
-                rec.Preferred_Time__c,
-                rec.Day_Of_Week__c
-            );
-
-            String jobName =
-                'Archive_' + rec.Object_Name__c + '_' +
-                Datetime.now().getTime();
-
-            // Parse stored child objects back into a List
-            List<String> childObjects = null;
-            if (rec.Selected_Child_Objects__c != null && rec.Selected_Child_Objects__c != '') {
-                childObjects = rec.Selected_Child_Objects__c.split(',');
-            }
-
-            Id newJobId = System.schedule(
-                jobName,
-                cronExp,
-                new DataArchiveScheduler(
-                    rec.Object_Name__c,
-                    rec.Date_Field__c,
-                    rec.Days__c != null ? Integer.valueOf(rec.Days__c) : 0,
-                    null,       // filterValue not persisted; scheduler uses date-based filter
-                    rec.Name,   // pass the schedule record name
-                    childObjects
-                )
-            );
-
-            toUpdate.add(new Data_Archive_Schedule__c(
-                Id                 = rec.Id,
-                Job_Id__c          = newJobId,
-                Cron_Expression__c = cronExp,
-                Status__c          = 'Active'
-            ));
-        }
-
-        if (!toUpdate.isEmpty()) {
-            update toUpdate;
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  buildCronExpression is intentionally duplicated here.
-    //  System.schedule() + update DML cannot share a transaction
-    //  with the non-setup DML that fired the trigger (Mixed-DML).
-    //  @future runs in a separate transaction to avoid this.
-    //  The cron logic in DataArchiveScheduleController is private,
-    //  so we maintain a copy here rather than break encapsulation.
-    // ─────────────────────────────────────────────────────────────
-    private static String buildCronExpression(
-        String frequency,
-        String preferredTime,
-        String dayOfWeek
-    ) {
-        Integer hour   = 2;
-        Integer minute = 0;
+    /**
+     * @description Handles before-delete logic: unschedules archive jobs
+     *              for schedule records being deleted.
+     * @param oldSchedulesList List of Data_Archive_Schedule__c records being deleted.
+     */
+    public static void handleBeforeDelete(List<Data_Archive_Schedule__c> oldSchedulesList) {
 
-        if (preferredTime != null && preferredTime.contains(':')) {
-            List<String> parts = preferredTime.split(':');
-            hour   = Integer.valueOf(parts[0]);
-            minute = Integer.valueOf(parts[1]);
+        for (Data_Archive_Schedule__c currentSchedule : oldSchedulesList) {
+            unscheduleJob(currentSchedule.Id);
         }
+    }
 
-        String sec = '0';
-        String min = String.valueOf(minute);
-        String hr  = String.valueOf(hour);
+    /**
+     * @description Schedules a DataArchiveScheduler job using the cron expression
+     *              from the given schedule record.
+     * @param scheduleRecord The Data_Archive_Schedule__c record containing schedule details.
+     */
+    private static void scheduleJob(Data_Archive_Schedule__c scheduleRecord) {
 
-        if (frequency == 'DAILY') {
-            return sec + ' ' + min + ' ' + hr + ' * * ?';
-        }
-        if (frequency == 'WEEKLY') {
-            String day = (dayOfWeek != null && dayOfWeek != '') ? dayOfWeek : 'MON';
-            return sec + ' ' + min + ' ' + hr + ' ? * ' + day;
-        }
-        if (frequency == 'MONTHLY') {
-            return sec + ' ' + min + ' ' + hr + ' 1 * ?';
-        }
-        if (frequency == 'YEARLY') {
-            return sec + ' ' + min + ' ' + hr + ' 1 1 ?';
-        }
+        try {
+            String jobNameStr = 'DataArchive_' + scheduleRecord.Id;
 
-        // Default — daily at preferred time
-        return sec + ' ' + min + ' ' + hr + ' * * ?';
+            List<String> selectedChildObjectsList = null;
+
+            if (String.isNotBlank(scheduleRecord.Selected_Child_Objects__c)) {
+                selectedChildObjectsList = (List<String>) JSON.deserialize(
+                    scheduleRecord.Selected_Child_Objects__c,
+                    List<String>.class
+                );
+            }
+
+            DataArchiveScheduler scheduler = new DataArchiveScheduler(
+                scheduleRecord.Object_Name__c,
+                scheduleRecord.Date_Field__c,
+                scheduleRecord.Days__c != null ? Integer.valueOf(scheduleRecord.Days__c) : 0,
+                null,
+                jobNameStr,
+                selectedChildObjectsList
+            );
+
+            System.schedule(jobNameStr, scheduleRecord.Cron_Expression__c, scheduler);
+
+        } catch (Exception ex) {
+            System.debug('Failed to schedule job for ' + scheduleRecord.Id + ': ' + ex.getMessage());
+        }
+    }
+
+    /**
+     * @description Unschedules a previously scheduled archive job by aborting
+     *              the CronTrigger associated with the schedule record.
+     * @param scheduleId The ID of the Data_Archive_Schedule__c record whose job should be aborted.
+     */
+    private static void unscheduleJob(Id scheduleId) {
+
+        String jobNameStr = 'DataArchive_' + scheduleId;
+
+        try {
+            List<CronTrigger> jobsList = [
+                SELECT Id
+                FROM CronTrigger
+                WHERE CronJobDetail.Name = :jobNameStr
+                LIMIT 1
+            ];
+
+            if (!jobsList.isEmpty()) {
+                System.abortJob(jobsList[0].Id);
+            }
+        } catch (Exception ex) {
+            System.debug('Failed to unschedule job ' + jobNameStr + ': ' + ex.getMessage());
+        }
     }
 }

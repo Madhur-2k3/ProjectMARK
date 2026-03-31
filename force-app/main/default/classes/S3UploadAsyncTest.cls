@@ -1,50 +1,55 @@
+/**
+ * @description Tests for S3UploadAsync @future method.
+ */
 @IsTest
 private class S3UploadAsyncTest {
 
+    /**
+     * @description Mock HTTP callout for S3 upload.
+     */
     private class S3HttpMock implements HttpCalloutMock {
-        public HttpResponse respond(HttpRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setStatusCode(200);
-            res.setStatus('OK');
-            res.setBody('');
-            return res;
+
+        public HttpResponse respond(HttpRequest myRequest) {
+
+            HttpResponse myResponse = new HttpResponse();
+            myResponse.setStatusCode(200);
+            myResponse.setStatus('OK');
+            myResponse.setBody('');
+            return myResponse;
         }
     }
 
     @IsTest
     static void testUpload_WithValidPairs() {
-        // Create a ContentVersion (auto-creates ContentDocument)
-        ContentVersion cv = new ContentVersion(
+
+        ContentVersion myContentVersion = new ContentVersion(
             Title = 'TestArchive',
             PathOnClient = 'TestArchive.csv',
             VersionData = Blob.valueOf('Id,Name\n001xx000003GYQQ,Test'),
             Description = 'Part 1'
         );
-        insert cv;
+        insert myContentVersion;
 
-        // Query back the ContentDocumentId
-        cv = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+        myContentVersion = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :myContentVersion.Id];
 
-        // Build the docPairs list: contentDocumentId|parentId
-        // Use a known Account as the "parent"
-        Account acc = new Account(Name = 'Test Upload Account');
-        insert acc;
+        Account myAccount = new Account(Name = 'Test Upload Account');
+        insert myAccount;
 
-        List<String> docPairs = new List<String>{
-            cv.ContentDocumentId + '|' + acc.Id
+        List<String> myDocPairsList = new List<String>{
+            myContentVersion.ContentDocumentId + '|' + myAccount.Id
         };
 
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
-        S3UploadAsync.upload(docPairs);
+        S3UploadAsync.upload(myDocPairsList);
         Test.stopTest();
 
-        // Future method executed; just assert no exceptions
         System.assert(true, 'Upload completed without errors');
     }
 
     @IsTest
     static void testUpload_WithEmptyList() {
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
         S3UploadAsync.upload(new List<String>());
@@ -54,6 +59,7 @@ private class S3UploadAsyncTest {
 
     @IsTest
     static void testUpload_WithNullList() {
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
         S3UploadAsync.upload(null);
@@ -63,15 +69,17 @@ private class S3UploadAsyncTest {
 
     @IsTest
     static void testUpload_WithInvalidPairs() {
-        List<String> badPairs = new List<String>{
+
+        List<String> myBadPairsList = new List<String>{
             'not-a-valid-pair',
             '',
             'abc|def',
             '|'
         };
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
-        S3UploadAsync.upload(badPairs);
+        S3UploadAsync.upload(myBadPairsList);
         Test.stopTest();
         System.assert(true, 'Invalid pairs handled gracefully');
     }

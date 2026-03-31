@@ -1,7 +1,15 @@
+/**
+ * @description Batch class that processes child objects for archival.
+ *              Each execute() call handles ONE child object with its own governor limits.
+ *              After all children are processed, enqueues ArchivePostProcessQueueable.
+ */
 public class DataArchiveChildBatch implements Database.Batchable<String>, Database.Stateful {
 
-    // Serializable child metadata
+    /**
+     * @description Serializable child metadata — mirrors DataArchiveBatch.ChildMetadata.
+     */
     public class ChildInfo {
+
         public String       objectName;
         public String       relationshipField;
         public List<String> fields;
@@ -9,47 +17,70 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
         public String       parentObjectName;
     }
 
-    private static final Integer MAX_CSV_LENGTH = Integer.valueOf(Label.MAX_CSV_LENGTH);
+    private static final Integer MAX_CSV_LENGTH_INT = Integer.valueOf(Label.MAX_CSV_LENGTH);
 
     private Id              archiveRecordId;
-    private String          archiveRecordName;
-    private String          rootObjectName;
-    private List<ChildInfo> sortedChildren;
-    private Map<String, List<Id>> collectedIds;
-    private List<Id>        contentDocumentIds;
-    private List<Id>        processedParentIds;
+    private String          archiveRecordNameStr;
+    private String          rootObjectNameStr;
+    private List<ChildInfo> sortedChildrenList;
+    private Map<String, List<Id>> collectedIdsMap;
+    private List<Id>        contentDocumentIdsList;
+    private List<Id>        processedParentIdsList;
 
-    public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordName,
-                                  String rootObjectName,
-                                  List<ChildInfo> sortedChildren,
-                                  Map<String, List<Id>> collectedIds,
-                                  List<Id> contentDocumentIds,
-                                  List<Id> processedParentIds) {
-        this.archiveRecordId    = archiveRecordId;
-        this.archiveRecordName  = archiveRecordName;
-        this.rootObjectName     = rootObjectName;
-        this.sortedChildren     = sortedChildren;
-        this.collectedIds       = collectedIds;
-        this.contentDocumentIds = contentDocumentIds;
-        this.processedParentIds = processedParentIds;
+    /**
+     * @description Constructs a new DataArchiveChildBatch.
+     * @param archiveRecordId The Data_Archive__c record ID.
+     * @param archiveRecordNameStr The archive record's auto-number name.
+     * @param rootObjectNameStr The root parent object API name.
+     * @param sortedChildrenList Depth-sorted list of child object metadata.
+     * @param collectedIdsMap Map of object names to their parent record IDs.
+     * @param contentDocumentIdsList Accumulated ContentDocument IDs from parent CSV.
+     * @param processedParentIdsList Root parent record IDs for eventual deletion.
+     */
+    public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordNameStr,
+                                  String rootObjectNameStr,
+                                  List<ChildInfo> sortedChildrenList,
+                                  Map<String, List<Id>> collectedIdsMap,
+                                  List<Id> contentDocumentIdsList,
+                                  List<Id> processedParentIdsList) {
+
+        this.archiveRecordId       = archiveRecordId;
+        this.archiveRecordNameStr  = archiveRecordNameStr;
+        this.rootObjectNameStr     = rootObjectNameStr;
+        this.sortedChildrenList    = sortedChildrenList;
+        this.collectedIdsMap       = collectedIdsMap;
+        this.contentDocumentIdsList = contentDocumentIdsList;
+        this.processedParentIdsList = processedParentIdsList;
     }
 
-    // Return child object names as iterable — batch scope = 1 means
-    // each execute() handles ONE child object with its own governor limits.
-    public Iterable<String> start(Database.BatchableContext bc) {
-        List<String> names = new List<String>();
-        for (ChildInfo ci : sortedChildren) {
-            names.add(ci.objectName);
+    /**
+     * @description Returns child object names as an iterable. Batch scope = 1
+     *              means each execute() handles ONE child object.
+     * @param batchContext The BatchableContext provided by the platform.
+     * @return An iterable of child object API names.
+     */
+    public Iterable<String> start(Database.BatchableContext batchContext) {
+
+        List<String> namesList = new List<String>();
+
+        for (ChildInfo childInfo : sortedChildrenList) {
+            namesList.add(childInfo.objectName);
         }
-        System.debug('DataArchiveChildBatch: starting with ' + names.size() + ' child objects');
-        return names;
+
+        System.debug('DataArchiveChildBatch: starting with ' + namesList.size() + ' child objects');
+        return namesList;
     }
 
-    // Process ONE child object per execute call.
-    // Each call gets a fresh 50K SOQL row limit.
-    public void execute(Database.BatchableContext bc, List<String> objectNames) {
-        for (String objName : objectNames) {
-            ChildInfo child = findChild(objName);
+    /**
+     * @description Processes ONE child object per execute call.
+     * @param batchContext The BatchableContext provided by the platform.
+     * @param objectNamesList List of object names to process (typically size 1).
+     */
+    public void execute(Database.BatchableContext batchContext, List<String> objectNamesList) {
+
+        for (String objNameStr : objectNamesList) {
+
+            ChildInfo child = findChild(objNameStr);
             if (child == null) continue;
 
             System.debug('Processing child: ' + child.objectName + ' (depth ' + child.depth + ')');
@@ -57,11 +88,14 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
         }
     }
 
-    // After ALL children are processed, update status and enqueue deletion.
-    // Batch finish() can ALWAYS reliably enqueue a Queueable — no chaining issues.
-    public void finish(Database.BatchableContext bc) {
+    /**
+     * @description After ALL children are processed, updates status and enqueues deletion.
+     * @param batchContext The BatchableContext provided by the platform.
+     */
+    public void finish(Database.BatchableContext batchContext) {
+
         System.debug('DataArchiveChildBatch: all children processed');
-        System.debug('Total files: ' + contentDocumentIds.size());
+        System.debug('Total files: ' + contentDocumentIdsList.size());
 
         update new Data_Archive__c(
             Id        = archiveRecordId,
@@ -70,16 +104,16 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
 
         if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
             System.enqueueJob(new ArchivePostProcessQueueable(
-                contentDocumentIds,
+                contentDocumentIdsList,
                 archiveRecordId,
-                rootObjectName,
-                processedParentIds
+                rootObjectNameStr,
+                processedParentIdsList
             ));
             System.debug('ArchivePostProcessQueueable enqueued');
         } else {
             System.debug('Queueable limit reached — running deletion inline');
-            if (!processedParentIds.isEmpty()) {
-                CascadeDeleteHelper.deleteParentWithRelations(rootObjectName, processedParentIds);
+            if (!processedParentIdsList.isEmpty()) {
+                CascadeDeleteHelper.deleteParentWithRelations(rootObjectNameStr, processedParentIdsList);
             }
             update new Data_Archive__c(
                 Id        = archiveRecordId,
@@ -88,124 +122,159 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
         }
     }
 
-    // ===================== HELPERS =====================
+    /**
+     * @description Finds a ChildInfo by object name from the sorted list.
+     * @param objNameStr The object API name to find.
+     * @return The matching ChildInfo, or null if not found.
+     */
+    private ChildInfo findChild(String objNameStr) {
 
-    private ChildInfo findChild(String objName) {
-        for (ChildInfo ci : sortedChildren) {
-            if (ci.objectName == objName) return ci;
+        for (ChildInfo childInfo : sortedChildrenList) {
+            if (childInfo.objectName == objNameStr) return childInfo;
         }
+
         return null;
     }
 
+    /**
+     * @description Processes a single child object: queries records, builds CSV, saves files.
+     * @param child The ChildInfo metadata for the child object to process.
+     */
     private void processOneChild(ChildInfo child) {
-        List<Id> parentIds = collectedIds.get(child.parentObjectName);
-        if (parentIds == null || parentIds.isEmpty()) {
+
+        List<Id> parentIdsList = collectedIdsMap.get(child.parentObjectName);
+
+        if (parentIdsList == null || parentIdsList.isEmpty()) {
             System.debug('No parent IDs for ' + child.parentObjectName + ' — skipping');
             return;
         }
 
         String fieldsStr = String.join(child.fields, ', ');
-        String header    = String.join(child.fields, ',') + '\n';
-        String csvBuffer = header;
-        Integer partNum  = 1;
-        Integer totalRecords = 0;
-        List<Id> childIds = new List<Id>();
+        String headerStr = String.join(child.fields, ',') + '\n';
+        String csvBufferStr = headerStr;
+        Integer partNumInt  = 1;
+        Integer totalRecordsInt = 0;
+        List<Id> childIdsList = new List<Id>();
 
-        // Query all child records for these parent IDs
-        String childQuery = 'SELECT ' + fieldsStr
+        String childQueryStr = 'SELECT ' + fieldsStr
                          + ' FROM '   + child.objectName
                          + ' WHERE '  + child.relationshipField
-                         + ' IN :parentIds';
+                         + ' IN :parentIdsList';
 
-        List<SObject> records = Database.query(childQuery);
-        if (records.isEmpty()) {
+        List<SObject> recordsList = Database.query(childQueryStr);
+
+        if (recordsList.isEmpty()) {
             System.debug('No records found — skipping CSV');
             return;
         }
 
-        totalRecords = records.size();
+        totalRecordsInt = recordsList.size();
 
-        for (SObject rec : records) {
-            childIds.add(rec.Id);
+        for (SObject currentRecord : recordsList) {
+            childIdsList.add(currentRecord.Id);
         }
 
-        // Build CSV inline
-        for (SObject row : records) {
-            String line = buildSingleCsvRow(row, child.fields);
+        for (SObject currentRow : recordsList) {
 
-            if ((csvBuffer.length() + line.length() + 1) > MAX_CSV_LENGTH) {
-                saveCsvFile(csvBuffer, partNum, child.objectName);
-                partNum++;
-                csvBuffer = header;
+            String lineStr = buildSingleCsvRow(currentRow, child.fields);
+
+            if ((csvBufferStr.length() + lineStr.length() + 1) > MAX_CSV_LENGTH_INT) {
+                saveCsvFile(csvBufferStr, partNumInt, child.objectName);
+                partNumInt++;
+                csvBufferStr = headerStr;
             }
 
-            csvBuffer += line + '\n';
+            csvBufferStr += lineStr + '\n';
         }
 
-        records = null; // help GC
+        recordsList = null; // help GC
 
-        // Save remaining buffer
-        if (csvBuffer.length() > header.length()) {
-            saveCsvFile(csvBuffer, partNum, child.objectName);
+        if (csvBufferStr.length() > headerStr.length()) {
+            saveCsvFile(csvBufferStr, partNumInt, child.objectName);
         }
 
-        // Store IDs for next depth level
-        if (!childIds.isEmpty()) {
-            collectedIds.put(child.objectName, childIds);
-            System.debug('Stored ' + childIds.size() + ' IDs for ' + child.objectName);
+        if (!childIdsList.isEmpty()) {
+            collectedIdsMap.put(child.objectName, childIdsList);
+            System.debug('Stored ' + childIdsList.size() + ' IDs for ' + child.objectName);
         }
 
-        System.debug('Done: ' + child.objectName + ' (' + totalRecords
-                   + ' records, ' + partNum + ' part(s))');
+        System.debug('Done: ' + child.objectName + ' (' + totalRecordsInt
+                   + ' records, ' + partNumInt + ' part(s))');
     }
 
-    private void saveCsvFile(String csvData, Integer partNum, String objectType) {
-        String fileName = this.archiveRecordName + '-' + objectType
-                        + (partNum > 1 ? '-Part' + partNum : '');
-        String title    = objectType + (partNum > 1 ? ' Part ' + partNum : '');
+    /**
+     * @description Saves CSV data as a ContentVersion and links it to the archive record.
+     * @param csvDataStr The CSV content to save.
+     * @param partNumInt The part number for multi-part files.
+     * @param objectTypeStr The child object API name for file naming.
+     */
+    private void saveCsvFile(String csvDataStr, Integer partNumInt, String objectTypeStr) {
 
-        ContentVersion cv = new ContentVersion(
-            Title        = title,
-            PathOnClient = fileName + '.csv',
-            Description  = objectType + ' - ' + this.archiveRecordName,
-            VersionData  = Blob.valueOf(csvData)
+        String fileNameStr = this.archiveRecordNameStr + '-' + objectTypeStr
+                        + (partNumInt > 1 ? '-Part' + partNumInt : '');
+        String titleStr    = objectTypeStr + (partNumInt > 1 ? ' Part ' + partNumInt : '');
+
+        ContentVersion contentVersion = new ContentVersion(
+            Title        = titleStr,
+            PathOnClient = fileNameStr + '.csv',
+            Description  = objectTypeStr + ' - ' + this.archiveRecordNameStr,
+            VersionData  = Blob.valueOf(csvDataStr)
         );
-        insert cv;
+        insert contentVersion;
 
-        ContentVersion inserted = [
-            SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id LIMIT 1
+        ContentVersion insertedVersion = [
+            SELECT ContentDocumentId FROM ContentVersion WHERE Id = :contentVersion.Id LIMIT 1
         ];
-        contentDocumentIds.add(inserted.ContentDocumentId);
+        contentDocumentIdsList.add(insertedVersion.ContentDocumentId);
 
         insert new ContentDocumentLink(
-            ContentDocumentId = inserted.ContentDocumentId,
+            ContentDocumentId = insertedVersion.ContentDocumentId,
             LinkedEntityId    = this.archiveRecordId,
             ShareType         = 'V',
             Visibility        = 'AllUsers'
         );
 
-        System.debug('Saved: ' + fileName + '.csv (' + (csvData.length() / 1024) + ' KB)');
+        System.debug('Saved: ' + fileNameStr + '.csv (' + (csvDataStr.length() / 1024) + ' KB)');
     }
 
-    private static String buildSingleCsvRow(SObject row, List<String> fields) {
-        List<String> cols = new List<String>();
-        for (String f : fields) {
+    /**
+     * @description Builds a single CSV row from an SObject record.
+     * @param row The SObject record to convert.
+     * @param fieldsList List of field API names for column order.
+     * @return A comma-separated string representing the CSV row.
+     */
+    private static String buildSingleCsvRow(SObject row, List<String> fieldsList) {
+
+        List<String> colsList = new List<String>();
+
+        for (String fieldStr : fieldsList) {
+
             Object value;
-            if (f.contains('.')) {
-                List<String> parts = f.split('\\\\.');
-                SObject parent = row.getSObject(parts[0]);
-                value = parent != null ? parent.get(parts[1]) : null;
+
+            if (fieldStr.contains('.')) {
+                List<String> partsList = fieldStr.split('\\\\\\.');
+                SObject parentRecord = row.getSObject(partsList[0]);
+                value = parentRecord != null ? parentRecord.get(partsList[1]) : null;
             } else {
-                value = row.get(f);
+                value = row.get(fieldStr);
             }
-            cols.add(escapeCsv(value == null ? '' : String.valueOf(value)));
+
+            colsList.add(escapeCsv(value == null ? '' : String.valueOf(value)));
         }
-        return String.join(cols, ',');
+
+        return String.join(colsList, ',');
     }
 
-    private static String escapeCsv(String v) {
-        String s = v.replace('"', '""');
-        return (s.contains(',') || s.contains('\n') || s.contains('"'))
-            ? '"' + s + '"' : s;
+    /**
+     * @description Escapes a string value for CSV formatting.
+     * @param valueStr The string value to escape.
+     * @return The CSV-escaped string.
+     */
+    private static String escapeCsv(String valueStr) {
+
+        String escapedStr = valueStr.replace('"', '""');
+
+        return (escapedStr.contains(',') || escapedStr.contains('\n') || escapedStr.contains('"'))
+            ? '"' + escapedStr + '"' : escapedStr;
     }
 }

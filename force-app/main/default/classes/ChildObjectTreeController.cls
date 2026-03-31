@@ -1,170 +1,104 @@
+/**
+ * @description Controller that discovers child object relationships recursively
+ *              for a given parent SObject. Used to build a tree of related child
+ *              objects in the UI for archive configuration.
+ */
 public with sharing class ChildObjectTreeController {
 
-    /* =====================================================
-     *   WRAPPER — represents one node in the child tree
-     * ===================================================== */
+    /**
+     * @description Wrapper class representing a node in the child object tree.
+     */
     public class ChildNode {
-        @AuraEnabled public String       objectName;
-        @AuraEnabled public String       objectLabel;
-        @AuraEnabled public String       relationshipField;
-        @AuraEnabled public String       parentObjectName;
-        @AuraEnabled public Integer      depth;
-        @AuraEnabled public Boolean      isSelected;
-        @AuraEnabled public String       relationshipType; // 'Master-Detail' or 'Lookup'
+
+        @AuraEnabled public String objectApiName;
+        @AuraEnabled public String objectLabel;
+        @AuraEnabled public String relationshipName;
+        @AuraEnabled public String lookupField;
         @AuraEnabled public List<ChildNode> children;
 
-        public ChildNode(String objectName, String objectLabel,
-                         String relationshipField, String parentObjectName,
-                         Integer depth, String relationshipType) {
-            this.objectName        = objectName;
-            this.objectLabel       = objectLabel;
-            this.relationshipField = relationshipField;
-            this.parentObjectName  = parentObjectName;
-            this.depth             = depth;
-            this.isSelected        = true;
-            this.relationshipType  = relationshipType;
-            this.children          = new List<ChildNode>();
+        /**
+         * @description Constructs a new ChildNode.
+         * @param objectApiNameStr API name of the child object.
+         * @param objectLabelStr Display label of the child object.
+         * @param relationshipNameStr The relationship name.
+         * @param lookupFieldStr The lookup field API name.
+         */
+        public ChildNode(String objectApiNameStr, String objectLabelStr, String relationshipNameStr, String lookupFieldStr) {
+
+            this.objectApiName = objectApiNameStr;
+            this.objectLabel = objectLabelStr;
+            this.relationshipName = relationshipNameStr;
+            this.lookupField = lookupFieldStr;
+            this.children = new List<ChildNode>();
         }
     }
 
-    /* =====================================================
-     *   PUBLIC API — returns the full child tree for an object
-     * ===================================================== */
+    /**
+     * @description Retrieves the child object tree for a parent SObject up to
+     *              the specified depth.
+     * @param parentObjectStr The API name of the parent SObject.
+     * @param maxDepthInt The maximum recursion depth for child discovery.
+     * @return A list of ChildNode trees representing child relationships.
+     */
     @AuraEnabled(cacheable=true)
-    public static List<ChildNode> getChildObjectTree(String objectName) {
-        if (String.isBlank(objectName) ||
-            !Schema.getGlobalDescribe().containsKey(objectName)) {
-            return new List<ChildNode>();
+    public static List<ChildNode> getChildObjectTree(String parentObjectStr, Integer maxDepthInt) {
+
+        if (maxDepthInt == null || maxDepthInt <= 0) {
+            maxDepthInt = 2;
         }
 
-        Set<String> visited = new Set<String>();
-        visited.add(objectName); // prevent root from appearing as its own child
-
-        return discoverChildren(objectName, 1, visited);
+        Set<String> visitedSet = new Set<String>();
+        return buildTree(parentObjectStr, maxDepthInt, 0, visitedSet);
     }
 
-    /* =====================================================
-     *   SYSTEM OBJECT SUFFIXES TO SKIP
-     * ===================================================== */
-    private static final Set<String> SKIP_SUFFIXES = new Set<String>{
-        'Share', 'History', 'Feed', 'ChangeEvent',
-        'CleanInfo', 'ContactRole', 'Partner',
-        'Tag', 'Insight', 'FieldHistory',
-        'OwnerSharingRule', 'TeamMember'
-    };
+    /**
+     * @description Recursively builds the child object tree.
+     * @param objectNameStr The API name of the current object.
+     * @param maxDepthInt Maximum recursion depth.
+     * @param currentDepthInt Current recursion depth.
+     * @param visitedSet Set of already-visited object names to prevent cycles.
+     * @return A list of ChildNode objects for the current level.
+     */
+    private static List<ChildNode> buildTree(
+        String objectNameStr,
+        Integer maxDepthInt,
+        Integer currentDepthInt,
+        Set<String> visitedSet
+    ) {
 
-    /* =====================================================
-     *   SPECIFIC SYSTEM OBJECTS TO SKIP
-     * ===================================================== */
-    private static final Set<String> SKIP_OBJECTS = new Set<String>{
-        // Attachments & Content
-        'Attachment', 'ContentDocumentLink', 'Note', 'CombinedAttachment',
-        // Process / Approval
-        'ProcessInstance', 'ProcessInstanceNode',
-        'ProcessInstanceStep', 'ProcessInstanceWorkitem',
-        'ProcessInstanceHistory', 'FlowRecordRelation',
-        // Collaboration / Topics
-        'CollaborationGroupRecord', 'TopicAssignment',
-        'EntitySubscription', 'FeedComment', 'FeedItem',
-        // Duplicates / Data quality
-        'DuplicateRecordItem',
-        // Usage / Analytics
-        'AppUsageAssignment',
-        // Actions
-        'ActionPlan', 'ActionPlanItem',
-        // Sharing / Access
-        'UserRecordAccess',
-        // Email
-        'EmailMessage', 'EmailMessageRelation',
-        // Asset system children
-        'AssetAction', 'AssetActionSource', 'AssetStatePeriod',
-        'AssetRelationship',
-        // Other platform objects
-        'NetworkActivityAudit', 'AuthorizationFormConsent',
-        'FinanceBalanceSnapshot', 'FinanceTransaction',
-        'RecordAction', 'RecordActionHistory',
-        'WorkOrder', 'WorkOrderLineItem',
-        'ActivityHistory', 'OpenActivity'
-    };
+        List<ChildNode> nodesList = new List<ChildNode>();
 
-    /* =====================================================
-     *   RECURSIVE DISCOVERY
-     *   — follows both master-detail and lookup rels
-     *   — skips system objects automatically
-     *   — max depth = 5
-     * ===================================================== */
-    private static List<ChildNode> discoverChildren(String parentObjName,
-                                                     Integer depth,
-                                                     Set<String> visited) {
-        List<ChildNode> nodes = new List<ChildNode>();
-        if (depth > Integer.valueOf(Label.MAX_CHAIN_DEPTH)) return nodes;
+        if (currentDepthInt >= maxDepthInt) return nodesList;
 
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(parentObjName);
-        if (objType == null) return nodes;
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectNameStr);
+        if (objType == null) return nodesList;
 
-        List<Schema.ChildRelationship> childRels =
-            objType.getDescribe().getChildRelationships();
+        visitedSet.add(objectNameStr);
 
-        for (Schema.ChildRelationship childRel : childRels) {
+        for (Schema.ChildRelationship childRel : objType.getDescribe().getChildRelationships()) {
 
-            // Include both master-detail and lookup relationships
-            // Skip non-Reference field types (e.g., indirect lookups)
-            Schema.DescribeFieldResult fieldDesc = childRel.getField().getDescribe();
-            if (fieldDesc.getType() != Schema.DisplayType.REFERENCE) continue;
+            if (childRel.getRelationshipName() == null) continue;
 
-            // Determine relationship type
-            Boolean isCascade = childRel.isCascadeDelete();
-            String relType = isCascade ? 'Master-Detail' : 'Lookup';
+            Schema.DescribeSObjectResult childDescribe = childRel.getChildSObject().getDescribe();
+            String childApiNameStr = childDescribe.getName();
 
-            Schema.DescribeSObjectResult childDescribe =  
-                childRel.getChildSObject().getDescribe();
-            String childObjectName   = childDescribe.getName();
-            String relationshipField = fieldDesc.getName();
-            String relationshipName  = childRel.getRelationshipName();
+            if (visitedSet.contains(childApiNameStr)) continue;
 
-            // Skip if no relationship name
-            if (relationshipName == null) continue;
+            if (!childDescribe.isQueryable() || !childDescribe.isAccessible()) continue;
 
-            // Skip duplicates / loops
-            if (visited.contains(childObjectName)) continue;
+            String childLabelStr = childDescribe.getLabel();
+            String relNameStr = childRel.getRelationshipName();
+            String lookupFieldStr = childRel.getField().getDescribe().getName();
 
-            // Skip explicitly blocked objects
-            if (SKIP_OBJECTS.contains(childObjectName)) continue;
+            ChildNode node = new ChildNode(childApiNameStr, childLabelStr, relNameStr, lookupFieldStr);
 
-            // Skip by suffix pattern
-            if (isSystemSuffix(childObjectName)) continue;
+            node.children = buildTree(childApiNameStr, maxDepthInt, currentDepthInt + 1, visitedSet);
 
-            // Skip inaccessible / non-queryable / non-custom-and-non-standard-data
-            if (!childDescribe.isAccessible() || !childDescribe.isQueryable()) continue;
-
-            // Mark visited BEFORE recursing to prevent infinite loops
-            visited.add(childObjectName);
-
-            ChildNode node = new ChildNode(
-                childObjectName,
-                childDescribe.getLabel(),
-                relationshipField,
-                parentObjName,
-                depth,
-                relType
-            );
-
-            // Recurse into children
-            node.children = discoverChildren(childObjectName, depth + 1, visited);
-
-            nodes.add(node);
+            nodesList.add(node);
         }
 
-        return nodes;
-    }
+        visitedSet.remove(objectNameStr);
 
-    /* =====================================================
-     *   SUFFIX CHECK
-     * ===================================================== */
-    private static Boolean isSystemSuffix(String objectName) {
-        for (String suffix : SKIP_SUFFIXES) {
-            if (objectName.endsWith(suffix)) return true;
-        }
-        return false;
+        return nodesList;
     }
 }

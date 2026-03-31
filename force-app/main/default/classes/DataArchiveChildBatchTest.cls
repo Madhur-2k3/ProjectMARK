@@ -1,87 +1,99 @@
+/**
+ * @description Tests for DataArchiveChildBatch.
+ */
 @IsTest
 private class DataArchiveChildBatchTest {
 
     @TestSetup
     static void setupData() {
-        List<Account> accs = new List<Account>();
-        for (Integer i = 0; i < 3; i++) {
-            accs.add(new Account(Name = 'Test Account ' + i));
+
+        List<Account> myAccountsList = new List<Account>();
+
+        for (Integer myIndex = 0; myIndex < 3; myIndex++) {
+            myAccountsList.add(new Account(Name = 'Test Account ' + myIndex));
         }
-        insert accs;
+
+        insert myAccountsList;
     }
 
     @IsTest
     static void testEmptyChildList() {
-        Data_Archive__c archive = new Data_Archive__c(
+
+        Data_Archive__c myArchiveRecord = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c        = 'Id, Name',
             Status__c        = 'Archive In Progress',
             Name             = 'Test Archive'
         );
-        insert archive;
-        archive = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :archive.Id LIMIT 1];
+        insert myArchiveRecord;
 
-        List<Account> accs = [SELECT Id FROM Account];
-        List<Id> parentIds = new List<Id>();
-        for (Account a : accs) parentIds.add(a.Id);
+        myArchiveRecord = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id LIMIT 1];
+
+        List<Account> myAccountsList = [SELECT Id FROM Account];
+        List<Id> myParentIdsList = new List<Id>();
+
+        for (Account myCurrentAccount : myAccountsList) myParentIdsList.add(myCurrentAccount.Id);
 
         Test.startTest();
         Database.executeBatch(new DataArchiveChildBatch(
-            archive.Id,
-            archive.Name,
+            myArchiveRecord.Id,
+            myArchiveRecord.Name,
             'Account',
             new List<DataArchiveChildBatch.ChildInfo>(),
             new Map<String, List<Id>>(),
             new List<Id>(),
-            parentIds
+            myParentIdsList
         ), 1);
         Test.stopTest();
 
-        Data_Archive__c updated = [SELECT Status__c FROM Data_Archive__c WHERE Id = :archive.Id];
-        System.assertEquals('Ready for Unarchive', updated.Status__c);
+        Data_Archive__c myUpdatedRecord = [SELECT Status__c FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id];
+        System.assertEquals('Ready for Unarchive', myUpdatedRecord.Status__c);
     }
 
     @IsTest
     static void testWithOneChildObject() {
-        Data_Archive__c archive = new Data_Archive__c(
+
+        Data_Archive__c myArchiveRecord = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c        = 'Id, Name',
             Status__c        = 'Archive In Progress',
             Name             = 'Test Archive'
         );
-        insert archive;
-        archive = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :archive.Id LIMIT 1];
+        insert myArchiveRecord;
 
-        List<Account> accs = [SELECT Id FROM Account];
-        List<Id> parentIds = new List<Id>();
-        for (Account a : accs) parentIds.add(a.Id);
+        myArchiveRecord = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id LIMIT 1];
 
-        DataArchiveChildBatch.ChildInfo info = new DataArchiveChildBatch.ChildInfo();
-        info.objectName        = 'Contact';
-        info.relationshipField = 'AccountId';
-        info.fields            = new List<String>{'Id', 'LastName'};
-        info.depth             = 1;
-        info.parentObjectName  = 'Account';
+        List<Account> myAccountsList = [SELECT Id FROM Account];
+        List<Id> myParentIdsList = new List<Id>();
 
-        Map<String, List<Id>> collectedIds = new Map<String, List<Id>>();
-        collectedIds.put('Account', parentIds);
+        for (Account myCurrentAccount : myAccountsList) myParentIdsList.add(myCurrentAccount.Id);
+
+        DataArchiveChildBatch.ChildInfo myChildInfo = new DataArchiveChildBatch.ChildInfo();
+        myChildInfo.objectName        = 'Contact';
+        myChildInfo.relationshipField = 'AccountId';
+        myChildInfo.fields            = new List<String>{'Id', 'LastName'};
+        myChildInfo.depth             = 1;
+        myChildInfo.parentObjectName  = 'Account';
+
+        Map<String, List<Id>> myCollectedIdsMap = new Map<String, List<Id>>();
+        myCollectedIdsMap.put('Account', myParentIdsList);
 
         Test.startTest();
         Database.executeBatch(new DataArchiveChildBatch(
-            archive.Id,
-            archive.Name,
+            myArchiveRecord.Id,
+            myArchiveRecord.Name,
             'Account',
-            new List<DataArchiveChildBatch.ChildInfo>{ info },
-            collectedIds,
+            new List<DataArchiveChildBatch.ChildInfo>{ myChildInfo },
+            myCollectedIdsMap,
             new List<Id>(),
-            parentIds
+            myParentIdsList
         ), 1);
         Test.stopTest();
 
-        Data_Archive__c updated = [SELECT Status__c FROM Data_Archive__c WHERE Id = :archive.Id];
+        Data_Archive__c myUpdatedRecord = [SELECT Status__c FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id];
         System.assert(
-            updated.Status__c == 'Ready for Unarchive' || updated.Status__c == 'Completed',
-            'Expected Ready for Unarchive or Completed, got: ' + updated.Status__c
+            myUpdatedRecord.Status__c == 'Ready for Unarchive' || myUpdatedRecord.Status__c == 'Completed',
+            'Expected Ready for Unarchive or Completed, got: ' + myUpdatedRecord.Status__c
         );
     }
 }

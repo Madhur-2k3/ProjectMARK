@@ -1,24 +1,31 @@
+/**
+ * @description Tests for S3ControllerException custom exception class.
+ */
 @IsTest
 private class S3ControllerExceptionTest {
 
     @IsTest
     static void testExceptionWithMessage() {
-        String msg = 'Test error message';
+
+        String myMessageStr = 'Test error message';
+
         try {
-            throw new S3ControllerException(msg);
-        } catch (S3ControllerException ex) {
-            System.assertEquals(msg, ex.getMessage(), 'Exception message should match');
+            throw new S3ControllerException(myMessageStr);
+        } catch (S3ControllerException myException) {
+            System.assertEquals(myMessageStr, myException.getMessage(), 'Exception message should match');
         }
     }
 
     @IsTest
     static void testExceptionWithCause() {
-        Exception cause = new DmlException('root cause');
+
+        Exception myCauseException = new DmlException('root cause');
+
         try {
-            throw new S3ControllerException('wrapper', cause);
-        } catch (S3ControllerException ex) {
-            System.assertEquals('wrapper', ex.getMessage());
-            System.assertNotEquals(null, ex.getCause(), 'Cause should be set');
+            throw new S3ControllerException('wrapper', myCauseException);
+        } catch (S3ControllerException myException) {
+            System.assertEquals('wrapper', myException.getMessage());
+            System.assertNotEquals(null, myException.getCause(), 'Cause should be set');
         }
     }
 }

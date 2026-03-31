@@ -1,83 +1,70 @@
+/**
+ * @description Controller class that handles paginated data queries and record counting
+ *              for dynamic SObject data display in Lightning components.
+ */
 public with sharing class objectDataHandler {
 
-    // @AuraEnabled(cacheable=true)
-    // public static List<SObject> getFilteredAccounts(String query, String conditions, Integer offsetSize, Integer pageSize){
-    //     // if (pageSize == null) pageSize = 10;
-    //     // if (offsetSize == null) offsetSize = 0;
-
-    //     // String selectedFields = 'Id';
-    //     // if (String.isNotBlank(fields)) {
-    //     //     selectedFields += ',' + fields;
-    //     // }
-
-    //     // String query = 'SELECT ' + selectedFields + ' FROM ' + objectName;
-
-    //     // if (String.isNotBlank(conditions)) {
-    //     //     query += ' WHERE ' + conditions;
-    //     // }
-
-    //     // query += ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
-    //     // System.debug('FINAL QUERY (paginated): ' + query);
-
-    //     // return Database.query(query);
-    //     String paginatedQuery = '';
-    //     try{
-    //         paginatedQuery = query+' '+conditions + ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
-    //         //  return Database.query(paginatedQuery);
-    //     }
-    //     catch(Exception e){
-    //         System.debug('Error in query formation: ' + e.getMessage());
-    //     }
-    //     return Database.query(paginatedQuery);
-    // }
-
+    /**
+     * @description Retrieves paginated records and total count for the given query.
+     * @param queryStr The base SOQL query string (without LIMIT/OFFSET).
+     * @param offsetSizeInt The offset for pagination.
+     * @param pageSizeInt The number of records per page.
+     * @param objectNameStr The API name of the SObject being queried (used for count query).
+     * @return A map containing 'records' (List of SObject) and 'totalCount' (Integer).
+     */
     @AuraEnabled
-public static Map<String, Object> getFilteredAccounts(
-    String query,
-    Integer offsetSize,
-    Integer pageSize,
-    String objectName
-){
-    Map<String, Object> result = new Map<String, Object>();
+    public static Map<String, Object> getFilteredAccounts(
+        String queryStr,
+        Integer offsetSizeInt,
+        Integer pageSizeInt,
+        String objectNameStr
+    ) {
 
-    // Build paginated data query
-    String dataQuery = query + ' LIMIT ' + pageSize + ' OFFSET ' + offsetSize;
+        Map<String, Object> resultMap = new Map<String, Object>();
 
-    // Build count query (COUNT() FROM Object WHERE ...)
-    // Extract WHERE clause if present
-    String wherePart = '';
-    if (query.contains('WHERE')) {
-        // Extract everything after WHERE, but before ORDER BY if it exists
-        String queryAfterWhere = query.substringAfter('WHERE');
-        if (queryAfterWhere.contains('ORDER BY')) {
-            wherePart = queryAfterWhere.substringBefore('ORDER BY');
-        } else {
-            wherePart = queryAfterWhere;
+        String dataQueryStr = queryStr + ' LIMIT ' + pageSizeInt + ' OFFSET ' + offsetSizeInt;
+
+        String wherePartStr = '';
+
+        if (queryStr.contains('WHERE')) {
+
+            String queryAfterWhereStr = queryStr.substringAfter('WHERE');
+
+            if (queryAfterWhereStr.contains('ORDER BY')) {
+                wherePartStr = queryAfterWhereStr.substringBefore('ORDER BY');
+            } else {
+                wherePartStr = queryAfterWhereStr;
+            }
+
+            wherePartStr = ' WHERE ' + wherePartStr.trim();
         }
-        wherePart = ' WHERE ' + wherePart.trim();
+
+        String countQueryStr = 'SELECT COUNT() FROM ' + objectNameStr + wherePartStr;
+
+        List<SObject> recordsList = Database.query(dataQueryStr);
+        Integer totalCountInt = Database.countQuery(countQueryStr);
+
+        resultMap.put('records', recordsList);
+        resultMap.put('totalCount', totalCountInt);
+
+        return resultMap;
     }
 
-    String countQuery = 'SELECT COUNT() FROM ' + objectName + wherePart;
-
-    // Execute both queries
-    List<SObject> recordsList = Database.query(dataQuery);
-    Integer totalCount = Database.countQuery(countQuery);
-
-    // Put results
-    result.put('records', recordsList);
-    result.put('totalCount', totalCount);
-
-    return result;
-}
-
-
-
+    /**
+     * @description Returns the total record count for a given SObject with optional conditions.
+     * @param objectNameStr The API name of the SObject to count.
+     * @param conditionsStr Optional WHERE clause conditions (without the 'WHERE' keyword).
+     * @return The total number of records matching the criteria.
+     */
     @AuraEnabled(cacheable=true)
-    public static Integer getRecordCount(String objectName, String conditions){
-        String query = 'SELECT COUNT() FROM ' + objectName;
-        if (String.isNotBlank(conditions)) {
-            query += ' WHERE ' + conditions;
+    public static Integer getRecordCount(String objectNameStr, String conditionsStr) {
+
+        String queryStr = 'SELECT COUNT() FROM ' + objectNameStr;
+
+        if (String.isNotBlank(conditionsStr)) {
+            queryStr += ' WHERE ' + conditionsStr;
         }
-        return Database.countQuery(query);
+
+        return Database.countQuery(queryStr);
     }
 }
