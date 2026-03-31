@@ -98,8 +98,8 @@
                         </template>
 
                         <template if:true={isCsvPreview}>
-                            <!-- Toggle + FilterBuilder for CSV filtering -->
-                            <template if:true={hasFilterFields}>
+                            <!-- Toggle + Row count for CSV (always visible when CSV data exists) -->
+                            <template if:true={hasCsvData}>
                                 <div class="csv-filter-area">
                                     <div class="csv-toggle-header">
                                         <lightning-button-group>

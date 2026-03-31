@@ -63,6 +63,7 @@ export default class S3RecordFiles extends LightningElement {
     @track csvFilterMode = 'all'; // 'all' or 'filter'
     _allCsvRows = [];            // unfiltered backup
     _csvWhereClause = '';        // current WHERE clause from filterBuilder
+    _csvTextFilter = '';         // fallback text search when metadata unavailable
 
     get canDownload() {
         return hasDownloadPermission;
@@ -108,6 +109,10 @@ export default class S3RecordFiles extends LightningElement {
         return this.csvFieldMeta && this.csvFieldMeta.length > 0;
     }
 
+    get hasCsvData() {
+        return this._allCsvRows && this._allCsvRows.length > 0;
+    }
+
     get isAllRecordsMode() {
         return this.csvFilterMode === 'all';
     }
@@ -124,12 +129,23 @@ export default class S3RecordFiles extends LightningElement {
         return this.csvFilterMode === 'filter' ? 'brand' : 'neutral';
     }
 
-    // Filtered CSV rows based on filterBuilder WHERE clause
+    // Filtered CSV rows based on filterBuilder WHERE clause or text search
     get filteredCsvRows() {
-        if (this.csvFilterMode === 'all' || !this._csvWhereClause) {
+        if (this.csvFilterMode === 'all') {
             return this._allCsvRows;
         }
-        return this._allCsvRows.filter(row => this._evaluateWhereClause(row));
+        // Use WHERE clause filter when metadata is available
+        if (this._csvWhereClause) {
+            return this._allCsvRows.filter(row => this._evaluateWhereClause(row));
+        }
+        // Fallback: text search across all columns
+        if (this._csvTextFilter) {
+            const search = this._csvTextFilter.toLowerCase();
+            return this._allCsvRows.filter(row =>
+                row.cells.some(cell => (cell.value || '').toLowerCase().includes(search))
+            );
+        }
+        return this._allCsvRows;
     }
 
     // Paginated rows — the rows actually rendered in the table
@@ -333,7 +349,14 @@ export default class S3RecordFiles extends LightningElement {
                     }
                 } catch (metaErr) {
                     console.warn('Could not load field metadata for filters:', metaErr);
-                    // Non-fatal: filters just won't appear
+                }
+                // Fallback: build field metadata from CSV headers if Apex metadata is unavailable
+                if ((!this.csvFieldMeta || this.csvFieldMeta.length === 0) && this.csvHeaders.length > 0) {
+                    this.csvFieldMeta = this.csvHeaders.map(h => ({
+                        apiName: h,
+                        label: h,
+                        type: 'STRING'
+                    }));
                 }
             } else if (TEXT_EXTS.has(ext)) {
                 // Text content can use the string-based method
@@ -365,6 +388,7 @@ export default class S3RecordFiles extends LightningElement {
         this.csvFieldMeta = [];
         this.csvObjectName = '';
         this._csvWhereClause = '';
+        this._csvTextFilter = '';
         this.csvFilterMode = 'all';
     }
 
@@ -373,11 +397,20 @@ export default class S3RecordFiles extends LightningElement {
     handleShowAllRecords() {
         this.csvFilterMode = 'all';
         this._csvWhereClause = '';
+        this._csvTextFilter = '';
         this.currentPage = 1;
     }
 
     handleShowFilterRecords() {
         this.csvFilterMode = 'filter';
+        this.currentPage = 1;
+    }
+
+    /**
+     * Handler for the fallback text search input.
+     */
+    handleTextFilterChange(event) {
+        this._csvTextFilter = event.target.value || '';
         this.currentPage = 1;
     }
 
