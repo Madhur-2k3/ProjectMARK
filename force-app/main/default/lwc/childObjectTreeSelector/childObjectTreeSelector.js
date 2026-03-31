@@ -16,12 +16,12 @@ export default class ChildObjectTreeSelector extends LightningElement {
     /* =====================================================
      * WIRE — fetch child tree from Apex
      * ===================================================== */
-    @wire(getChildObjectTree, { objectName: '$objectName' })
+    @wire(getChildObjectTree, { parentObjectStr: '$objectName' })
     wiredTree({ data, error }) {
         if (data) {
             this.isLoading = false;
             this._rawTree = JSON.parse(JSON.stringify(data));
-            this.flatNodes = this._flatten(this._rawTree, 0);
+            this.flatNodes = this._flatten(this._rawTree, 0, null, '');
             this.hasError = false;
             this._fireSelectionChange();
         } else if (error) {
@@ -54,7 +54,7 @@ export default class ChildObjectTreeSelector extends LightningElement {
     }
 
     /* =====================================================
-     * PUBLIC API — get selected child object names
+     * PUBLIC API — get selected child object info
      * ===================================================== */
     @api
     getSelectedObjects() {
@@ -72,22 +72,34 @@ export default class ChildObjectTreeSelector extends LightningElement {
 
     /* =====================================================
      * FLATTEN — convert tree into flat list with depth info
+     *   Each node gets a unique `key` built from its path
+     *   in the tree so duplicates across branches work.
      * ===================================================== */
-    _flatten(nodes, depth) {
+    _flatten(nodes, depth, parentObjectName, parentKey) {
         let flat = [];
         if (!nodes) return flat;
 
         nodes.forEach((node, idx) => {
             const isLast = idx === nodes.length - 1;
             const relType = node.relationshipType || 'Lookup';
+
+            // Build a unique key using the parent's key + this object's name
+            // This ensures the same object under different parents has a distinct identity
+            const uniqueKey = parentKey
+                ? `${parentKey}__${node.objectApiName}`
+                : node.objectApiName;
+
             flat.push({
-                key: node.objectName,
-                objectName: node.objectName,
+                key: uniqueKey,
+                parentKey: parentKey || null,
+                objectName: node.objectApiName,
                 objectLabel: node.objectLabel,
-                relationshipField: node.relationshipField,
-                parentObjectName: node.parentObjectName,
+                relationshipField: node.lookupField,
+                relationshipName: node.relationshipName,
+                parentObjectName: parentObjectName,
                 depth: depth,
                 isSelected: node.isSelected !== false,
+                isMasterDetail: relType === 'Master-Detail',
                 isLast: isLast,
                 hasChildren: node.children && node.children.length > 0,
                 indentStyle: `padding-left: ${depth * 28}px`,
@@ -100,7 +112,9 @@ export default class ChildObjectTreeSelector extends LightningElement {
             });
 
             if (node.children && node.children.length > 0) {
-                flat = flat.concat(this._flatten(node.children, depth + 1));
+                flat = flat.concat(
+                    this._flatten(node.children, depth + 1, node.objectApiName, uniqueKey)
+                );
             }
         });
         return flat;
@@ -110,25 +124,31 @@ export default class ChildObjectTreeSelector extends LightningElement {
      * EVENT HANDLERS
      * ===================================================== */
     handleToggle(event) {
-        const objectName = event.currentTarget.dataset.object;
+        const nodeKey = event.currentTarget.dataset.key;
         const checked = event.target.checked;
+
+        // Find the toggled node
+        const toggledNode = this.flatNodes.find(n => n.key === nodeKey);
+        if (!toggledNode) return;
 
         // Update this node
         this.flatNodes = this.flatNodes.map(n => {
-            if (n.objectName === objectName) {
+            if (n.key === nodeKey) {
                 return { ...n, isSelected: checked };
             }
             return n;
         });
 
-        // If unchecked → uncheck all descendants
         if (!checked) {
-            this._uncheckDescendants(objectName);
+            // Unchecked → uncheck all descendants of this node
+            this._uncheckDescendants(nodeKey);
         }
 
-        // If checked → ensure all ancestors are checked
         if (checked) {
-            this._checkAncestors(objectName);
+            // Checked → ensure all ancestors are checked
+            this._checkAncestors(nodeKey);
+            // For Master-Detail children of this node, auto-select them
+            this._autoSelectMasterDetailChildren(nodeKey);
         }
 
         this._fireSelectionChange();
@@ -140,54 +160,74 @@ export default class ChildObjectTreeSelector extends LightningElement {
     }
 
     handleDeselectAll() {
+        // Cannot deselect Master-Detail children whose parent is selected,
+        // so just deselect all for simplicity (parent unchecked = children unchecked)
         this.flatNodes = this.flatNodes.map(n => ({ ...n, isSelected: false }));
         this._fireSelectionChange();
     }
 
     /* =====================================================
-     * HELPERS — cascading check/uncheck
+     * HELPERS — cascading check/uncheck using unique keys
      * ===================================================== */
-    _uncheckDescendants(parentObjectName) {
-        // Find all objects whose parentObjectName traces back to the given parent
+
+    /**
+     * Uncheck all descendants of the node identified by parentKey.
+     */
+    _uncheckDescendants(parentKey) {
         const toUncheck = new Set();
-        const queue = [parentObjectName];
+        const queue = [parentKey];
 
         while (queue.length > 0) {
-            const current = queue.shift();
+            const currentKey = queue.shift();
             this.flatNodes.forEach(n => {
-                if (n.parentObjectName === current && !toUncheck.has(n.objectName)) {
-                    toUncheck.add(n.objectName);
-                    queue.push(n.objectName);
+                if (n.parentKey === currentKey && !toUncheck.has(n.key)) {
+                    toUncheck.add(n.key);
+                    queue.push(n.key);
                 }
             });
         }
 
         this.flatNodes = this.flatNodes.map(n => {
-            if (toUncheck.has(n.objectName)) {
+            if (toUncheck.has(n.key)) {
                 return { ...n, isSelected: false };
             }
             return n;
         });
     }
 
-    _checkAncestors(objectName) {
-        const node = this.flatNodes.find(n => n.objectName === objectName);
-        if (!node || !node.parentObjectName) return;
+    /**
+     * Walk up the tree and check all ancestors so the path to root is selected.
+     */
+    _checkAncestors(nodeKey) {
+        const node = this.flatNodes.find(n => n.key === nodeKey);
+        if (!node || !node.parentKey) return;
 
-        // Walk up the tree
-        let currentParent = node.parentObjectName;
-        while (currentParent && currentParent !== this.objectName) {
-            const parentNode = this.flatNodes.find(n => n.objectName === currentParent);
+        let currentParentKey = node.parentKey;
+        while (currentParentKey) {
+            const parentNode = this.flatNodes.find(n => n.key === currentParentKey);
             if (parentNode && !parentNode.isSelected) {
                 this.flatNodes = this.flatNodes.map(n => {
-                    if (n.objectName === currentParent) {
+                    if (n.key === currentParentKey) {
                         return { ...n, isSelected: true };
                     }
                     return n;
                 });
             }
-            currentParent = parentNode ? parentNode.parentObjectName : null;
+            currentParentKey = parentNode ? parentNode.parentKey : null;
         }
+    }
+
+    /**
+     * When a parent is checked, auto-select its Master-Detail children
+     * (they must be included because they cascade-delete).
+     */
+    _autoSelectMasterDetailChildren(parentKey) {
+        this.flatNodes = this.flatNodes.map(n => {
+            if (n.parentKey === parentKey && n.isMasterDetail && !n.isSelected) {
+                return { ...n, isSelected: true };
+            }
+            return n;
+        });
     }
 
     /* =====================================================

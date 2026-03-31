@@ -30,7 +30,7 @@ export default class RecordListWrapper extends LightningElement {
     get isNextDisabled() { return this.currentPage >= this.totalPages; }
 
     fetchCount() {
-        getRecordCount({ objectName: this.objectName, conditions: this.conditions || '' })
+        getRecordCount({ objectNameStr: this.objectName, conditionsStr: this.conditions || '' })
         .then(total => {
             this.totalRecords = total;
             this.totalPages = Math.ceil(total / this.pageSize);
@@ -42,11 +42,10 @@ export default class RecordListWrapper extends LightningElement {
     fetchPage() {
         this.isLoading = true;
         getFilteredAccounts({
-            objectName: this.objectName,
-            fields: this.fields.map(f => f.apiName).join(','),
-            conditions: this.conditions || '',
-            offsetSize: this.offsetSize,
-            pageSize: this.pageSize
+            queryStr: this.buildQuery(),
+            offsetSizeInt: this.offsetSize,
+            pageSizeInt: this.pageSize,
+            objectNameStr: this.objectName
         })
         .then(res => {
             this.records = res;
@@ -88,5 +87,14 @@ export default class RecordListWrapper extends LightningElement {
             fieldName: f.apiName,
             type: f.type.toLowerCase()
         }));
+    }
+
+    buildQuery() {
+        const fieldList = this.fields.map(f => f.apiName).join(', ');
+        let q = `SELECT ${fieldList} FROM ${this.objectName}`;
+        if (this.conditions && this.conditions.trim() !== '') {
+            q += ` WHERE ${this.conditions}`;
+        }
+        return q;
     }
 }

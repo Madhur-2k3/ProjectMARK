@@ -50,8 +50,8 @@ export default class ChildObjectSelectionModal extends LightningElement {
         this.isLoading = true;
         try {
             const result = await getChildRecordsByParentIds({
-                parentObjectApiName: this.parentObjectName,
-                parentRecordIds: this.selectedParentRecordIds
+                parentObjectApiNameStr: this.parentObjectName,
+                parentRecordIdsList: this.selectedParentRecordIds
             });
 
             this._selectedMap = {};

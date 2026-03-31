@@ -29,7 +29,7 @@ export default class S3Tester extends LightningElement {
         this.error = null;
         this.loading = true;
         try {
-            const res = await getDataFromS3({ fileName: this.fileName });
+            const res = await getDataFromS3({ fileNameStr: this.fileName });
             this.result = res;
         } catch (e) {
             this.error = e?.body?.message || e?.message || JSON.stringify(e);
@@ -100,7 +100,7 @@ export default class S3Tester extends LightningElement {
         const fileNameToUse = this.selectedFileName || this.fileName || 'upload.bin';
         try {
             // Upload via Apex PUT (no presigned URL)
-            const res = await putObjectToS3({ fileName: fileNameToUse, base64Body: this.fileBase64, contentType: this.fileMimeType });
+            const res = await putObjectToS3({ fileNameStr: fileNameToUse, base64BodyStr: this.fileBase64, contentTypeStr: this.fileMimeType });
             this.result = 'Upload via Apex: ' + res;
         } catch (e) {
             this.error = e?.body?.message || e?.message || JSON.stringify(e);
@@ -134,7 +134,7 @@ export default class S3Tester extends LightningElement {
             this.loading = true;
             try {
                 console.log('Fetching file via Apex GET:', row.Key);
-                const content = await getDataFromS3({ fileName: row.Key });
+                const content = await getDataFromS3({ fileNameStr: row.Key });
                 this.result = content;
 
                 // Trigger file download using data URI (avoids LWS "Unsupported MIME type" error)

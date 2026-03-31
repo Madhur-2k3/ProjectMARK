@@ -29,9 +29,9 @@ public with sharing class ContentDocumentLinkTriggerHandler {
 
             if (!System.isBatch() && !System.isFuture() && !System.isQueueable()) {
                 System.enqueueJob(new S3UploadQueueable(docPairsList));
-            } else {
-                S3UploadAsync.upload(docPairsList);
             }
+            // Skip S3 upload in batch/future/queueable context —
+            // ArchivePostProcessQueueable handles uploads for archive CSVs.
         }
     }
 }

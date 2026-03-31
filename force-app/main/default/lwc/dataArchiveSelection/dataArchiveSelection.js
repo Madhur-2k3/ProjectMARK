@@ -127,15 +127,15 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
         const scheduleData = event.detail;
 
         scheduleArchive({
-            objectName: scheduleData.object,
-            frequency: scheduleData.frequency,
-            dateField: scheduleData.criteria.whereClause || 'FilterCriteria',
-            days: 0,
-            filterValue: scheduleData.criteria.whereClause,
-            preferredTime: scheduleData.preferredTime,
-            dayOfWeek: scheduleData.dayOfWeek,
-            scheduleName: scheduleData.scheduleName,
-            selectedChildObjects: scheduleData.selectedChildObjects
+            objectNameStr: scheduleData.object,
+            frequencyStr: scheduleData.frequency,
+            dateFieldStr: scheduleData.criteria.whereClause || 'FilterCriteria',
+            daysInt: 0,
+            filterValueStr: scheduleData.criteria.whereClause,
+            preferredTimeStr: scheduleData.preferredTime,
+            dayOfWeekStr: scheduleData.dayOfWeek,
+            scheduleNameStr: scheduleData.scheduleName,
+            selectedChildObjectsList: scheduleData.selectedChildObjects
         })
             .then(recordId => {
 

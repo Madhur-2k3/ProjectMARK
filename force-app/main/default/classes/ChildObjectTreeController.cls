@@ -14,6 +14,7 @@ public with sharing class ChildObjectTreeController {
         @AuraEnabled public String objectLabel;
         @AuraEnabled public String relationshipName;
         @AuraEnabled public String lookupField;
+        @AuraEnabled public String relationshipType;
         @AuraEnabled public List<ChildNode> children;
 
         /**
@@ -23,12 +24,13 @@ public with sharing class ChildObjectTreeController {
          * @param relationshipNameStr The relationship name.
          * @param lookupFieldStr The lookup field API name.
          */
-        public ChildNode(String objectApiNameStr, String objectLabelStr, String relationshipNameStr, String lookupFieldStr) {
+        public ChildNode(String objectApiNameStr, String objectLabelStr, String relationshipNameStr, String lookupFieldStr, String relationshipTypeStr) {
 
             this.objectApiName = objectApiNameStr;
             this.objectLabel = objectLabelStr;
             this.relationshipName = relationshipNameStr;
             this.lookupField = lookupFieldStr;
+            this.relationshipType = relationshipTypeStr;
             this.children = new List<ChildNode>();
         }
     }
@@ -86,11 +88,14 @@ public with sharing class ChildObjectTreeController {
 
             if (!childDescribe.isQueryable() || !childDescribe.isAccessible()) continue;
 
+            if (!sObjectsController.isRelevantChildObject(childApiNameStr)) continue;
+
             String childLabelStr = childDescribe.getLabel();
             String relNameStr = childRel.getRelationshipName();
             String lookupFieldStr = childRel.getField().getDescribe().getName();
+            String relTypeStr = childRel.isCascadeDelete() ? 'Master-Detail' : 'Lookup';
 
-            ChildNode node = new ChildNode(childApiNameStr, childLabelStr, relNameStr, lookupFieldStr);
+            ChildNode node = new ChildNode(childApiNameStr, childLabelStr, relNameStr, lookupFieldStr, relTypeStr);
 
             node.children = buildTree(childApiNameStr, maxDepthInt, currentDepthInt + 1, visitedSet);
 

@@ -12,7 +12,7 @@ export default class FieldSelector extends LightningElement {
     requiredFields = [];
 
 
-    @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
+    @wire(getFieldsBySObject, { sObjectApiNameStr: '$selectedObject' })
     wiredFields({ data, error }) {
     if (data) {
 

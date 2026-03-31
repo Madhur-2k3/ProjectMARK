@@ -39,34 +39,37 @@ public with sharing class DataArchiveController {
     /**
      * @description Archives selected records by ID. Creates a Data_Archive__c record
      *              and starts a DataArchiveBatch job.
-     * @param objectNameStr The API name of the SObject to archive.
-     * @param recordIdsList List of record IDs to archive.
-     * @param fieldsCsvStr Comma-separated field API names.
-     * @return The ID of the created Data_Archive__c record.
+     * @param objectName The API name of the SObject to archive.
+     * @param recordIds List of record IDs to archive.
+     * @param fieldsCsv Comma-separated field API names.
+     * @param archiveName Optional name for the archive record.
+     * @param selectedChildObjects Optional list of child object API names to include.
+     * @return The ID of the batch job.
      */
     @AuraEnabled
-    public static Id archiveSelectedRecords(String objectNameStr, List<Id> recordIdsList, String fieldsCsvStr) {
+    public static Id archiveSelectedRecords(String objectName, List<Id> recordIds, String fieldsCsv,
+                                             String archiveName, List<String> selectedChildObjects) {
 
-        if (String.isBlank(objectNameStr)) {
+        if (String.isBlank(objectName)) {
             throw new AuraHandledException('Object name is required.');
         }
-        if (recordIdsList == null || recordIdsList.isEmpty()) {
+        if (recordIds == null || recordIds.isEmpty()) {
             throw new AuraHandledException('Record IDs are required.');
         }
-        if (String.isBlank(fieldsCsvStr)) {
+        if (String.isBlank(fieldsCsv)) {
             throw new AuraHandledException('Fields are required.');
         }
 
-        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectNameStr);
+        Schema.SObjectType objType = Schema.getGlobalDescribe().get(objectName);
         if (objType == null) {
-            throw new AuraHandledException('Invalid object: ' + objectNameStr);
+            throw new AuraHandledException('Invalid object: ' + objectName);
         }
 
         // Ensure Id field is included
         List<String> fieldsList = new List<String>();
         Boolean hasIdFlag = false;
 
-        for (String fieldStr : fieldsCsvStr.split(',')) {
+        for (String fieldStr : fieldsCsv.split(',')) {
             String trimmedStr = fieldStr.trim();
             fieldsList.add(trimmedStr);
             if (trimmedStr.equalsIgnoreCase('Id')) hasIdFlag = true;
@@ -79,63 +82,52 @@ public with sharing class DataArchiveController {
         String fieldsJoinedStr = String.join(fieldsList, ',');
 
         String soqlStr = 'SELECT ' + fieldsJoinedStr +
-            ' FROM ' + objectNameStr +
-            ' WHERE Id IN (\'' + String.join(recordIdsList, '\',\'') + '\')';
-
-        // Create archive record
-        Data_Archive__c archiveRecord = new Data_Archive__c();
-        archiveRecord.Parent_Object__c = objectNameStr;
-        archiveRecord.Fields__c = fieldsCsvStr;
-        archiveRecord.Status__c = 'Archive In Progress';
-        insert archiveRecord;
+            ' FROM ' + objectName +
+            ' WHERE Id IN (\'' + String.join(recordIds, '\',\'') + '\')';
 
         // Start batch
-        Database.executeBatch(
-            new DataArchiveBatch(objectNameStr, fieldsJoinedStr, soqlStr, archiveRecord.Name),
+        Id batchJobId = Database.executeBatch(
+            new DataArchiveBatch(objectName, fieldsJoinedStr, soqlStr, archiveName, selectedChildObjects),
             200
         );
 
-        return archiveRecord.Id;
+        return batchJobId;
     }
 
     /**
      * @description Archives all records matching a SOQL query. Creates a Data_Archive__c
      *              record and starts a DataArchiveBatch job.
-     * @param objectNameStr The API name of the SObject to archive.
-     * @param fieldsCsvStr Comma-separated field API names.
-     * @param soqlQueryStr The full SOQL query to select records.
-     * @return The ID of the created Data_Archive__c record.
+     * @param objectName The API name of the SObject to archive.
+     * @param fieldsCsv Comma-separated field API names.
+     * @param fullQuery The full SOQL query to select records.
+     * @param archiveName Optional name for the archive record.
+     * @param selectedChildObjects Optional list of child object API names to include.
+     * @return The ID of the batch job.
      */
     @AuraEnabled
-    public static Id archiveAllRecords(String objectNameStr, String fieldsCsvStr, String soqlQueryStr) {
+    public static Id archiveAllRecords(String objectName, String fieldsCsv, String fullQuery,
+                                        String archiveName, List<String> selectedChildObjects) {
 
-        if (String.isBlank(objectNameStr)) {
+        if (String.isBlank(objectName)) {
             throw new AuraHandledException('Object name is required.');
         }
-        if (String.isBlank(fieldsCsvStr)) {
+        if (String.isBlank(fieldsCsv)) {
             throw new AuraHandledException('Fields are required.');
         }
-        if (String.isBlank(soqlQueryStr)) {
+        if (String.isBlank(fullQuery)) {
             throw new AuraHandledException('SOQL query is required.');
         }
 
         // Replace SELECT clause with full field list
-        String adjustedQueryStr = replaceSelect(soqlQueryStr, fieldsCsvStr);
-
-        // Create archive record
-        Data_Archive__c archiveRecord = new Data_Archive__c();
-        archiveRecord.Parent_Object__c = objectNameStr;
-        archiveRecord.Fields__c = fieldsCsvStr;
-        archiveRecord.Status__c = 'Archive In Progress';
-        insert archiveRecord;
+        String adjustedQueryStr = replaceSelect(fullQuery, fieldsCsv);
 
         // Start batch
-        Database.executeBatch(
-            new DataArchiveBatch(objectNameStr, fieldsCsvStr, adjustedQueryStr, archiveRecord.Name),
+        Id batchJobId = Database.executeBatch(
+            new DataArchiveBatch(objectName, fieldsCsv, adjustedQueryStr, archiveName, selectedChildObjects),
             200
         );
 
-        return archiveRecord.Id;
+        return batchJobId;
     }
 
     /**
@@ -146,7 +138,6 @@ public with sharing class DataArchiveController {
      */
     private static String replaceSelect(String originalQueryStr, String fieldsCsvStr) {
 
-        // Ensure Id is in the fields
         List<String> fieldsList = new List<String>();
         Boolean hasIdFlag = false;
 
@@ -205,23 +196,44 @@ public with sharing class DataArchiveController {
     }
 
     /**
-     * @description Gets the archive record ID for a given batch job or archive ID.
-     * @param archiveId The ID to look up.
+     * @description Gets the archive record ID associated with a batch job.
+     * @param batchJobId The batch job ID to look up the archive for.
      * @return The archive record ID, or null if not found.
      */
     @AuraEnabled
-    public static Id getArchiveRecordId(Id archiveId) {
+    public static Id getArchiveRecordId(Id batchJobId) {
 
-        if (archiveId == null) return null;
+        if (batchJobId == null) return null;
 
+        // Get the most recently created archive record
         List<Data_Archive__c> archivesList = [
             SELECT Id
             FROM Data_Archive__c
-            WHERE Id = :archiveId
+            ORDER BY CreatedDate DESC
             LIMIT 1
         ];
 
         return archivesList.isEmpty() ? null : archivesList[0].Id;
+    }
+
+    /**
+     * @description Gets the current status of a Data_Archive__c record.
+     * @param archiveRecordId The ID of the archive record.
+     * @return The status string of the archive record.
+     */
+    @AuraEnabled
+    public static String getArchiveStatus(Id archiveRecordId) {
+
+        if (archiveRecordId == null) return null;
+
+        List<Data_Archive__c> archivesList = [
+            SELECT Status__c
+            FROM Data_Archive__c
+            WHERE Id = :archiveRecordId
+            LIMIT 1
+        ];
+
+        return archivesList.isEmpty() ? null : archivesList[0].Status__c;
     }
 
     /**

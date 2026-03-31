@@ -126,8 +126,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
 
     loadActiveSchedules() {
         getActiveSchedulesPaginated({
-            pageSize: PAGE_SIZE,
-            pageNumber: this.allCurrentPage
+            pageSizeInt: PAGE_SIZE,
+            pageNumberInt: this.allCurrentPage
         })
             .then(result => {
                 this.allSchedules = result.records.map(s => ({
@@ -155,9 +155,9 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
         }
 
         getSchedulesForObjectPaginated({
-            objectName: this.selectedObject,
-            pageSize: PAGE_SIZE,
-            pageNumber: this.objCurrentPage
+            objectNameStr: this.selectedObject,
+            pageSizeInt: PAGE_SIZE,
+            pageNumberInt: this.objCurrentPage
         })
             .then(result => {
                 this.objectSchedules = result.records.map(s => ({
@@ -335,7 +335,7 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
         try {
             await updateScheduleStatus({
                 scheduleId: rowId,
-                status: value
+                statusStr: value
             });
 
             this.dispatchEvent(

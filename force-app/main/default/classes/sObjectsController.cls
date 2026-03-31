@@ -6,6 +6,86 @@
 public with sharing class sObjectsController {
 
     /**
+     * @description Set of child object name suffixes that indicate system/internal
+     *              objects which should be excluded from child relationship results.
+     */
+    private static final Set<String> EXCLUDED_SUFFIXES = new Set<String>{
+        'Feed', 'Share', 'History', 'ChangeEvent', 'Tag',
+        'ViewStat', 'VoteStat', 'DataCategorySelection'
+    };
+
+    /**
+     * @description Set of specific child object names to exclude.
+     */
+    private static final Set<String> EXCLUDED_OBJECTS = new Set<String>{
+        // Activity & event system objects
+        'ActivityHistory', 'OpenActivity', 'TaskRelation',
+        'EventRelation', 'EmailMessageRelation',
+
+        // Content & document system objects
+        'ContentDocumentLink', 'EntitySubscription',
+
+        // Feed system objects
+        'FeedComment', 'FeedItem',
+
+        // Topic & flow system objects
+        'TopicAssignment', 'NetworkActivityAudit',
+        'FlowRecordRelation', 'DuplicateRecordItem',
+        'RecordActionHistory', 'RecordAction',
+
+        // Approval & process objects
+        'ApprovalSubmission', 'ApprovalSubmissionDetail',
+        'ProcessInstance', 'ProcessInstanceNode',
+        'ProcessInstanceStep', 'ProcessInstanceHistory',
+        'ProcessInstanceWorkitem',
+
+        // Orchestration objects
+        'OrchestrationWorkItem',
+
+        // Advanced Account Forecast objects
+        'AdvAcctForecastFactAdj', 'AdvAcctForecastSetUse',
+        'AdvAcctForecastFact',
+
+        // Assessment objects
+        'AssessmentTaskContentDocument', 'AssessmentTask',
+
+        // Finance objects
+        'FinanceBalanceSnapshot', 'FinanceTransaction',
+
+        // Engagement objects
+        'EngagementTopic', 'EngagementInteraction',
+
+        // Other platform/system objects
+        'AuthorizationFormConsent', 'ContactRequest',
+        'DigitalSignature', 'DocumentChecklistItem',
+        'LabelAssignment', 'ProcessException',
+        'RecordAlert', 'ActionPlan', 'ActionPlanItem',
+        'ProductItemTransaction', 'ProductRequired',
+        'VisitedParty', 'Visitor'
+    };
+
+    /**
+     * @description Determines whether a child object is a relevant (non-system)
+     *              object worth displaying.
+     * @param childApiName The API name of the child SObject.
+     * @return True if the child object should be included; false if it should be filtered out.
+     */
+    public static Boolean isRelevantChildObject(String childApiName) {
+
+        if (EXCLUDED_OBJECTS.contains(childApiName)) {
+            return false;
+        }
+
+        for (String suffix : EXCLUDED_SUFFIXES) {
+            if (childApiName.endsWith(suffix)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @description Wrapper class for SObject name information.
      */
     public class SObjectInfo {
@@ -114,13 +194,19 @@ public with sharing class sObjectsController {
 
             if (childRel.getRelationshipName() != null && childRel.getChildSObject() != null && childRel.getField() != null) {
 
+                String childApiName = childRel.getChildSObject().getDescribe().getName();
+
+                if (!isRelevantChildObject(childApiName)) {
+                    continue;
+                }
+
                 Schema.DescribeFieldResult fieldDescribe = childRel.getField().getDescribe();
 
                 ChildRelationshipInfo infoRecord = new ChildRelationshipInfo();
-                infoRecord.childObject       = childRel.getChildSObject().getDescribe().getName();
+                infoRecord.childObject       = childApiName;
                 infoRecord.relationshipField = fieldDescribe.getName();
                 infoRecord.relationshipName  = childRel.getRelationshipName();
-                infoRecord.relationshipType  = 'Reference';
+                infoRecord.relationshipType  = childRel.isCascadeDelete() ? 'Master-Detail' : 'Lookup';
 
                 resultsList.add(infoRecord);
             }
@@ -175,6 +261,11 @@ public with sharing class sObjectsController {
             }
 
             String childObjectApiStr   = childDescribe.getName();
+
+            if (!isRelevantChildObject(childObjectApiStr)) {
+                continue;
+            }
+
             String childObjectLabelStr = childDescribe.getLabel();
             String lookupFieldApiStr   = childRel.getField().getDescribe().getName();
 

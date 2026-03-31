@@ -17,7 +17,7 @@ export default class FilterBuilder extends LightningElement {
     batchJobId = null;
     archiveRecordId = null;
     batchPollingInterval = null;
-    static BATCH_SCOPE_SIZE = 2000; 
+    static BATCH_SCOPE_SIZE = 2000;
     @api selectfields = [];
     @api fields = [];
     @api selectobject;
@@ -28,13 +28,13 @@ export default class FilterBuilder extends LightningElement {
     @api conditions;
     @api objectname;
     @api objectlabel;
-    
+
     get mainContainerClass() {
         return this.isLoading
             ? 'slds-p-horizontal_large conditions-builder-container ui-disabled'
             : 'slds-p-horizontal_large conditions-builder-container';
     }
-    
+
     get archiveProgressText() {
         if (this.archiveTotalRecords > 0) {
             return `${this.archiveProcessedRecords.toLocaleString()} / ${this.archiveTotalRecords.toLocaleString()} records processed`;
@@ -462,10 +462,10 @@ export default class FilterBuilder extends LightningElement {
             const offsetValue = (this.currentPage - 1) * Number(this.pageSize);
 
             const result = await getFilteredAccounts({
-                query: this.query,
-                offsetSize: offsetValue,
-                pageSize: this.pageSize,
-                objectName: this.objectname
+                queryStr: this.query,
+                offsetSizeInt: offsetValue,
+                pageSizeInt: this.pageSize,
+                objectNameStr: this.objectname
             });
 
             this.filteredAccounts = result.records;
@@ -573,7 +573,7 @@ export default class FilterBuilder extends LightningElement {
 
     confirmArchive() {
         const treeSelector = this.template.querySelector('c-child-object-tree-selector');
-        
+
         let unselected = [];
         if (treeSelector) {
             unselected = treeSelector.getUnselectedObjects();

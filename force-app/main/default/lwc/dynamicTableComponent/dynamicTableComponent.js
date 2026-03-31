@@ -1,11 +1,14 @@
 import { LightningElement, track, wire } from 'lwc';
-import getDataArchive from '@salesforce/apex/DataArchiveObjectController.getArchivedObject';
+import getDataArchive from '@salesforce/apex/DataArchiveObjectController.getArchivedObjectPaginated';
 
 export default class DynamicTableComponent extends LightningElement {
     @track tableData = [];
     @track columns = [];
 
-    @wire(getDataArchive)
+    pageNumberInt = 1;
+    pageSizeInt = 100;
+
+    @wire(getDataArchive, { pageNumberInt: '$pageNumberInt', pageSizeInt: '$pageSizeInt' })
     wiredDataArchive({ error, data }) {
         if (data) {
             

@@ -32,8 +32,8 @@ export default class UnArchivedData extends LightningElement {
 
     /* ================= LOAD DATA ================= */
     @wire(getArchivedObjectPaginated, {
-        pageNumber: '$currentPage',
-        pageSize: '$pageSize'
+        pageNumberInt: '$currentPage',
+        pageSizeInt: '$pageSize'
     })
     wiredData(result) {
         this.wiredResult = result;
@@ -63,7 +63,7 @@ export default class UnArchivedData extends LightningElement {
         const ids = this.selectedRows.map(r => r.Id);
         this.isButtonDisabled = true;
 
-        unarchiveAsync({ archiveRecordIds: ids })
+        unarchiveAsync({ archiveRecordIdsList: ids })
             .then(msg => {
 
                 //  LONG ASYNC TOAST

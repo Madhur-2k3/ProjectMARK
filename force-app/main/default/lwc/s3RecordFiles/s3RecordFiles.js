@@ -190,7 +190,7 @@ export default class S3RecordFiles extends LightningElement {
         this.loading = true;
         this.error = null;
         try {
-            const result = await listObjectsByPrefix({ prefix: this.recordId });
+            const result = await listObjectsByPrefix({ prefixStr: this.recordId });
             const parsed = JSON.parse(result);
             this.files = parsed.map(item => {
                 const fullKey = item.Key || '';
@@ -317,7 +317,7 @@ export default class S3RecordFiles extends LightningElement {
         try {
             if (CSV_EXTS.has(ext)) {
                 // CSV: fetch with FLS filtering, then parse into table data
-                const content = await getFilteredCsvFromS3({ fileName: fullKey });
+                const content = await getFilteredCsvFromS3({ fileNameStr: fullKey });
                 this._parseCsv(content);
 
                 // Fetch field metadata for filterBuilder
@@ -326,8 +326,8 @@ export default class S3RecordFiles extends LightningElement {
                     if (objName && this.csvHeaders.length > 0) {
                         this.csvObjectName = objName;
                         const meta = await getCsvFieldMetadata({
-                            objectName: objName,
-                            fieldNames: this.csvHeaders
+                            objectNameStr: objName,
+                            fieldNamesList: this.csvHeaders
                         });
                         this.csvFieldMeta = meta || [];
                     }
@@ -337,11 +337,11 @@ export default class S3RecordFiles extends LightningElement {
                 }
             } else if (TEXT_EXTS.has(ext)) {
                 // Text content can use the string-based method
-                const content = await getDataFromS3({ fileName: fullKey });
+                const content = await getDataFromS3({ fileNameStr: fullKey });
                 this.previewTextContent = content;
             } else {
                 // Binary content needs base64
-                const base64Content = await getDataFromS3AsBase64({ fileName: fullKey });
+                const base64Content = await getDataFromS3AsBase64({ fileNameStr: fullKey });
                 this.previewDataUrl = `data:${this.previewMimeType};base64,${base64Content}`;
             }
         } catch (e) {
@@ -729,7 +729,7 @@ export default class S3RecordFiles extends LightningElement {
         this.loading = true;
         this.error = null;
         try {
-            const base64Content = await getDataFromS3AsBase64({ fileName: fullKey });
+            const base64Content = await getDataFromS3AsBase64({ fileNameStr: fullKey });
             const ext = (fileName || '').split('.').pop().toLowerCase();
             const mime = MIME_MAP[ext] || 'application/octet-stream';
             const dataUri = `data:${mime};base64,${base64Content}`;

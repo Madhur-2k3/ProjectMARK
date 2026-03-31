@@ -22,7 +22,7 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
     }
 
     // ── Wire: load fields ──
-    @wire(getFieldsBySObject, { sObjectApiName: '$selectedObject' })
+    @wire(getFieldsBySObject, { sObjectApiNameStr: '$selectedObject' })
     wiredFields({ data, error }) {
         this.isLoading = true;
         if (data) {
