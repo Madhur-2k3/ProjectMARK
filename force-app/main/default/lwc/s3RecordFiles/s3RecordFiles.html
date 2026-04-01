@@ -57,21 +57,8 @@
 
     <!-- Preview Modal -->
     <template if:true={showPreview}>
-        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open slds-modal_large" aria-modal="true"
-            aria-labelledby="preview-modal-heading">
-            <div class="slds-modal__container">
-                <header class="slds-modal__header">
-                    <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
-                        title="Close" onclick={handleClosePreview}>
-                        <lightning-icon icon-name="utility:close" alternative-text="close" size="small"
-                            variant="inverse"></lightning-icon>
-                        <span class="slds-assistive-text">Close</span>
-                    </button>
-                    <h2 id="preview-modal-heading" class="slds-modal__title slds-hyphenate">
-                        {previewFileName}
-                    </h2>
-                </header>
-                <div class="slds-modal__content slds-p-around_medium preview-content">
+        <c-generic-modal modal-title={previewFileName} size="large" onclose={handleClosePreview}>
+
                     <template if:true={previewLoading}>
                         <div class="slds-align_absolute-center slds-p-around_large">
                             <lightning-spinner alternative-text="Loading preview" size="medium"></lightning-spinner>
@@ -221,16 +208,16 @@
                             </div>
                         </template>
                     </template>
-                </div>
-                <footer class="slds-modal__footer">
-                    <lightning-button variant="neutral" label="Close" onclick={handleClosePreview}></lightning-button>
-                    <template if:true={canDownload}>
-                        <lightning-button variant="brand" label="Download" icon-name="utility:download"
-                            onclick={handleDownloadFromPreview} class="slds-m-left_x-small"></lightning-button>
-                    </template>
-                </footer>
+
+            <!-- FOOTER -->
+            <div slot="footer">
+                <lightning-button variant="neutral" label="Close" onclick={handleClosePreview}></lightning-button>
+                <template if:true={canDownload}>
+                    <lightning-button variant="brand" label="Download" icon-name="utility:download"
+                        onclick={handleDownloadFromPreview} class="slds-m-left_x-small"></lightning-button>
+                </template>
             </div>
-        </section>
-        <div class="slds-backdrop slds-backdrop_open"></div>
+
+        </c-generic-modal>
     </template>
 </template>

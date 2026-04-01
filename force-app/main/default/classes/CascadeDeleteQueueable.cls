@@ -7,6 +7,7 @@ public with sharing class CascadeDeleteQueueable implements Queueable, Database.
 
     private String objectNameStr;
     private List<Id> parentIdsList;
+    private Id archiveRecordId;
 
     /**
      * @description Constructs a new CascadeDeleteQueueable instance.
@@ -17,6 +18,20 @@ public with sharing class CascadeDeleteQueueable implements Queueable, Database.
 
         this.objectNameStr = objectNameStr;
         this.parentIdsList = parentIdsList;
+    }
+
+    /**
+     * @description Constructs a CascadeDeleteQueueable that also updates an archive record
+     *              status to 'Completed' when the batch finishes.
+     * @param objectNameStr API name of the object whose records should be deleted.
+     * @param parentIdsList List of parent record IDs to delete along with children.
+     * @param archiveRecordId The Data_Archive__c record ID to mark as Completed.
+     */
+    public CascadeDeleteQueueable(String objectNameStr, List<Id> parentIdsList, Id archiveRecordId) {
+
+        this.objectNameStr = objectNameStr;
+        this.parentIdsList = parentIdsList;
+        this.archiveRecordId = archiveRecordId;
     }
 
     /**
@@ -69,6 +84,18 @@ public with sharing class CascadeDeleteQueueable implements Queueable, Database.
     public void finish(Database.BatchableContext batchContext) {
 
         System.debug('CascadeDeleteQueueable batch finished for: ' + objectNameStr);
+
+        if (archiveRecordId != null) {
+            try {
+                update new Data_Archive__c(
+                    Id        = archiveRecordId,
+                    Status__c = 'Completed'
+                );
+                System.debug('Archive record updated to Completed: ' + archiveRecordId);
+            } catch (Exception ex) {
+                System.debug('Failed to update archive status: ' + ex.getMessage());
+            }
+        }
     }
 
     // =====================================================

@@ -1,0 +1,48 @@
+<template>
+    <section role="dialog" tabindex="-1" aria-modal="true"
+             aria-labelledby="generic-modal-heading"
+             class={modalSectionClass}>
+        <div class={modalContainerClass}>
+
+            <!-- HEADER -->
+            <header class={headerClass}>
+                <template if:false={hideClose}>
+                    <button class={closeButtonClass} title="Close" onclick={handleClose}>
+                        <lightning-icon icon-name="utility:close" alternative-text="Close"
+                                       size="small" variant={closeIconVariant}></lightning-icon>
+                    </button>
+                </template>
+
+                <div class={headerContentClass}>
+                    <template if:true={iconName}>
+                        <lightning-icon icon-name={iconName} size="small"
+                                       class="slds-m-right_small header-icon"></lightning-icon>
+                    </template>
+                    <div>
+                        <h2 id="generic-modal-heading" class={titleClass}>
+                            {modalTitle}
+                        </h2>
+                        <template if:true={subtitle}>
+                            <p class={subtitleClass}>{subtitle}</p>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Optional header-extra slot for step progress, badges, etc. -->
+                <slot name="header-extra"></slot>
+            </header>
+
+            <!-- BODY -->
+            <div class={bodyClass}>
+                <slot></slot>
+            </div>
+
+            <!-- FOOTER -->
+            <footer class={footerClass}>
+                <slot name="footer"></slot>
+            </footer>
+
+        </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+</template>

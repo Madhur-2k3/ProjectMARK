@@ -767,11 +767,16 @@ export default class FilterBuilder extends LightningElement {
     }
 
     async waitForArchiveComplete(archiveId) {
-        const maxRetries = 20;
-        const delayMs = 3000;
-        this.archiveProgressMessage = 'Finalizing delete process...';
+        const maxRetries = 100;
+        this.archiveProgressMessage = 'Uploading to S3 & cleaning up records...';
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            // Progressive backoff: 3s → 5s → 10s
+            let delayMs;
+            if (attempt <= 20)      delayMs = 3000;
+            else if (attempt <= 60) delayMs = 5000;
+            else                    delayMs = 10000;
+
             // eslint-disable-next-line @lwc/lwc/no-async-operation
             await new Promise(resolve => setTimeout(resolve, delayMs));
 
@@ -780,15 +785,24 @@ export default class FilterBuilder extends LightningElement {
                 console.log(`Archive status poll attempt ${attempt}: ${status}`);
 
                 if (status === 'Completed') {
-                    this.archiveProgressMessage = 'Archive completed.';
+                    this.archiveProgressMessage = 'Archive completed successfully.';
                     return;
+                }
+
+                // Update progress message based on current status
+                if (attempt <= 20) {
+                    this.archiveProgressMessage = 'Uploading encrypted files to S3...';
+                } else {
+                    this.archiveProgressMessage = 'Deleting original records... (this may take a few minutes for large datasets)';
                 }
             } catch (error) {
                 console.error('Error polling archive status:', error);
             }
         }
 
-        console.log('Max retries reached waiting for archive completion');
+        this.archiveProgressMessage = 'Archive processing is still running in the background.';
+        console.log('Max retries reached — archive processing continues in background');
+        this.showToast('Info', 'Archive is still processing in the background. Check the archive record for final status.', 'info');
     }
 
     // =====================================================

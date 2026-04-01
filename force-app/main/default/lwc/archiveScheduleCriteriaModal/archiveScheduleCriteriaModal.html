@@ -1,45 +1,33 @@
 <template>
-    <section class="slds-modal slds-fade-in-open">
-        <div class="slds-modal__container slds-modal__container_large">
+    <c-generic-modal modal-title="Define Schedule Criteria"
+                     size="large" footer-directional onclose={handleClose}>
 
-            <header class="slds-modal__header">
-                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleClose}>
-                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
-                </button>
-                <h2 class="slds-modal__title">Define Schedule Criteria</h2>
-            </header>
+        <!-- Schedule Name Input -->
+        <lightning-input label="Data Archive Schedule Name" type="text" value={scheduleName} maxlength="80"
+            required placeholder="Enter a name for the schedule" onchange={handleNameChange}
+            class="slds-m-bottom_medium">
+        </lightning-input>
 
-            <div class="slds-modal__content slds-p-around_medium">
-
-                <!-- Schedule Name Input -->
-                <lightning-input label="Data Archive Schedule Name" type="text" value={scheduleName} maxlength="80"
-                    required placeholder="Enter a name for the schedule" onchange={handleNameChange}
-                    class="slds-m-bottom_medium">
-                </lightning-input>
-
-                <!-- Loading spinner -->
-                <template if:true={isLoading}>
-                    <div class="slds-align_absolute-center slds-p-around_large">
-                        <lightning-spinner alternative-text="Loading..." size="small"></lightning-spinner>
-                    </div>
-                </template>
-
-                <template if:false={isLoading}>
-                    <c-filter-builder criteria-only fields={fieldsData} onwherechange={handleWhereClauseChange}>
-                    </c-filter-builder>
-                </template>
-
+        <!-- Loading spinner -->
+        <template if:true={isLoading}>
+            <div class="slds-align_absolute-center slds-p-around_large">
+                <lightning-spinner alternative-text="Loading..." size="small"></lightning-spinner>
             </div>
+        </template>
 
-            <footer class="slds-modal__footer slds-modal__footer_directional">
-                <lightning-button label="Previous" variant="neutral" icon-name="utility:back" onclick={handlePrevious}
-                    class="slds-m-right_x-small">
-                </lightning-button>
-                <lightning-button label="Next" variant="brand" onclick={handleNext} disabled={isNextDisabled}>
-                </lightning-button>
-            </footer>
+        <template if:false={isLoading}>
+            <c-filter-builder criteria-only fields={fieldsData} onwherechange={handleWhereClauseChange}>
+            </c-filter-builder>
+        </template>
 
+        <!-- FOOTER -->
+        <div slot="footer">
+            <lightning-button label="Previous" variant="neutral" icon-name="utility:back" onclick={handlePrevious}
+                class="slds-m-right_x-small">
+            </lightning-button>
+            <lightning-button label="Next" variant="brand" onclick={handleNext} disabled={isNextDisabled}>
+            </lightning-button>
         </div>
-    </section>
-    <div class="slds-backdrop slds-backdrop_open"></div>
+
+    </c-generic-modal>
 </template>

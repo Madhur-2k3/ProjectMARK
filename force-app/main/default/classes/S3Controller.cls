@@ -287,7 +287,29 @@ public with sharing class S3Controller {
 
         Map<String, Schema.SObjectField> fieldMap = objType.getDescribe().fields.getMap();
 
-        List<String> linesList = rawCsvStr.split('\n');
+        // Split lines WITHOUT regex to avoid "Regex too complicated" on large CSVs
+        List<String> linesList = new List<String>();
+        Integer startIdx = 0;
+        Integer newlineIdx = rawCsvStr.indexOf('\n', startIdx);
+
+        while (newlineIdx >= 0) {
+            String lineStr = rawCsvStr.substring(startIdx, newlineIdx);
+            // Strip trailing \r (Windows-style \r\n)
+            if (lineStr.endsWith('\r')) {
+                lineStr = lineStr.substring(0, lineStr.length() - 1);
+            }
+            linesList.add(lineStr);
+            startIdx = newlineIdx + 1;
+            newlineIdx = rawCsvStr.indexOf('\n', startIdx);
+        }
+        // Handle last line (no trailing newline)
+        if (startIdx < rawCsvStr.length()) {
+            String lastLine = rawCsvStr.substring(startIdx);
+            if (lastLine.endsWith('\r')) {
+                lastLine = lastLine.substring(0, lastLine.length() - 1);
+            }
+            linesList.add(lastLine);
+        }
 
         if (linesList.isEmpty()) {
             return rawCsvStr;

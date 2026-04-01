@@ -700,7 +700,32 @@ export default class S3RecordFiles extends LightningElement {
      * Handles quoted fields containing commas.
      */
     _parseCsv(content) {
-        const lines = content.split(/\r?\n/).filter(line => line.trim() !== '');
+        // Split lines WITHOUT regex to avoid "Regex too complicated" on large CSVs.
+        // Manual split handles both \r\n and \n line endings.
+        const lines = [];
+        let start = 0;
+        for (let i = 0; i < content.length; i++) {
+            if (content[i] === '\n') {
+                let lineEnd = i;
+                // Strip trailing \r if present (Windows-style \r\n)
+                if (lineEnd > start && content[lineEnd - 1] === '\r') {
+                    lineEnd--;
+                }
+                const line = content.substring(start, lineEnd);
+                if (line.length > 0) {
+                    lines.push(line);
+                }
+                start = i + 1;
+            }
+        }
+        // Handle last line (no trailing newline)
+        if (start < content.length) {
+            const lastLine = content.substring(start);
+            if (lastLine.trim().length > 0) {
+                lines.push(lastLine);
+            }
+        }
+
         if (lines.length === 0) {
             this.csvHeaders = [];
             this.csvRows = [];

@@ -102,24 +102,16 @@ public class DataArchiveChildBatch implements Database.Batchable<String>, Databa
             Status__c = 'Ready for Unarchive'
         );
 
-        if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
-            System.enqueueJob(new ArchivePostProcessQueueable(
+        Database.executeBatch(
+            new ArchivePostProcessQueueable(
                 contentDocumentIdsList,
                 archiveRecordId,
                 rootObjectNameStr,
                 processedParentIdsList
-            ));
-            System.debug('ArchivePostProcessQueueable enqueued');
-        } else {
-            System.debug('Queueable limit reached — running deletion inline');
-            if (!processedParentIdsList.isEmpty()) {
-                CascadeDeleteHelper.deleteParentWithRelations(rootObjectNameStr, processedParentIdsList);
-            }
-            update new Data_Archive__c(
-                Id        = archiveRecordId,
-                Status__c = 'Completed'
-            );
-        }
+            ),
+            1
+        );
+        System.debug('ArchivePostProcessQueueable batch started');
     }
 
     /**
