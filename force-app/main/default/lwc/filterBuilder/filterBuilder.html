@@ -421,4 +421,89 @@
         </div>
     </template>
 
+    <!-- ═══════════════════════════════════════════════════
+         RECORD COUNT CONFIRMATION POPUP
+         ═══════════════════════════════════════════════════ -->
+    <template if:true={showRecordCountPopup}>
+        <div class="warning-overlay">
+            <div class="warning-card record-count-card">
+
+                <!-- Header -->
+                <div class="record-count-header">
+                    <lightning-icon icon-name="utility:database" size="medium"
+                        class="record-count-icon">
+                    </lightning-icon>
+                    <h2 class="warning-title">Record Count</h2>
+                </div>
+
+                <!-- Body -->
+                <div class="warning-body">
+                    <template if:true={recordCountLoading}>
+                        <div class="record-count-loading">
+                            <lightning-spinner alternative-text="Counting records..." size="small">
+                            </lightning-spinner>
+                            <p class="record-count-loading-text">Counting records...</p>
+                        </div>
+                    </template>
+
+                    <template if:false={recordCountLoading}>
+                        <div class="record-count-display">
+                            <div class="record-count-badge-large">
+                                <lightning-icon icon-name="utility:record" size="xx-small"
+                                    class="slds-m-right_xx-small">
+                                </lightning-icon>
+                                <span><strong>{formattedRecordCount}</strong> records found</span>
+                            </div>
+                        </div>
+
+                        <template if:true={recordCountExceedsLimit}>
+                            <div class="record-count-warning-callout">
+                                <lightning-icon icon-name="utility:warning" size="x-small"
+                                    class="record-count-warning-icon">
+                                </lightning-icon>
+                                <p class="record-count-warning-text">
+                                    This object has more than <strong>{recordCountLimitFormatted}</strong> records.
+                                    Displaying them in a data table is not recommended as it may cause performance issues.
+                                    You can archive all records directly instead.
+                                </p>
+                            </div>
+                        </template>
+
+                        <template if:false={recordCountExceedsLimit}>
+                            <div class="record-count-info-callout">
+                                <lightning-icon icon-name="utility:info" size="x-small"
+                                    class="info-icon">
+                                </lightning-icon>
+                                <p class="info-text">
+                                    You can view these records in a data table or archive them directly.
+                                </p>
+                            </div>
+                        </template>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <div class="warning-footer">
+                    <template if:false={recordCountLoading}>
+                        <lightning-button label="Cancel" variant="neutral"
+                            onclick={handleRecordCountCancel}
+                            class="slds-m-right_x-small">
+                        </lightning-button>
+                        <lightning-button label="Show Data Table" variant="brand"
+                            icon-name="utility:table"
+                            onclick={handleRecordCountShowTable}
+                            disabled={recordCountExceedsLimit}
+                            class="slds-m-right_x-small">
+                        </lightning-button>
+                        <lightning-button label="Archive All" variant="brand"
+                            icon-name="utility:archive"
+                            onclick={handleRecordCountArchiveDirectly}>
+                        </lightning-button>
+                    </template>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
 </template>

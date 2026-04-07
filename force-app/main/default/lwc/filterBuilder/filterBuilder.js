@@ -1,6 +1,7 @@
 import { LightningElement, api, track, wire } from 'lwc';
 import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import getFilteredAccounts from '@salesforce/apex/objectDataHandler.getFilteredAccounts';
+import getRecordCount from '@salesforce/apex/objectDataHandler.getRecordCount';
 import archiveSelectedRecords from '@salesforce/apex/DataArchiveController.archiveSelectedRecords';
 import archiveAllRecords from '@salesforce/apex/DataArchiveController.archiveAllRecords';
 import getBatchStatus from '@salesforce/apex/DataArchiveController.getBatchStatus';
@@ -17,7 +18,8 @@ export default class FilterBuilder extends LightningElement {
     batchJobId = null;
     archiveRecordId = null;
     batchPollingInterval = null;
-    static BATCH_SCOPE_SIZE = 2000; 
+    static BATCH_SCOPE_SIZE = 2000;
+    static DATA_TABLE_LIMIT = 50000;
     @api selectfields = [];
     @api fields = [];
     @api selectobject;
@@ -69,6 +71,23 @@ export default class FilterBuilder extends LightningElement {
     @track showWarningPopup = false;
     @track unselectedObjects = [];
     @track unselectedCount = 0;
+
+    // Record count confirmation popup state
+    @track showRecordCountPopup = false;
+    @track recordCountValue = 0;
+    @track recordCountLoading = false;
+
+    get recordCountExceedsLimit() {
+        return this.recordCountValue > FilterBuilder.DATA_TABLE_LIMIT;
+    }
+
+    get formattedRecordCount() {
+        return this.recordCountValue.toLocaleString();
+    }
+
+    get recordCountLimitFormatted() {
+        return FilterBuilder.DATA_TABLE_LIMIT.toLocaleString();
+    }
 
     closeTable() {
         this.showTable = false;
@@ -428,11 +447,47 @@ export default class FilterBuilder extends LightningElement {
             return;
         }
 
+        // Both modes now show the record count confirmation popup
+        this.fetchRecordCountAndConfirm();
+    }
+
+    async fetchRecordCountAndConfirm() {
+        this.recordCountLoading = true;
+        this.showRecordCountPopup = true;
+        try {
+            const conditions = this.isFilterMode ? (this.whereClause || '') : '';
+            const count = await getRecordCount({
+                objectName: this.objectname,
+                conditions: conditions
+            });
+            this.recordCountValue = count;
+        } catch (error) {
+            console.error('Error fetching record count:', error);
+            this.showRecordCountPopup = false;
+            this.showToast('Error', 'Failed to fetch record count.', 'error');
+        } finally {
+            this.recordCountLoading = false;
+        }
+    }
+
+    handleRecordCountShowTable() {
+        this.showRecordCountPopup = false;
         this.filteredAccounts = null;
         this.currentPage = 1;
         this.showTable = true;
         this.showNoRecords = false;
         this.loadRecords();
+    }
+
+    handleRecordCountArchiveDirectly() {
+        this.showRecordCountPopup = false;
+        this.showModal = true;
+        this.modalMessage = `Are you sure you want to archive all ${this.formattedRecordCount} records?`;
+        this.note = 'All records will be archived. This process runs in the background.';
+    }
+
+    handleRecordCountCancel() {
+        this.showRecordCountPopup = false;
     }
 
     handleNext() {

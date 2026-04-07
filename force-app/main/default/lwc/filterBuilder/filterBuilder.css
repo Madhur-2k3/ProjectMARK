@@ -730,3 +730,115 @@
         opacity: 1;
     }
 }
+
+/* ═══════════════════════════════════════════════════════
+   RECORD COUNT CONFIRMATION POPUP
+   ═══════════════════════════════════════════════════════ */
+
+.record-count-card {
+    width: 480px;
+    border-top: 4px solid #0176d3;
+}
+
+.record-count-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid #e8ecf1;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e3f1fc 100%);
+}
+
+.record-count-icon {
+    flex-shrink: 0;
+    --sds-c-icon-color-foreground-default: #0176d3;
+}
+
+/* Loading state */
+.record-count-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 0;
+    gap: 16px;
+    position: relative;
+    min-height: 80px;
+}
+
+.record-count-loading-text {
+    font-size: 14px;
+    color: #706e6b;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Count display */
+.record-count-display {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.record-count-badge-large {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #e8f4fd 0%, #d4ecfb 100%);
+    border: 1px solid #0176d3;
+    border-radius: 24px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #0b5cab;
+    box-shadow: 0 2px 8px rgba(1, 118, 211, 0.12);
+}
+
+.record-count-badge-large strong {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0176d3;
+}
+
+/* Warning callout (when exceeds limit) */
+.record-count-warning-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fff8e6;
+    border: 1px solid #f0c355;
+    border-left: 4px solid #e8a409;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 4px;
+}
+
+.record-count-warning-icon {
+    flex-shrink: 0;
+    --sds-c-icon-color-foreground-default: #e8a409;
+    margin-top: 1px;
+}
+
+.record-count-warning-text {
+    font-size: 13px;
+    color: #7e6514;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.record-count-warning-text strong {
+    color: #5a4a10;
+}
+
+/* Info callout (normal count) */
+.record-count-info-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #eaf4fd;
+    border: 1px solid #b4d6f0;
+    border-left: 4px solid #0176d3;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 4px;
+}
