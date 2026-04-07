@@ -756,8 +756,11 @@ export default class FilterBuilder extends LightningElement {
                 // finishes deletion and sets it to 'Completed'
                 await this.waitForArchiveComplete(archiveId);
 
+                this.archiveProgressMessage = 'Refreshing data...';
                 this.dispatchEvent(new CustomEvent('refreshdata'));
-                this.loadRecords();
+
+                // Await loadRecords so spinner stays until the table is refreshed
+                await this.loadRecords();
             }
         } catch (error) {
             console.error('Error getting archive record:', error);

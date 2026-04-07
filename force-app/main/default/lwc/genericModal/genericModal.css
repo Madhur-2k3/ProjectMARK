@@ -1,0 +1,74 @@
+/* =====================================================
+   GENERIC MODAL — Reusable Modal Shell Styles
+===================================================== */
+.headerClass{
+    background-color: #0176d3;
+    color: white;
+}
+/* ── Header Content Layout ── */
+.gm-header-content {
+    display: flex;
+    align-items: center;
+}
+
+.gm-header-content.gm-no-icon {
+    display: block;
+}
+
+/* ── Brand Header (Blue Gradient) ── */
+.gm-header-brand {
+    background: linear-gradient(135deg, #0176d3 0%, #4BA3E3 100%) !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.gm-header-brand .slds-modal__close {
+    --sds-c-icon-color-foreground-default: #fff;
+    color: #fff;
+}
+
+/* ── Warning Header ── */
+.gm-header-warning {
+    background: linear-gradient(135deg, #fe9339 0%, #ffb75d 100%) !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.gm-header-warning .slds-modal__close {
+    --sds-c-icon-color-foreground-default: #fff;
+    color: #fff;
+}
+
+/* ── Inverse Header (Dark) ── */
+.gm-header-inverse {
+    background: linear-gradient(135deg, #1b2431 0%, #2b3a52 100%) !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
+}
+
+.gm-header-inverse .slds-modal__close {
+    --sds-c-icon-color-foreground-default: #fff;
+    color: #fff;
+}
+
+/* ── Light Title & Subtitle (for brand / inverse / warning) ── */
+.gm-title-light {
+    color: #ffffff !important;
+    font-weight: 700;
+    font-size: 1.125rem;
+}
+
+.gm-subtitle {
+    font-size: 0.8125rem;
+    color: #706e6b;
+    margin-top: 2px;
+}
+
+.gm-subtitle-light {
+    color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ── Header Icon ── */
+.header-icon {
+    --sds-c-icon-color-foreground-default: #fff;
+}

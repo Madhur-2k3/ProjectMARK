@@ -20,24 +20,22 @@
 
             <div class="slds-modal__content slds-p-around_medium">
 
-                <c-child-object-tree-selector
-                    object-name={selectedObject}
-                    onselectionchange={handleSelectionChange}>
+                <c-child-object-tree-selector object-name={selectedObject} onselectionchange={handleSelectionChange}>
                 </c-child-object-tree-selector>
 
             </div>
 
             <footer class="slds-modal__footer slds-modal__footer_directional">
-                <lightning-button label="Previous" variant="neutral" icon-name="utility:back"
-                    onclick={handlePrevious} class="slds-m-right_x-small">
+                <lightning-button label="Previous" variant="neutral" icon-name="utility:back" onclick={handlePrevious}
+                    class="slds-m-right_x-small">
                 </lightning-button>
 
                 <div>
-                    <lightning-button label="Skip (Archive All Children)" variant="neutral"
-                        onclick={handleSkip} class="slds-m-right_x-small">
+                    <lightning-button label="Skip (Archive All Children)" variant="neutral" onclick={handleSkip}
+                        class="slds-m-right_x-small">
                     </lightning-button>
-                    <lightning-button label="Next" variant="brand" icon-name="utility:forward"
-                        icon-position="right" onclick={handleNext}>
+                    <lightning-button label="Next" variant="brand" icon-name="utility:forward" icon-position="right"
+                        onclick={handleNext}>
                     </lightning-button>
                 </div>
             </footer>
@@ -56,8 +54,7 @@
 
                 <!-- Warning Header -->
                 <div class="warning-header">
-                    <lightning-icon icon-name="utility:warning" variant="warning" size="medium"
-                        class="warning-icon">
+                    <lightning-icon icon-name="utility:warning" variant="warning" size="medium" class="warning-icon">
                     </lightning-icon>
                     <h2 class="warning-title">Warning: Unselected objects will be permanently deleted</h2>
                 </div>
@@ -93,13 +90,11 @@
 
                 <!-- Warning Footer -->
                 <div class="warning-footer">
-                    <lightning-button label="Go Back" variant="neutral"
-                        icon-name="utility:back" onclick={handleWarningCancel}
-                        class="slds-m-right_x-small">
+                    <lightning-button label="Go Back" variant="neutral" icon-name="utility:back"
+                        onclick={handleWarningCancel} class="slds-m-right_x-small">
                     </lightning-button>
-                    <lightning-button label="I Understand, Proceed" variant="destructive"
-                        icon-name="utility:check" icon-position="left"
-                        onclick={handleWarningConfirm}>
+                    <lightning-button label="I Understand, Proceed" variant="brand" icon-name="utility:check"
+                        icon-position="left" onclick={handleWarningConfirm}>
                     </lightning-button>
                 </div>
 

@@ -1,36 +1,46 @@
+/**
+ * @description Tests for S3UploadQueueable.
+ */
 @IsTest
 private class S3UploadQueueableTest {
 
+    /**
+     * @description Mock HTTP callout for S3 upload.
+     */
     private class S3HttpMock implements HttpCalloutMock {
-        public HttpResponse respond(HttpRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setStatusCode(200);
-            res.setStatus('OK');
-            res.setBody('');
-            return res;
+
+        public HttpResponse respond(HttpRequest myRequest) {
+
+            HttpResponse myResponse = new HttpResponse();
+            myResponse.setStatusCode(200);
+            myResponse.setStatus('OK');
+            myResponse.setBody('');
+            return myResponse;
         }
     }
 
     @IsTest
     static void testExecute_WithValidPairs() {
-        ContentVersion cv = new ContentVersion(
+
+        ContentVersion myContentVersion = new ContentVersion(
             Title = 'QueueableTestFile',
             PathOnClient = 'QueueableTestFile.csv',
             VersionData = Blob.valueOf('Id,Name\n001xx000003GYQQ,Test')
         );
-        insert cv;
-        cv = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+        insert myContentVersion;
 
-        Account acc = new Account(Name = 'Test Queueable Account');
-        insert acc;
+        myContentVersion = [SELECT Id, ContentDocumentId FROM ContentVersion WHERE Id = :myContentVersion.Id];
 
-        List<String> docPairs = new List<String>{
-            cv.ContentDocumentId + '|' + acc.Id
+        Account myAccount = new Account(Name = 'Test Queueable Account');
+        insert myAccount;
+
+        List<String> myDocPairsList = new List<String>{
+            myContentVersion.ContentDocumentId + '|' + myAccount.Id
         };
 
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
-        System.enqueueJob(new S3UploadQueueable(docPairs));
+        System.enqueueJob(new S3UploadQueueable(myDocPairsList));
         Test.stopTest();
 
         System.assert(true, 'Queueable executed without errors');
@@ -38,6 +48,7 @@ private class S3UploadQueueableTest {
 
     @IsTest
     static void testExecute_WithEmptyPairs() {
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
         System.enqueueJob(new S3UploadQueueable(new List<String>()));
@@ -47,6 +58,7 @@ private class S3UploadQueueableTest {
 
     @IsTest
     static void testExecute_WithNullPairs() {
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
         System.enqueueJob(new S3UploadQueueable(null));
@@ -56,14 +68,16 @@ private class S3UploadQueueableTest {
 
     @IsTest
     static void testExecute_WithInvalidPairs() {
-        List<String> badPairs = new List<String>{
+
+        List<String> myBadPairsList = new List<String>{
             'not-valid',
             '',
             'abc|def'
         };
+
         Test.setMock(HttpCalloutMock.class, new S3HttpMock());
         Test.startTest();
-        System.enqueueJob(new S3UploadQueueable(badPairs));
+        System.enqueueJob(new S3UploadQueueable(myBadPairsList));
         Test.stopTest();
         System.assert(true, 'Invalid pairs handled gracefully');
     }

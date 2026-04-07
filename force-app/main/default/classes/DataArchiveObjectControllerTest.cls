@@ -1,61 +1,66 @@
+/**
+ * @description Tests for DataArchiveObjectController.
+ */
 @IsTest
 private class DataArchiveObjectControllerTest {
 
     @TestSetup
     static void setup() {
 
-        Data_Archive__c da = new Data_Archive__c(
+        Data_Archive__c myArchiveRecord = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c = 'Name',
             Status__c = 'Ready for Unarchive'
         );
-        insert da;
+        insert myArchiveRecord;
 
-        ContentVersion cv = new ContentVersion(
-            Title = da.Name,
-            PathOnClient = da.Name + '.csv',
+        ContentVersion myContentVersion = new ContentVersion(
+            Title = myArchiveRecord.Name,
+            PathOnClient = myArchiveRecord.Name + '.csv',
             VersionData = Blob.valueOf('Name\nTest')
         );
-        insert cv;
+        insert myContentVersion;
 
-        cv = [
+        myContentVersion = [
             SELECT ContentDocumentId
             FROM ContentVersion
-            WHERE Id = :cv.Id
+            WHERE Id = :myContentVersion.Id
         ];
 
         insert new ContentDocumentLink(
-            ContentDocumentId = cv.ContentDocumentId,
-            LinkedEntityId = da.Id,
+            ContentDocumentId = myContentVersion.ContentDocumentId,
+            LinkedEntityId = myArchiveRecord.Id,
             ShareType = 'V',
             Visibility = 'AllUsers'
         );
     }
 
-
     @IsTest
     static void testUnarchiveAsync_NoSelection() {
-        String msg =
+
+        String myMessageStr =
             DataArchiveObjectController.unarchiveAsync(new List<Id>());
-        System.assertEquals('No records selected', msg);
+        System.assertEquals('No records selected', myMessageStr);
     }
 
     @IsTest
     static void testUnarchiveAsync_NullInput() {
-        String msg = DataArchiveObjectController.unarchiveAsync(null);
-        System.assertEquals('No records selected', msg);
+
+        String myMessageStr = DataArchiveObjectController.unarchiveAsync(null);
+        System.assertEquals('No records selected', myMessageStr);
     }
 
     @IsTest
     static void testGetArchivedObjectPaginated() {
+
         Test.startTest();
-        DataArchiveObjectController.ArchiveWrapper result = 
+        DataArchiveObjectController.ArchiveWrapper myResult =
             DataArchiveObjectController.getArchivedObjectPaginated(1, 5);
         Test.stopTest();
 
-        System.assertNotEquals(null, result, 'Result should not be null');
-        System.assertNotEquals(null, result.columns, 'Columns should not be null');
-        System.assertNotEquals(null, result.data, 'Data should not be null');
-        System.assertNotEquals(null, result.totalRecords, 'Total records should not be null');
+        System.assertNotEquals(null, myResult, 'Result should not be null');
+        System.assertNotEquals(null, myResult.columns, 'Columns should not be null');
+        System.assertNotEquals(null, myResult.data, 'Data should not be null');
+        System.assertNotEquals(null, myResult.totalRecords, 'Total records should not be null');
     }
 }

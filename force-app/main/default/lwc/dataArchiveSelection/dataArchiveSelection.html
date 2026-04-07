@@ -92,10 +92,17 @@
 
     <!-- STEP 4: FREQUENCY MODAL (FINAL) -->
     <template if:true={showScheduleModal}>
-        <c-archive-schedule-frequency-modal selected-object={selectedObject} selected-criteria={selectedCriteria}
-            schedule-name={scheduleName} selected-child-objects={selectedChildObjects}
+        <c-archive-schedule-frequency-modal
+            selected-object={selectedObject}
+            selected-criteria={selectedCriteria}
+            schedule-name={scheduleName}
+            selected-child-objects={selectedChildObjects}
+            criteria-mode={criteriaMode}
+            date-field={dateField}
+            days-value={daysValue}
             onschedulecomplete={handleScheduleComplete}
-            onprevious={handleFrequencyPrevious} onclose={closeAllModals}>
+            onprevious={handleFrequencyPrevious}
+            onclose={closeAllModals}>
         </c-archive-schedule-frequency-modal>
     </template>
 

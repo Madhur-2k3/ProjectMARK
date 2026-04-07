@@ -17,6 +17,17 @@
                     class="slds-m-bottom_medium">
                 </lightning-input>
 
+                <!-- ─── Criteria Mode Toggle ─── -->
+                <div class="criteria-mode-toggle slds-m-bottom_medium">
+                    <lightning-radio-group
+                        label="Filter Mode"
+                        options={criteriaModeOptions}
+                        value={criteriaMode}
+                        onchange={handleModeChange}
+                        type="button">
+                    </lightning-radio-group>
+                </div>
+
                 <!-- Loading spinner -->
                 <template if:true={isLoading}>
                     <div class="slds-align_absolute-center slds-p-around_large">
@@ -25,8 +36,62 @@
                 </template>
 
                 <template if:false={isLoading}>
-                    <c-filter-builder criteria-only fields={fieldsData} onwherechange={handleWhereClauseChange}>
-                    </c-filter-builder>
+
+                    <!-- ─── DAYS-BASED FILTER MODE ─── -->
+                    <template if:true={isDaysMode}>
+                        <div class="days-filter-section">
+
+                            <div class="slds-text-body_regular slds-m-bottom_small days-description">
+                                <lightning-icon icon-name="utility:info" size="xx-small"
+                                    class="slds-m-right_xx-small"></lightning-icon>
+                                Archive records where the selected date field is older than the specified number of days.
+                            </div>
+
+                            <div class="days-inputs-row">
+                                <!-- Date Field Combobox -->
+                                <div class="days-input-field">
+                                    <lightning-combobox
+                                        label="Date Field"
+                                        placeholder="Select a date field..."
+                                        options={dateFieldOptions}
+                                        value={selectedDateField}
+                                        onchange={handleDateFieldChange}
+                                        required>
+                                    </lightning-combobox>
+                                </div>
+
+                                <!-- Days Input -->
+                                <div class="days-input-number">
+                                    <lightning-input
+                                        type="number"
+                                        label="Older Than (Days)"
+                                        placeholder="e.g. 90"
+                                        value={daysValue}
+                                        min="1"
+                                        onchange={handleDaysChange}
+                                        required>
+                                    </lightning-input>
+                                </div>
+                            </div>
+
+                            <!-- Summary Preview -->
+                            <template if:true={hasDaysSummary}>
+                                <div class="days-summary slds-m-top_medium slds-box slds-theme_shade">
+                                    <lightning-icon icon-name="utility:filterList" size="x-small"
+                                        class="slds-m-right_x-small"></lightning-icon>
+                                    <span class="summary-text">{daysSummary}</span>
+                                </div>
+                            </template>
+
+                        </div>
+                    </template>
+
+                    <!-- ─── ADVANCED FILTER MODE ─── -->
+                    <template if:true={isAdvancedMode}>
+                        <c-filter-builder criteria-only fields={fieldsData} onwherechange={handleWhereClauseChange}>
+                        </c-filter-builder>
+                    </template>
+
                 </template>
 
             </div>

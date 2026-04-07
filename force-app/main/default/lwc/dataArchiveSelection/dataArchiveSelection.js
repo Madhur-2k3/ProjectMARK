@@ -25,6 +25,11 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     scheduleName;
     selectedChildObjects;
 
+    // Days-based criteria fields
+    criteriaMode;
+    dateField;
+    daysValue;
+
     get archiveClass() {
         return this.booleanFlag
             ? 'toggle-btn active'
@@ -92,6 +97,16 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     handleCriteriaSelected(event) {
         this.selectedCriteria = event.detail;
         this.scheduleName = event.detail.scheduleName;
+        this.criteriaMode = event.detail.criteriaMode;
+
+        if (this.criteriaMode === 'days') {
+            this.dateField = event.detail.dateField;
+            this.daysValue = event.detail.days;
+        } else {
+            this.dateField = null;
+            this.daysValue = null;
+        }
+
         this.showCriteriaModal = false;
         this.showChildObjectModal = true;
     }
@@ -126,12 +141,29 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
 
         const scheduleData = event.detail;
 
+        // Determine parameters based on criteria mode
+        let dateFieldParam;
+        let daysParam;
+        let filterValueParam;
+
+        if (scheduleData.criteriaMode === 'days') {
+            // Days-based: pass dateField and days, no filterValue
+            dateFieldParam = scheduleData.dateField;
+            daysParam = scheduleData.daysValue;
+            filterValueParam = null;
+        } else {
+            // Advanced: pass WHERE clause as filterValue
+            dateFieldParam = scheduleData.criteria?.whereClause || 'FilterCriteria';
+            daysParam = 0;
+            filterValueParam = scheduleData.criteria?.whereClause;
+        }
+
         scheduleArchive({
             objectName: scheduleData.object,
             frequency: scheduleData.frequency,
-            dateField: scheduleData.criteria.whereClause || 'FilterCriteria',
-            days: 0,
-            filterValue: scheduleData.criteria.whereClause,
+            dateField: dateFieldParam,
+            days: daysParam,
+            filterValue: filterValueParam,
             preferredTime: scheduleData.preferredTime,
             dayOfWeek: scheduleData.dayOfWeek,
             scheduleName: scheduleData.scheduleName,

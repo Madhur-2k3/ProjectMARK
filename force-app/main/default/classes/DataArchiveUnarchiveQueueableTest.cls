@@ -1,41 +1,39 @@
 /**
- * @description Tests for DataArchiveUnarchiveQueueable
- * Ensures queueable parses CSVs (found via ContentDocumentLink),
- * inserts records, and cleans up archive + documents
+ * @description Tests for DataArchiveUnarchiveQueueable.
+ *              Verifies queueable parses CSVs, inserts records, and cleans up artifacts.
  */
 @IsTest
 private class DataArchiveUnarchiveQueueableTest {
 
     @TestSetup
     static void setup() {
-        // Create an archive header for Account
-        Data_Archive__c da = new Data_Archive__c(
+
+        Data_Archive__c myArchiveRecord = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c = 'Name,Phone',
             Status__c = 'Ready for Unarchive'
         );
-        insert da;
+        insert myArchiveRecord;
 
-        da = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :da.Id];
+        myArchiveRecord = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id];
 
-        // Create a CSV with Title = objectApiName (matching archive behavior)
-        String csv = 'Name,Phone\n"Restored One","111"\n"Restored Two","222"';
-        ContentVersion cv = new ContentVersion(
+        String myCsvStr = 'Name,Phone\n"Restored One","111"\n"Restored Two","222"';
+        ContentVersion myContentVersion = new ContentVersion(
             Title = 'Account',
-            PathOnClient = da.Name + '-Account.csv',
-            VersionData = Blob.valueOf(csv),
-            Description = 'Account - ' + da.Name
+            PathOnClient = myArchiveRecord.Name + '-Account.csv',
+            VersionData = Blob.valueOf(myCsvStr),
+            Description = 'Account - ' + myArchiveRecord.Name
         );
-        insert cv;
+        insert myContentVersion;
 
-        ContentVersion insertedCv = [
+        ContentVersion myInsertedVersion = [
             SELECT Id, ContentDocumentId
-            FROM ContentVersion WHERE Id = :cv.Id
+            FROM ContentVersion WHERE Id = :myContentVersion.Id
         ];
 
         insert new ContentDocumentLink(
-            ContentDocumentId = insertedCv.ContentDocumentId,
-            LinkedEntityId    = da.Id,
+            ContentDocumentId = myInsertedVersion.ContentDocumentId,
+            LinkedEntityId    = myArchiveRecord.Id,
             ShareType         = 'V',
             Visibility        = 'AllUsers'
         );
@@ -43,73 +41,72 @@ private class DataArchiveUnarchiveQueueableTest {
 
     @IsTest
     static void testQueueable_UnarchivesAndDeletesArtifacts() {
-        Data_Archive__c da = [
+
+        Data_Archive__c myArchiveRecord = [
             SELECT Id, Name FROM Data_Archive__c LIMIT 1
         ];
 
         Test.startTest();
-        System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>{da.Id}));
+        System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>{myArchiveRecord.Id}));
         Test.stopTest();
 
-        // Accounts inserted from CSV
-        Integer acctCount = [SELECT COUNT() FROM Account WHERE Name IN ('Restored One','Restored Two')];
-        System.assertEquals(2, acctCount, 'Expected two accounts inserted from CSV');
+        Integer myAccountCountInt = [SELECT COUNT() FROM Account WHERE Name IN ('Restored One','Restored Two')];
+        System.assertEquals(2, myAccountCountInt, 'Expected two accounts inserted from CSV');
 
-        // Archive and documents deleted
-        Integer remArchives = [SELECT COUNT() FROM Data_Archive__c WHERE Id = :da.Id];
-        System.assertEquals(0, remArchives, 'Archive header should be deleted');
+        Integer myRemainingArchivesInt = [SELECT COUNT() FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id];
+        System.assertEquals(0, myRemainingArchivesInt, 'Archive header should be deleted');
 
-        Integer remLinks = [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :da.Id];
-        System.assertEquals(0, remLinks, 'Links should be deleted as ContentDocument is removed');
+        Integer myRemainingLinksInt = [SELECT COUNT() FROM ContentDocumentLink WHERE LinkedEntityId = :myArchiveRecord.Id];
+        System.assertEquals(0, myRemainingLinksInt, 'Links should be deleted as ContentDocument is removed');
     }
 
     @IsTest
     static void testQueueable_EmptyInput() {
+
         Test.startTest();
-        // Empty input — should complete without error
         System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>()));
         Test.stopTest();
-        // No exception expected
+
         System.assert(true, 'Empty input handled gracefully');
     }
 
     @IsTest
     static void testQueueable_IgnoresInvalidFieldValues() {
-        // Create an archive for Account with invalid Integer field via CSV
-        Data_Archive__c da = new Data_Archive__c(
+
+        Data_Archive__c myArchiveRecord = new Data_Archive__c(
             Parent_Object__c = 'Account',
             Fields__c = 'Name,NumberOfEmployees',
             Status__c = 'Ready for Unarchive'
         );
-        insert da;
-        da = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :da.Id];
+        insert myArchiveRecord;
 
-        // invalid integer for NumberOfEmployees should be ignored safely
-        String csv = 'Name,NumberOfEmployees\n"Invalid Emp","NotANumber"';
-        ContentVersion cv = new ContentVersion(
+        myArchiveRecord = [SELECT Id, Name FROM Data_Archive__c WHERE Id = :myArchiveRecord.Id];
+
+        String myCsvStr = 'Name,NumberOfEmployees\n"Invalid Emp","NotANumber"';
+        ContentVersion myContentVersion = new ContentVersion(
             Title = 'Account',
-            PathOnClient = da.Name + '-Account.csv',
-            VersionData = Blob.valueOf(csv)
+            PathOnClient = myArchiveRecord.Name + '-Account.csv',
+            VersionData = Blob.valueOf(myCsvStr)
         );
-        insert cv;
+        insert myContentVersion;
 
-        ContentVersion insertedCv = [
+        ContentVersion myInsertedVersion = [
             SELECT Id, ContentDocumentId
-            FROM ContentVersion WHERE Id = :cv.Id
+            FROM ContentVersion WHERE Id = :myContentVersion.Id
         ];
+
         insert new ContentDocumentLink(
-            ContentDocumentId = insertedCv.ContentDocumentId,
-            LinkedEntityId    = da.Id,
+            ContentDocumentId = myInsertedVersion.ContentDocumentId,
+            LinkedEntityId    = myArchiveRecord.Id,
             ShareType         = 'V',
             Visibility        = 'AllUsers'
         );
 
         Test.startTest();
-        System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>{da.Id}));
+        System.enqueueJob(new DataArchiveUnarchiveQueueable(new List<Id>{myArchiveRecord.Id}));
         Test.stopTest();
 
-        // Record should insert with only Name set (hasData true because Name is valid)
-        Account a = [SELECT Id, Name, NumberOfEmployees FROM Account WHERE Name = 'Invalid Emp' LIMIT 1];
-        System.assertEquals('Invalid Emp', a.Name);
+        Account myRestoredAccount = [SELECT Id, Name, NumberOfEmployees FROM Account WHERE Name = 'Invalid Emp' LIMIT 1];
+        System.assertEquals('Invalid Emp', myRestoredAccount.Name);
     }
 }

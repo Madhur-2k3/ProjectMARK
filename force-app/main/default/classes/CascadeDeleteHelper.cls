@@ -2,8 +2,8 @@ public with sharing class CascadeDeleteHelper {
 
     /**
      * Entry point: discovers all child relationships (both master-detail and lookup)
-     * for the given parent object, collects child record IDs top-down, then starts
-     * a chained batch to delete lookup children bottom-up before deleting parents.
+     * for the given parent object, then starts a CascadeIdCollectorBatch to collect
+     * child IDs using getQueryLocator (50M row limit) before deletion.
      *
      * Master-detail children are auto-cascade-deleted by Salesforce when their
      * parent is deleted, so only lookup children need manual deletion.
@@ -24,46 +24,51 @@ public with sharing class CascadeDeleteHelper {
         System.debug('CascadeDeleteHelper: discovered ' + allRelations.size()
                    + ' child relationships for ' + parentObjectApi);
 
+        if (allRelations.isEmpty()) {
+            // No children — just delete the parents directly
+            Database.executeBatch(
+                new CascadeDeleteQueueable(parentObjectApi, parentIds),
+                200
+            );
+            return;
+        }
+
         // 2. Sort by depth ascending for top-down ID collection
         allRelations.sort();
 
-        // 3. Collect IDs top-down through ALL relationships (MD + lookup)
-        //    We need MD child IDs to find their lookup grandchildren.
+        // 3. Seed collectedIds with root parent IDs
         Map<String, List<Id>> collectedIds = new Map<String, List<Id>>();
         collectedIds.put(parentObjectApi, parentIds);
 
-        for (ChildRelInfo rel : allRelations) { 
-            List<Id> pIds = collectedIds.get(rel.parentObjectName);
-            if (pIds == null || pIds.isEmpty()) {
-                System.debug('CascadeDeleteHelper: no parent IDs for '
-                           + rel.parentObjectName + ' — skipping ' + rel.objectName);
-                continue;
-            }
+        // 4. Start CascadeIdCollectorBatch — collects child IDs one relationship
+        //    at a time using getQueryLocator in start() (50M row limit).
+        //    After all IDs are collected, it calls startDeletionChain().
+        Database.executeBatch(new CascadeIdCollectorBatch(
+            allRelations, collectedIds, parentObjectApi, parentIds
+        ), 10000);
 
-            try {
-                List<SObject> children = Database.query(
-                    'SELECT Id FROM ' + rel.objectName
-                    + ' WHERE ' + rel.relationshipField + ' IN :pIds'
-                );
+        System.debug('CascadeDeleteHelper: started CascadeIdCollectorBatch with '
+                   + allRelations.size() + ' relationships');
+    }
 
-                if (!children.isEmpty()) {
-                    List<Id> childIds = new List<Id>();
-                    for (SObject rec : children) {
-                        childIds.add(rec.Id);
-                    }
-                    collectedIds.put(rel.objectName, childIds);
-                    System.debug('CascadeDeleteHelper: collected ' + childIds.size()
-                               + ' IDs for ' + rel.objectName
-                               + (rel.isCascadeDelete ? ' (MD-auto)' : ' (Lookup-manual)'));
-                }
-            } catch (Exception e) {
-                System.debug('CascadeDeleteHelper: error collecting IDs for '
-                           + rel.objectName + ': ' + e.getMessage());
-            }
-        }
+    /**
+     * Called by CascadeIdCollectorBatch after all child IDs are collected.
+     * Builds deletion steps (bottom-up) and starts CascadeDeleteQueueable chain.
+     */
+    public static void startDeletionChain(
+        Map<String, List<Id>> collectedIds,
+        String rootObjectName,
+        List<Id> rootParentIds
+    ) {
+        // Re-discover relationships to get metadata for building deletion steps
+        List<ChildRelInfo> allRelations = new List<ChildRelInfo>();
+        Set<String> visited = new Set<String>();
+        visited.add(rootObjectName);
+        discoverChildren(rootObjectName, 1, allRelations, visited);
+        allRelations.sort();
 
-        // 4. Build deletion steps for LOOKUP children only (bottom-up / deepest first).
-        //    Master-detail children auto-cascade when their parent is deleted.
+        // Build deletion steps for LOOKUP children only (bottom-up / deepest first).
+        // Master-detail children auto-cascade when their parent is deleted.
         List<CascadeDeleteQueueable.DeletionStep> steps =
             new List<CascadeDeleteQueueable.DeletionStep>();
 
@@ -81,10 +86,10 @@ public with sharing class CascadeDeleteHelper {
                        + ' ' + rel.objectName + ' records (depth ' + rel.depth + ')');
         }
 
-        // 5. Add root parent deletion as the final step
-        steps.add(new CascadeDeleteQueueable.DeletionStep(parentObjectApi, parentIds));
+        // Add root parent deletion as the final step
+        steps.add(new CascadeDeleteQueueable.DeletionStep(rootObjectName, rootParentIds));
 
-        // 6. Start the chained batch — first step first
+        // Start the chained batch — first step first
         if (!steps.isEmpty()) {
             CascadeDeleteQueueable.DeletionStep firstStep = steps.remove(0);
             Database.executeBatch(

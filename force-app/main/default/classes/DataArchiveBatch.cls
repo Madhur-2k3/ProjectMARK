@@ -338,7 +338,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             collectedIds,
             new List<Id>(generatedContentDocumentIds),
             processedParentIds
-        ), 1);
+        ), 2000);
 
         System.debug('DataArchiveChildBatch started (' + sortedChildren.size() + ' child objects)');
     }

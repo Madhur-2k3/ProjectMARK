@@ -35,7 +35,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
             }
         },
         { label: 'Object', fieldName: 'objectName', type: 'text' },
-        { label: 'Criteria', fieldName: 'dateField', type: 'text' },
+        { label: 'Criteria', fieldName: 'criteriaDisplay', type: 'text' },
+        { label: 'Days', fieldName: 'daysDisplay', type: 'text' },
         {
             label: 'Frequency',
             fieldName: 'frequency',
@@ -77,7 +78,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
                 target: '_blank'
             }
         },
-        { label: 'Criteria', fieldName: 'dateField', type: 'text' },
+        { label: 'Criteria', fieldName: 'criteriaDisplay', type: 'text' },
+        { label: 'Days', fieldName: 'daysDisplay', type: 'text' },
         {
             label: 'Frequency',
             fieldName: 'frequency',
@@ -132,6 +134,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
             .then(result => {
                 this.allSchedules = result.records.map(s => ({
                     ...s,
+                    criteriaDisplay: this.buildCriteriaDisplay(s),
+                    daysDisplay: this.buildDaysDisplay(s),
                     statusDisplay: s.status === 'Active' ? '● Active' : '● In Active',
                     statusCssClass: s.status === 'Active'
                         ? 'slds-text-color_success'
@@ -163,6 +167,8 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
                 this.objectSchedules = result.records.map(s => ({
                     ...s,
                     isActive: s.status === 'Active',
+                    criteriaDisplay: this.buildCriteriaDisplay(s),
+                    daysDisplay: this.buildDaysDisplay(s),
                     statusDisplay: s.status === 'Active' ? '● Active' : '● In Active',
                     statusCssClass: s.status === 'Active'
                         ? 'slds-text-color_success'
@@ -198,6 +204,22 @@ export default class ArchiveScheduleObjectModal extends LightningElement {
             return 'slds-badge slds-theme_error';
         }
         return 'slds-badge';
+    }
+
+    // ── Display helpers for Days column ──
+
+    buildCriteriaDisplay(schedule) {
+        if (schedule.days && schedule.days > 0 && schedule.dateField && schedule.dateField !== 'FilterCriteria') {
+            return schedule.dateField;
+        }
+        return schedule.dateField || '—';
+    }
+
+    buildDaysDisplay(schedule) {
+        if (schedule.days && schedule.days > 0) {
+            return `${schedule.days} day${schedule.days > 1 ? 's' : ''}`;
+        }
+        return '—';
     }
 
     get isDisabled() {
