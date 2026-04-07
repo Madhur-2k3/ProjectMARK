@@ -1,7 +1,56 @@
+/* ── Modal Container – Larger Size ── */
+:host .slds-modal__container {
+    width: 60vw;
+    max-width: 900px;
+    min-width: 480px;
+}
+
+:host .slds-modal__content {
+    min-height: 340px;
+}
+
+/* ── Modal Header ── */
+:host .slds-modal__header {
+    background: linear-gradient(135deg, #0176d3 0%, #014486 100%);
+    border-bottom: none;
+}
+
+:host .slds-modal__header .slds-modal__title {
+    color: #ffffff;
+}
+
+:host .slds-modal__header .slds-modal__close {
+    color: #ffffff;
+}
+
+:host .slds-modal__header .slds-modal__close:hover {
+    color: #d8edff;
+}
+
+/* ── Modal Footer Button Spacing ── */
+:host .slds-modal__footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+}
+
 /* ── Criteria Mode Toggle ── */
 .criteria-mode-toggle {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e8f0fe 100%);
+    border: 1px solid #d4e4f7;
+    border-radius: 10px;
+    padding: 0.85rem 1.1rem;
     display: flex;
-    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+.criteria-mode-toggle lightning-radio-group {
+    flex: 1;
+}
+
+.toggle-icon {
+    --slds-c-icon-color-foreground-default: #0176d3;
 }
 
 /* ── Days Filter Section ── */

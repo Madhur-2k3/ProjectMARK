@@ -1,4 +1,17 @@
 /* =====================================================
+   MODAL CONTAINER – Larger Size
+===================================================== */
+:host .slds-modal__container {
+    width: 60vw;
+    max-width: 900px;
+    min-width: 480px;
+}
+
+:host .slds-modal__content {
+    min-height: 340px;
+}
+
+/* =====================================================
    MODAL HEADER – Blue Theme
 ===================================================== */
 .modal-header-blue {
