@@ -306,7 +306,7 @@ export default class S3RecordFiles extends LightningElement {
     async _openPreview(fullKey, fileName, ext) {
         this._previewFullKey = fullKey;
         this._previewExt = ext;
-        this.previewFileName = fileName;
+        this.previewFileName = this._buildDisplayName(fileName);
         this.previewDataUrl = '';
         this.previewTextContent = '';
         this.csvHeaders = [];
@@ -844,14 +844,19 @@ export default class S3RecordFiles extends LightningElement {
         this.error = null;
         try {
             const base64Content = await getDataFromS3AsBase64({ fileName: fullKey });
-            const ext = (fileName || '').split('.').pop().toLowerCase();
+            // Build a clean download name: strip .zip.enc since the server decrypts/unzips
+            let downloadName = fileName || fullKey.replace(/\//g, '_');
+            downloadName = downloadName.replace(/\.zip\.enc$/i, '').replace(/\.enc$/i, '');
+            // Also use the display name for a friendlier filename
+            downloadName = this._buildDisplayName(downloadName);
+            const ext = (downloadName || '').split('.').pop().toLowerCase();
             const mime = MIME_MAP[ext] || 'application/octet-stream';
             const dataUri = `data:${mime};base64,${base64Content}`;
 
             const container = this.template.querySelector('.slds-card__body');
             const a = document.createElement('a');
             a.href = dataUri;
-            a.download = fileName || fullKey.replace(/\//g, '_');
+            a.download = downloadName;
             a.style.display = 'none';
             container.appendChild(a);
             a.click();
