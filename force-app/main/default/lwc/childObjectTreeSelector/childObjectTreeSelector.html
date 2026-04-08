@@ -55,6 +55,20 @@
 
                 <!-- Tree Nodes -->
                 <div class="tree-container">
+
+                    <!-- Root Node (Selected Parent Object) -->
+                    <template if:true={showRootNode}>
+                        <div class="tree-node tree-root-node">
+                            <lightning-icon icon-name="standard:record" size="x-small"
+                                class="slds-m-right_x-small root-icon">
+                            </lightning-icon>
+                            <span class="tree-root-label">{rootNodeLabel}</span>
+                            <span class="tree-root-api">({rootNodeApiName})</span>
+                            <span class="tree-rel-badge tree-rel-root">PARENT</span>
+                        </div>
+                    </template>
+
+                    <!-- Child Nodes -->
                     <template for:each={flatNodes} for:item="node">
                         <div key={node.key} class="tree-node" style={node.indentStyle}>
 

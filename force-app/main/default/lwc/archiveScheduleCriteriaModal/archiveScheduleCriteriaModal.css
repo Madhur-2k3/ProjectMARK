@@ -9,14 +9,17 @@
     min-height: 340px;
 }
 
-/* ── Modal Header ── */
+/* ── Modal Header – Blue Theme ── */
 :host .slds-modal__header {
-    background: linear-gradient(135deg, #0176d3 0%, #014486 100%);
-    border-bottom: none;
+    background: linear-gradient(135deg, #0176d3 0%, #4BA3E3 100%) !important;
+    border-bottom: none !important;
+    padding: 1.25rem 1.5rem !important;
 }
 
 :host .slds-modal__header .slds-modal__title {
     color: #ffffff;
+    font-weight: 700;
+    font-size: 1.125rem;
 }
 
 :host .slds-modal__header .slds-modal__close {

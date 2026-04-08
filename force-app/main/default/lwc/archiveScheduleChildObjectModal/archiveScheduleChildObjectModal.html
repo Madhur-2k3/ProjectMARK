@@ -1,18 +1,18 @@
 <template>
     <section class="slds-modal slds-fade-in-open">
-        <div class="slds-modal__container">
+        <div class="slds-modal__container slds-modal__container_large">
 
-            <header class="slds-modal__header">
+            <header class="slds-modal__header modal-header-blue">
 
-                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleClose}>
-                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small">
+                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleClose}>
+                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small" variant="inverse">
                     </lightning-icon>
                 </button>
 
-                <h2 class="slds-modal__title">
+                <h2 class="slds-modal__title slds-hyphenate">
                     Select Child Objects to Archive
                 </h2>
-                <p class="slds-text-color_weak slds-m-top_xx-small" style="font-size: 12px;">
+                <p class="modal-subtitle">
                     Choose which related child objects should be included when this scheduled archive runs.
                 </p>
 
@@ -31,9 +31,9 @@
                 </lightning-button>
 
                 <div>
-                    <lightning-button label="Skip (Archive All Children)" variant="neutral" onclick={handleSkip}
+                    <!-- <lightning-button label="Skip (Archive All Children)" variant="neutral" onclick={handleSkip}
                         class="slds-m-right_x-small">
-                    </lightning-button>
+                    </lightning-button> -->
                     <lightning-button label="Next" variant="brand" icon-name="utility:forward" icon-position="right"
                         onclick={handleNext}>
                     </lightning-button>

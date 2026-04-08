@@ -1,4 +1,5 @@
 import { LightningElement, api, track, wire } from 'lwc';
+import { getObjectInfo } from 'lightning/uiObjectInfoApi';
 import getChildObjectTree
     from '@salesforce/apex/ChildObjectTreeController.getChildObjectTree';
 
@@ -11,7 +12,25 @@ export default class ChildObjectTreeSelector extends LightningElement {
     @track hasError = false;
     @track errorMessage = '';
 
+    // Root node (selected parent object) info
+    @track rootObjectLabel = '';
+    @track rootObjectApiName = '';
+
     _rawTree = [];
+
+    /* =====================================================
+     * WIRE — resolve the parent object label via getObjectInfo
+     * ===================================================== */
+    @wire(getObjectInfo, { objectApiName: '$objectName' })
+    wiredObjectInfo({ data, error }) {
+        if (data) {
+            this.rootObjectLabel = data.label || this.objectName;
+            this.rootObjectApiName = data.apiName || this.objectName;
+        } else if (error) {
+            this.rootObjectLabel = this.objectName;
+            this.rootObjectApiName = this.objectName;
+        }
+    }
 
     /* =====================================================
      * WIRE — fetch child tree from Apex
@@ -53,6 +72,18 @@ export default class ChildObjectTreeSelector extends LightningElement {
         return `${this.selectedCount} of ${this.totalCount} child objects selected`;
     }
 
+    get showRootNode() {
+        return this.rootObjectLabel && this.hasChildren;
+    }
+
+    get rootNodeLabel() {
+        return this.rootObjectLabel || this.objectName;
+    }
+
+    get rootNodeApiName() {
+        return this.rootObjectApiName || this.objectName;
+    }
+
     /* =====================================================
      * PUBLIC API — get selected child object names
      * ===================================================== */
@@ -90,7 +121,7 @@ export default class ChildObjectTreeSelector extends LightningElement {
                 isSelected: node.isSelected !== false,
                 isLast: isLast,
                 hasChildren: node.children && node.children.length > 0,
-                indentStyle: `padding-left: ${depth * 28}px`,
+                indentStyle: `padding-left: ${(depth + 1) * 28}px`,
                 connector: isLast ? '└── ' : '├── ',
                 depthClass: `depth-${depth}`,
                 relationshipType: relType,

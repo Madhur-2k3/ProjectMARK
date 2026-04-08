@@ -213,10 +213,12 @@ export default class S3RecordFiles extends LightningElement {
                     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                     dateLabel = `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
                 }
+                const displayName = this._buildDisplayName(fileName);
                 return {
                     id: fullKey,
                     fullKey,
                     fileName,
+                    displayName,
                     ext,
                     effectiveExt,
                     sizeLabel,
@@ -459,6 +461,118 @@ export default class S3RecordFiles extends LightningElement {
         // e.g. "Account_Account" → "Account"
         const match = beforeDelimiter.match(/^([A-Za-z][A-Za-z0-9]*)/);
         return match ? match[1] : beforeDelimiter;
+    }
+
+    /**
+     * Builds a clean display name from the raw S3 file name.
+     * Deduplicates repeated object API names and converts to friendly labels.
+     *
+     * Examples:
+     *   "Booking__c_Booking__c_-_B1.csv.zip.enc"                → "Booking - B1.csv.zip.enc"
+     *   "Invoice__c_Invoice__c_-_Order_c_-_2026-04-08.csv.zip.enc" → "Invoice - Order - 2026-04-08.csv.zip.enc"
+     *   "Order__c_Order__c_-_DA-0001.csv.zip.enc"                → "Order - DA-0001.csv.zip.enc"
+     *   "Account_Account_-_DA-0001.csv.zip.enc"                  → "Account - DA-0001.csv.zip.enc"
+     *   "Booking__c_Booking__c Part 2_-_DA-0359.csv.zip.enc"     → "Booking (Part 2) - DA-0359.csv.zip.enc"
+     */
+    _buildDisplayName(fileName) {
+        if (!fileName) return fileName;
+
+        // Separate the extensions from the base name
+        // Match chained extensions like .csv.zip.enc, .csv.enc, .csv, etc.
+        const extMatch = fileName.match(/(\.(?:csv|zip|enc|txt|json|xml|xlsx|xls|pdf)+(?:\.(?:csv|zip|enc|txt|json|xml|xlsx|xls|pdf))*)$/i);
+        const extensions = extMatch ? extMatch[1] : '';
+        let baseName = extensions ? fileName.substring(0, fileName.length - extensions.length) : fileName;
+
+        if (!baseName) return fileName;
+
+        // Split on "_-_" to separate segments
+        const segments = baseName.split('_-_');
+        if (segments.length < 2) return fileName; // Can't parse, return original
+
+        // First segment contains the object name(s), possibly repeated
+        // e.g., "Booking__c_Booking__c" or "Booking__c_Booking__c Part 2" or "Account_Account"
+        const objectSegment = segments[0];
+
+        // Extract unique object label from the first segment
+        const objectLabel = this._extractObjectLabel(objectSegment);
+
+        // Check for part info (e.g., "Part 2", "Part_2")
+        let partInfo = '';
+        const partMatch = objectSegment.match(/Part[_ ](\d+)/i);
+        if (partMatch) {
+            partInfo = ' (Part ' + partMatch[1] + ')';
+        }
+
+        // Remaining segments after the first (archive name, dates, etc.)
+        // Also deduplicate object names from remaining segments
+        const remainingParts = [];
+        for (let i = 1; i < segments.length; i++) {
+            const rawSeg = segments[i].trim();
+            // Convert to friendly label and check for deduplication
+            const segLabel = this._toFriendlyLabel(rawSeg);
+            if (segLabel.toLowerCase() !== objectLabel.toLowerCase()) {
+                remainingParts.push(segLabel);
+            }
+        }
+
+        // Build the clean display name
+        let display = objectLabel + partInfo;
+        if (remainingParts.length > 0) {
+            display += ' - ' + remainingParts.join(' - ');
+        }
+        display += extensions;
+
+        return display;
+    }
+
+    /**
+     * Extracts a unique, friendly object label from a segment that may contain
+     * repeated object API names.
+     * e.g., "Booking__c_Booking__c" → "Booking"
+     *       "Account_Account" → "Account"
+     *       "Invoice__c" → "Invoice" 
+     */
+    _extractObjectLabel(segment) {
+        if (!segment) return segment;
+
+        // Remove Part info before processing
+        let clean = segment.replace(/[_ ]Part[_ ]\d+/gi, '').trim();
+
+        // Try to find a custom object suffix first (__c, __mdt, etc.)
+        for (const suffix of ['__c', '__mdt', '__e', '__b', '__x']) {
+            const idx = clean.indexOf(suffix);
+            if (idx > 0) {
+                // Extract just the first occurrence of the object name
+                const apiName = clean.substring(0, idx + suffix.length);
+                return this._toFriendlyLabel(apiName);
+            }
+        }
+
+        // Standard object: split by _ and take the first unique name
+        // e.g., "Account_Account" → "Account"
+        const parts = clean.split('_').filter(p => p.length > 0);
+        if (parts.length > 0) {
+            return this._toFriendlyLabel(parts[0]);
+        }
+
+        return clean;
+    }
+
+    /**
+     * Converts an API name to a friendly display label.
+     * e.g., "Booking__c" → "Booking"
+     *       "My_Custom_Object__c" → "My Custom Object"
+     *       "Account" → "Account"
+     */
+    _toFriendlyLabel(apiName) {
+        if (!apiName) return apiName;
+        // Strip custom suffixes
+        let label = apiName.replace(/__c$|__mdt$|__e$|__b$|__x$/gi, '');
+        // Replace underscores with spaces
+        label = label.replace(/_/g, ' ').trim();
+        // Collapse multiple spaces
+        label = label.replace(/\s+/g, ' ');
+        return label || apiName;
     }
 
     /**

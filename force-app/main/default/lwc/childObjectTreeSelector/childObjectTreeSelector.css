@@ -75,6 +75,44 @@
     padding: 0.5rem 0;
 }
 
+/* ---------- Root Node (Selected Parent Object) ---------- */
+.tree-root-node {
+    background: linear-gradient(135deg, #e8f4fd 0%, #d4ecfb 100%);
+    border-bottom: 2px solid #b4d6f0;
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.tree-root-node:hover {
+    background: linear-gradient(135deg, #d4ecfb 0%, #c5e4f7 100%);
+}
+
+.root-icon {
+    --slds-c-icon-color-background: #0176d3;
+}
+
+.tree-root-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #014486;
+}
+
+.tree-root-api {
+    font-size: 0.6875rem;
+    color: #0b5cab;
+    font-style: italic;
+    margin-left: 0.25rem;
+}
+
+.tree-rel-root {
+    background-color: #0176d3;
+    color: #ffffff;
+    border: 1px solid #014486;
+}
+
 /* ---------- Node Row ---------- */
 .tree-node {
     display: flex;

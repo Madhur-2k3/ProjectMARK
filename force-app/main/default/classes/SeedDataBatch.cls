@@ -3,7 +3,7 @@ public class SeedDataBatch implements Database.Batchable<SObject>, Database.Stat
     // ── Constants ────────────────────────────────────────────────
     // Ratio 3:2:1 → Payments:Invoices:Orders
     // 70,002 Payments | 46,668 Invoices | 23,334 Orders
-    private static final Integer TOTAL_ORDERS         = 23334;
+    private static final Integer TOTAL_ORDERS         = 2000;
     private static final Integer INVOICES_PER_ORDER   = 2;      // 1 Order   → 2 Invoices
     private static final Integer PAYMENTS_PER_INVOICE = 3;      // 1 Invoice → 3 Payments
     private static final Integer BATCH_SIZE           = 200;
