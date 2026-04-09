@@ -2,13 +2,13 @@
    MODAL CONTAINER – Larger Size
 ===================================================== */
 :host .slds-modal__container {
-    width: 60vw;
-    max-width: 900px;
-    min-width: 480px;
+    width: 70vw;
+    max-width: 1100px;
+    min-width: 540px;
 }
 
 :host .slds-modal__content {
-    min-height: 340px;
+    min-height: 480px;
 }
 
 /* =====================================================
