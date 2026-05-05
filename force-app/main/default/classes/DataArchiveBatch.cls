@@ -10,6 +10,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     private Id archiveRecordId;
     private String archiveRecordName;
     private Boolean deleteAfterArchive;
+    private String storageProviderName; // Storage_Provider__mdt DeveloperName
 
     // Parent CSV — flush during execute(), don't accumulate unbounded
     private String  currentParentCsv;
@@ -41,27 +42,35 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     }
     // ===================== CONSTRUCTORS (backward-compatible overloads) =====================
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
-        this(objectName, fieldsCsv, soqlQuery, null, null, true);
+        this(objectName, fieldsCsv, soqlQuery, null, null, true, null);
     }
 
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery, String archiveName) {
-        this(objectName, fieldsCsv, soqlQuery, archiveName, null, true);
+        this(objectName, fieldsCsv, soqlQuery, archiveName, null, true, null);
     }
 
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
                             String archiveName, List<String> selectedChildObjects) {
-        this(objectName, fieldsCsv, soqlQuery, archiveName, selectedChildObjects, true);
+        this(objectName, fieldsCsv, soqlQuery, archiveName, selectedChildObjects, true, null);
     }
 
     // Full constructor with delete option
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
                             String archiveName, List<String> selectedChildObjects,
                             Boolean deleteAfterArchive) {
+        this(objectName, fieldsCsv, soqlQuery, archiveName, selectedChildObjects, deleteAfterArchive, null);
+    }
+
+    // Full constructor with provider selection
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
+                            String archiveName, List<String> selectedChildObjects,
+                            Boolean deleteAfterArchive, String storageProviderName) {
         this.objectName   = objectName;
         this.fields       = filterAccessibleFields(objectName, normalizeFields(fieldsCsv));
         this.soqlQuery    = soqlQuery;
-        this.archiveRecordName = archiveName;
+        this.archiveRecordName  = archiveName;
         this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
+        this.storageProviderName = storageProviderName;
 
         this.parentHeader     = String.join(this.fields, ',') + '\n';
         this.currentParentCsv = this.parentHeader;
@@ -277,7 +286,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
                         archiveRecordId,
                         objectName,
                         processedParentIds,
-                        this.deleteAfterArchive
+                        this.deleteAfterArchive,
+                        this.storageProviderName
                     ));
                     System.debug('ArchivePostProcessQueueable enqueued (no children)');
                 } else if (this.deleteAfterArchive) {
@@ -351,7 +361,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             collectedIds,
             new List<Id>(generatedContentDocumentIds),
             processedParentIds,
-            this.deleteAfterArchive
+            this.deleteAfterArchive,
+            this.storageProviderName
         ), 2000);
 
         System.debug('DataArchiveChildBatch started (' + sortedChildren.size() + ' child objects)');

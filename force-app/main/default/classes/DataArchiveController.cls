@@ -21,7 +21,7 @@ public with sharing class DataArchiveController {
         return archiveSelectedRecords(objectName, recordIds, fieldsCsv, archiveName, selectedChildObjects, true);
     }
 
-    @AuraEnabled
+    // Old 6-param overload — delegates to the full @AuraEnabled version (backward-compat)
     public static Id archiveSelectedRecords(
         String objectName,
         List<Id> recordIds,
@@ -30,12 +30,24 @@ public with sharing class DataArchiveController {
         List<String> selectedChildObjects,
         Boolean deleteAfterArchive
     ) {
+        return archiveSelectedRecords(objectName, recordIds, fieldsCsv, archiveName, selectedChildObjects, deleteAfterArchive, null);
+    }
+
+    @AuraEnabled
+    public static Id archiveSelectedRecords(
+        String objectName,
+        List<Id> recordIds,
+        String fieldsCsv,
+        String archiveName,
+        List<String> selectedChildObjects,
+        Boolean deleteAfterArchive,
+        String storageProviderName
+    ) {
         if (recordIds == null || recordIds.isEmpty()) {
             throw new AuraHandledException('Select at least one record to archive.');
         }
-
         String soql = buildSoqlForSelected(objectName, recordIds, fieldsCsv);
-        return executeBatchArchive(objectName, fieldsCsv, soql, archiveName, selectedChildObjects, deleteAfterArchive);
+        return executeBatchArchive(objectName, fieldsCsv, soql, archiveName, selectedChildObjects, deleteAfterArchive, storageProviderName);
     }
 
     /* =====================================================
@@ -59,7 +71,7 @@ public with sharing class DataArchiveController {
         return archiveAllRecords(objectName, fieldsCsv, fullQuery, archiveName, selectedChildObjects, true);
     }
 
-    @AuraEnabled
+    // Old 6-param overload — delegates to the full @AuraEnabled version (backward-compat)
     public static Id archiveAllRecords(
         String objectName,
         String fieldsCsv,
@@ -68,12 +80,24 @@ public with sharing class DataArchiveController {
         List<String> selectedChildObjects,
         Boolean deleteAfterArchive
     ) {
+        return archiveAllRecords(objectName, fieldsCsv, fullQuery, archiveName, selectedChildObjects, deleteAfterArchive, null);
+    }
+
+    @AuraEnabled
+    public static Id archiveAllRecords(
+        String objectName,
+        String fieldsCsv,
+        String fullQuery,
+        String archiveName,
+        List<String> selectedChildObjects,
+        Boolean deleteAfterArchive,
+        String storageProviderName
+    ) {
         if (String.isBlank(fullQuery)) {
             throw new AuraHandledException('Full query is required.');
         }
-
         String finalQuery = replaceSelect(fullQuery, fieldsCsv);
-        return executeBatchArchive(objectName, fieldsCsv, finalQuery, archiveName, selectedChildObjects, deleteAfterArchive);
+        return executeBatchArchive(objectName, fieldsCsv, finalQuery, archiveName, selectedChildObjects, deleteAfterArchive, storageProviderName);
     }
 
     /* =====================================================
@@ -85,14 +109,15 @@ public with sharing class DataArchiveController {
         String soql,
         String archiveName,
         List<String> selectedChildObjects,
-        Boolean deleteAfterArchive
+        Boolean deleteAfterArchive,
+        String storageProviderName
     ) {
         validateInputs(objectName, fieldsCsv);
-
-        DataArchiveBatch batch = new DataArchiveBatch(objectName, fieldsCsv, soql, archiveName, selectedChildObjects, deleteAfterArchive);
-        Id batchJobId = Database.executeBatch(batch, 2000);
-
-        return batchJobId;
+        DataArchiveBatch batch = new DataArchiveBatch(
+            objectName, fieldsCsv, soql, archiveName, selectedChildObjects,
+            deleteAfterArchive, storageProviderName
+        );
+        return Database.executeBatch(batch, 2000);
     }
 
     /* =====================================================

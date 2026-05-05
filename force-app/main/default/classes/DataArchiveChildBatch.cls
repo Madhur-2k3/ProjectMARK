@@ -19,6 +19,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
     private List<Id>        contentDocumentIds;
     private List<Id>        processedParentIds;
     private Boolean         deleteAfterArchive;
+    private String          storageProviderName;
 
     // Per-child state — reset in start(), accumulated across execute() via Stateful
     private ChildInfo currentChild;
@@ -36,10 +37,10 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
                                   List<Id> contentDocumentIds,
                                   List<Id> processedParentIds) {
         this(archiveRecordId, archiveRecordName, rootObjectName, sortedChildren,
-             collectedIds, contentDocumentIds, processedParentIds, true);
+             collectedIds, contentDocumentIds, processedParentIds, true, null);
     }
 
-    // Full constructor with delete option
+    // Constructor with delete option
     public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordName,
                                   String rootObjectName,
                                   List<ChildInfo> sortedChildren,
@@ -47,6 +48,19 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
                                   List<Id> contentDocumentIds,
                                   List<Id> processedParentIds,
                                   Boolean deleteAfterArchive) {
+        this(archiveRecordId, archiveRecordName, rootObjectName, sortedChildren,
+             collectedIds, contentDocumentIds, processedParentIds, deleteAfterArchive, null);
+    }
+
+    // Full constructor with provider selection
+    public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordName,
+                                  String rootObjectName,
+                                  List<ChildInfo> sortedChildren,
+                                  Map<String, List<Id>> collectedIds,
+                                  List<Id> contentDocumentIds,
+                                  List<Id> processedParentIds,
+                                  Boolean deleteAfterArchive,
+                                  String storageProviderName) {
         this.archiveRecordId    = archiveRecordId;
         this.archiveRecordName  = archiveRecordName;
         this.rootObjectName     = rootObjectName;
@@ -55,6 +69,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
         this.contentDocumentIds = contentDocumentIds;
         this.processedParentIds = processedParentIds;
         this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
+        this.storageProviderName = storageProviderName;
     }
 
     /**
@@ -151,7 +166,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
             Database.executeBatch(new DataArchiveChildBatch(
                 archiveRecordId, archiveRecordName, rootObjectName,
                 sortedChildren, collectedIds, contentDocumentIds, processedParentIds,
-                deleteAfterArchive
+                deleteAfterArchive, storageProviderName
             ), 2000);
             System.debug('DataArchiveChildBatch: chaining to next child');
         } else {
@@ -177,7 +192,8 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
                 archiveRecordId,
                 rootObjectName,
                 processedParentIds,
-                this.deleteAfterArchive
+                this.deleteAfterArchive,
+                this.storageProviderName
             ));
             System.debug('ArchivePostProcessQueueable enqueued');
         } else if (this.deleteAfterArchive) {

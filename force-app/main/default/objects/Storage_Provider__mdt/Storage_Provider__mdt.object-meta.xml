@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Configuration for external storage providers (AWS S3, Google Drive, SharePoint, etc.)</description>
+    <label>Storage Provider</label>
+    <pluralLabel>Storage Providers</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

@@ -17,10 +17,11 @@ public class ChildArchiveQueueable implements Queueable {
     private Id              archiveRecordId;
     private String          archiveRecordName;
     private String          rootObjectName;
-    private List<ChildInfo> childrenToProcess;      // sorted by depth — we pop from the front
-    private Map<String, List<Id>> collectedIds;     // IDs per object for depth chaining
-    private List<Id>        contentDocumentIds;     // accumulate across Queueable chain
-    private List<Id>        processedParentIds;     // root parent IDs for deletion
+    private List<ChildInfo> childrenToProcess;
+    private Map<String, List<Id>> collectedIds;
+    private List<Id>        contentDocumentIds;
+    private List<Id>        processedParentIds;
+    private String          storageProviderName;
 
     // ===================== CONSTRUCTOR =====================
     public ChildArchiveQueueable(Id archiveRecordId, String archiveRecordName,
@@ -29,6 +30,17 @@ public class ChildArchiveQueueable implements Queueable {
                                   Map<String, List<Id>> collectedIds,
                                   List<Id> contentDocumentIds,
                                   List<Id> processedParentIds) {
+        this(archiveRecordId, archiveRecordName, rootObjectName, childrenToProcess,
+             collectedIds, contentDocumentIds, processedParentIds, null);
+    }
+
+    public ChildArchiveQueueable(Id archiveRecordId, String archiveRecordName,
+                                  String rootObjectName,
+                                  List<ChildInfo> childrenToProcess,
+                                  Map<String, List<Id>> collectedIds,
+                                  List<Id> contentDocumentIds,
+                                  List<Id> processedParentIds,
+                                  String storageProviderName) {
         this.archiveRecordId    = archiveRecordId;
         this.archiveRecordName  = archiveRecordName;
         this.rootObjectName     = rootObjectName;
@@ -36,6 +48,7 @@ public class ChildArchiveQueueable implements Queueable {
         this.collectedIds       = collectedIds;
         this.contentDocumentIds = contentDocumentIds;
         this.processedParentIds = processedParentIds;
+        this.storageProviderName = storageProviderName;
     }
 
     // ===================== EXECUTE =====================
@@ -61,7 +74,7 @@ public class ChildArchiveQueueable implements Queueable {
                     System.enqueueJob(new ChildArchiveQueueable(
                         archiveRecordId, archiveRecordName, rootObjectName,
                         childrenToProcess, collectedIds,
-                        contentDocumentIds, processedParentIds
+                        contentDocumentIds, processedParentIds, storageProviderName
                     ));
                     System.debug('Chained to next child object');
                 } else {
@@ -183,7 +196,9 @@ public class ChildArchiveQueueable implements Queueable {
                 contentDocumentIds,
                 archiveRecordId,
                 rootObjectName,
-                processedParentIds
+                processedParentIds,
+                true,
+                storageProviderName
             ));
             System.debug('ArchivePostProcessQueueable enqueued');
         } else {

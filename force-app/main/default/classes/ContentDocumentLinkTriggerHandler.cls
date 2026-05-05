@@ -19,29 +19,46 @@ public with sharing class ContentDocumentLinkTriggerHandler {
         System.debug('ContentDocumentLinkTriggerHandler: linkedIds=' + linkedIds);
         if (linkedIds.isEmpty()) return;
 
-        // Filter to only Data_Archive__c records
+        // Filter to only Data_Archive__c records — also capture Storage_Provider__c for routing
         Set<Id> archiveIds = new Set<Id>();
-        for (Data_Archive__c da : [SELECT Id FROM Data_Archive__c WHERE Id IN :linkedIds]) {
+        Map<Id, String> archiveProviderMap = new Map<Id, String>();
+        for (Data_Archive__c da : [
+            SELECT Id, Storage_Provider__c FROM Data_Archive__c WHERE Id IN :linkedIds
+        ]) {
             archiveIds.add(da.Id);
+            archiveProviderMap.put(da.Id, da.Storage_Provider__c);
         }
         System.debug('ContentDocumentLinkTriggerHandler: archiveIds=' + archiveIds);
         if (archiveIds.isEmpty()) return;
 
-        // Build pairs of ContentDocumentId|DataArchiveId to pass to queueable
-        List<String> pairs = new List<String>();
+        // Build pairs of ContentDocumentId|DataArchiveId grouped by provider
+        // (all links in a single trigger batch share the same parent archive, but handle edge cases)
+        Map<String, List<String>> providerToPairs = new Map<String, List<String>>();
         for (ContentDocumentLink cdl : newLinks) {
-            if (cdl.ContentDocumentId != null && cdl.LinkedEntityId != null && archiveIds.contains(cdl.LinkedEntityId)) {
-                pairs.add(String.valueOf(cdl.ContentDocumentId) + '|' + String.valueOf(cdl.LinkedEntityId));
+            if (cdl.ContentDocumentId != null && cdl.LinkedEntityId != null
+                    && archiveIds.contains(cdl.LinkedEntityId)) {
+                String providerKey = archiveProviderMap.get(cdl.LinkedEntityId); // may be null for new archives
+                if (!providerToPairs.containsKey(providerKey)) {
+                    providerToPairs.put(providerKey, new List<String>());
+                }
+                providerToPairs.get(providerKey).add(
+                    String.valueOf(cdl.ContentDocumentId) + '|' + String.valueOf(cdl.LinkedEntityId)
+                );
             }
+        }
+        List<String> pairs = new List<String>(); // flattened (for backward compat logging)
+        String firstProvider = null;
+        for (String pKey : providerToPairs.keySet()) {
+            pairs.addAll(providerToPairs.get(pKey));
+            if (firstProvider == null) firstProvider = pKey;
         }
         System.debug('ContentDocumentLinkTriggerHandler: pairs=' + pairs);
         if (!pairs.isEmpty()) {
-            // Enqueue queueable uploader to perform callouts and upload to S3
-            System.debug('ContentDocumentLinkTriggerHandler: enqueueing S3UploadQueueable with ' + pairs.size() + ' pairs');
+            System.debug('ContentDocumentLinkTriggerHandler: enqueueing StorageUploadQueueable with ' + pairs.size() + ' pairs, provider=' + firstProvider);
             try {
-                System.enqueueJob(new S3UploadQueueable(pairs));
+                System.enqueueJob(new StorageUploadQueueable(pairs, firstProvider));
             } catch (Exception ex) {
-                System.debug('ContentDocumentLinkTriggerHandler: failed to enqueue S3UploadQueueable: ' + ex.getMessage());
+                System.debug('ContentDocumentLinkTriggerHandler: failed to enqueue StorageUploadQueueable: ' + ex.getMessage());
             }
         }
     }

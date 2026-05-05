@@ -4,18 +4,19 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
     private String parentObjectApi;
     private List<Id> parentIds;
     private Boolean deleteAfterArchive;
+    private String storageProviderName; // Storage_Provider__mdt DeveloperName
 
-    // Backward-compatible constructor (defaults to delete)
+    // Backward-compatible constructor (defaults to delete, uses default provider)
     public ArchivePostProcessQueueable(
         List<Id> contentDocumentIds,
         Id archiveRecordId,
         String parentObjectApi,
         List<Id> parentIds
     ) {
-        this(contentDocumentIds, archiveRecordId, parentObjectApi, parentIds, true);
+        this(contentDocumentIds, archiveRecordId, parentObjectApi, parentIds, true, null);
     }
 
-    // Full constructor with delete option
+    // Constructor with delete option (uses default provider)
     public ArchivePostProcessQueueable(
         List<Id> contentDocumentIds,
         Id archiveRecordId,
@@ -23,15 +24,28 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
         List<Id> parentIds,
         Boolean deleteAfterArchive
     ) {
-        this.contentDocumentIds = contentDocumentIds == null ? new List<Id>() : contentDocumentIds;
-        this.archiveRecordId = archiveRecordId;
-        this.parentObjectApi = parentObjectApi;
-        this.parentIds = parentIds == null ? new List<Id>() : parentIds;
-        this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
+        this(contentDocumentIds, archiveRecordId, parentObjectApi, parentIds, deleteAfterArchive, null);
+    }
+
+    // Full constructor with provider selection
+    public ArchivePostProcessQueueable(
+        List<Id> contentDocumentIds,
+        Id archiveRecordId,
+        String parentObjectApi,
+        List<Id> parentIds,
+        Boolean deleteAfterArchive,
+        String storageProviderName
+    ) {
+        this.contentDocumentIds  = contentDocumentIds == null ? new List<Id>() : contentDocumentIds;
+        this.archiveRecordId     = archiveRecordId;
+        this.parentObjectApi     = parentObjectApi;
+        this.parentIds           = parentIds == null ? new List<Id>() : parentIds;
+        this.deleteAfterArchive  = deleteAfterArchive != null ? deleteAfterArchive : true;
+        this.storageProviderName = storageProviderName;
     }
 
     public void execute(QueueableContext context) {
-        uploadArchiveFilesToS3();
+        uploadArchiveFiles();
 
         if (this.deleteAfterArchive && !parentIds.isEmpty()) {
             CascadeDeleteHelper.deleteParentWithRelations(parentObjectApi, parentIds);
@@ -48,7 +62,7 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
         }
     }
 
-    private void uploadArchiveFilesToS3() {
+    private void uploadArchiveFiles() {
         if (contentDocumentIds.isEmpty() || archiveRecordId == null) {
             System.debug('ArchivePostProcessQueueable: no content documents to upload.');
             return;
@@ -61,7 +75,18 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
             AND IsLatest = true
         ];
 
-        System.debug('ArchivePostProcessQueueable: uploading ' + versions.size() + ' archive file(s) to S3.');
+        // Resolve storage provider (fail with debug log per Q3 — block, don't silently skip)
+        IExternalStorageProvider provider;
+        try {
+            provider = String.isNotBlank(storageProviderName)
+                ? StorageProviderFactory.getProvider(storageProviderName)
+                : StorageProviderFactory.getDefaultProvider();
+        } catch (StorageProviderException e) {
+            System.debug('ArchivePostProcessQueueable: No storage provider configured — upload blocked. ' + e.getMessage());
+            return;
+        }
+
+        System.debug('ArchivePostProcessQueueable: uploading ' + versions.size() + ' archive file(s) via ' + provider.getProviderType() + '.');
 
         // Generate a unique AES-256 encryption key for this archive (in-memory only)
         Blob aesKey = Crypto.generateAesKey(256);
@@ -90,26 +115,27 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
                     base64Body = EncodingUtil.base64Encode(encrypted);
                 }
 
-                String response = S3Controller.putObjectToS3(
+                String response = provider.putObject(
                     s3FileName,
                     base64Body,
                     'application/octet-stream'
                 );
                 System.debug('ArchivePostProcessQueueable: S3 upload success for ' + s3FileName + ' -> ' + response);
             } catch (Exception ex) {
-                System.debug('ArchivePostProcessQueueable: S3 upload failed for ContentVersion ' + versionRecord.Id + ': ' + ex.getMessage());
+                System.debug('ArchivePostProcessQueueable: upload failed for ContentVersion ' + versionRecord.Id + ': ' + ex.getMessage());
             }
         }
 
-        // ===== DML AFTER callouts — save the encryption key =====
+        // ===== DML AFTER callouts — save encryption key + provider name =====
         try {
             update new Data_Archive__c(
                 Id = archiveRecordId,
-                Encryption_Key__c = EncodingUtil.base64Encode(aesKey)
+                Encryption_Key__c    = EncodingUtil.base64Encode(aesKey),
+                Storage_Provider__c  = provider.getProviderType()
             );
-            System.debug('ArchivePostProcessQueueable: encryption key saved to archive record.');
+            System.debug('ArchivePostProcessQueueable: encryption key and provider saved to archive record.');
         } catch (Exception ex) {
-            System.debug('ArchivePostProcessQueueable: failed to save encryption key: ' + ex.getMessage());
+            System.debug('ArchivePostProcessQueueable: failed to save encryption key / provider: ' + ex.getMessage());
         }
     }
 }

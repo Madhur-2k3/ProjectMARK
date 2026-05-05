@@ -1,10 +1,12 @@
-import { LightningElement, api, track } from 'lwc';
-import listObjectsByPrefix from '@salesforce/apex/S3Controller.listObjectsByPrefix';
-import getDataFromS3 from '@salesforce/apex/S3Controller.getDataFromS3';
-import getFilteredCsvFromS3 from '@salesforce/apex/S3Controller.getFilteredCsvFromS3';
-import getDataFromS3AsBase64 from '@salesforce/apex/S3Controller.getDataFromS3AsBase64';
-import getCsvFieldMetadata from '@salesforce/apex/S3Controller.getCsvFieldMetadata';
-import hasDownloadPermission from '@salesforce/customPermission/Can_Download_Archive_Files';
+import { LightningElement, api, track, wire } from 'lwc';
+import { getRecord, getFieldValue } from 'lightning/uiRecordApi';
+import STORAGE_PROVIDER_FIELD from '@salesforce/schema/Data_Archive__c.Storage_Provider__c';
+import listObjectsByPrefix    from '@salesforce/apex/ExternalStorageService.listObjectsByPrefix';
+import getObject              from '@salesforce/apex/ExternalStorageService.getObject';
+import getFilteredCsv         from '@salesforce/apex/ExternalStorageService.getFilteredCsv';
+import getObjectAsBase64       from '@salesforce/apex/ExternalStorageService.getObjectAsBase64';
+import getCsvFieldMetadata    from '@salesforce/apex/S3Controller.getCsvFieldMetadata';
+import hasDownloadPermission  from '@salesforce/customPermission/Can_Download_Archive_Files';
 
 // File types that can be previewed in-browser
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp', 'ico']);
@@ -39,6 +41,16 @@ export default class S3RecordFiles extends LightningElement {
     @track error;
     @track loading = false;
     @track showAll = false;
+
+    // Wire in the archive record's Storage_Provider__c field
+    @wire(getRecord, { recordId: '$recordId', fields: [STORAGE_PROVIDER_FIELD] })
+    archiveRecord;
+
+    // Resolved provider name — falls back to AWS_S3 for older records
+    get providerName() {
+        const val = getFieldValue(this.archiveRecord?.data, STORAGE_PROVIDER_FIELD);
+        return val || 'AWS_S3';
+    }
 
     // Preview state
     @track showPreview = false;
@@ -209,7 +221,7 @@ export default class S3RecordFiles extends LightningElement {
         this.loading = true;
         this.error = null;
         try {
-            const result = await listObjectsByPrefix({ prefix: this.recordId });
+            const result = await listObjectsByPrefix({ providerName: this.providerName, prefix: this.recordId });
             const parsed = JSON.parse(result);
             this.files = parsed.map(item => {
                 const fullKey = item.Key || '';
@@ -351,7 +363,7 @@ export default class S3RecordFiles extends LightningElement {
         try {
             if (CSV_EXTS.has(ext)) {
                 // CSV: fetch with FLS filtering, then parse into table data
-                const content = await getFilteredCsvFromS3({ fileName: fullKey });
+                const content = await getFilteredCsv({ providerName: this.providerName, fileName: fullKey });
                 this._parseCsv(content);
 
                 // Fetch field metadata for filterBuilder
@@ -371,11 +383,11 @@ export default class S3RecordFiles extends LightningElement {
                 }
             } else if (TEXT_EXTS.has(ext)) {
                 // Text content can use the string-based method
-                const content = await getDataFromS3({ fileName: fullKey });
+                const content = await getObject({ providerName: this.providerName, filePath: fullKey });
                 this.previewTextContent = content;
             } else {
                 // Binary content needs base64
-                const base64Content = await getDataFromS3AsBase64({ fileName: fullKey });
+                const base64Content = await getObjectAsBase64({ providerName: this.providerName, filePath: fullKey });
                 this.previewDataUrl = `data:${this.previewMimeType};base64,${base64Content}`;
             }
         } catch (e) {
@@ -877,7 +889,7 @@ export default class S3RecordFiles extends LightningElement {
         this.loading = true;
         this.error = null;
         try {
-            const base64Content = await getDataFromS3AsBase64({ fileName: fullKey });
+            const base64Content = await getObjectAsBase64({ providerName: this.providerName, filePath: fullKey });
             // Build a clean download name: strip .zip.enc since the server decrypts/unzips
             let downloadName = fileName || fullKey.replace(/\//g, '_');
             downloadName = downloadName.replace(/\.zip\.enc$/i, '').replace(/\.enc$/i, '');
