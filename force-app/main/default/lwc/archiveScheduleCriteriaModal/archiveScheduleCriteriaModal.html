@@ -3,10 +3,10 @@
         <div class="slds-modal__container slds-modal__container_large">
 
             <header class="slds-modal__header">
-                <button class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse" title="Close" onclick={handleClose}>
-                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small" variant="inverse"></lightning-icon>
+                <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={handleClose}>
+                    <lightning-icon icon-name="utility:close" alternative-text="close" size="small"></lightning-icon>
                 </button>
-                <h2 class="slds-modal__title slds-hyphenate">Define Schedule Criteria</h2>
+                <h2 class="slds-modal__title">Define Schedule Criteria</h2>
             </header>
 
             <div class="slds-modal__content slds-p-around_medium">
@@ -19,7 +19,6 @@
 
                 <!-- ─── Criteria Mode Toggle ─── -->
                 <div class="criteria-mode-toggle slds-m-bottom_medium">
-                    <!-- <lightning-icon icon-name="utility:filter" size="x-small" class="toggle-icon"></lightning-icon> -->
                     <lightning-radio-group
                         label="Filter Mode"
                         options={criteriaModeOptions}
@@ -94,6 +93,32 @@
                     </template>
 
                 </template>
+
+                <!-- ─── DELETE AFTER ARCHIVE TOGGLE ─── -->
+                <div class="slds-m-top_medium slds-box slds-theme_shade delete-toggle-section">
+                    <div class="slds-grid slds-grid_vertical-align-center">
+                        <div class="slds-col slds-grow">
+                            <p class="slds-text-body_regular">
+                                <lightning-icon icon-name="utility:delete" size="xx-small"
+                                    class="slds-m-right_xx-small"></lightning-icon>
+                                <strong>Delete records after archiving?</strong>
+                            </p>
+                            <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                When enabled, original Salesforce records will be permanently deleted after
+                                the archive is created. Disable to keep records intact (backup-only mode).
+                            </p>
+                        </div>
+                        <div class="slds-col slds-no-flex slds-m-left_medium">
+                            <lightning-input type="toggle"
+                                label=""
+                                checked={deleteAfterArchive}
+                                onchange={handleDeleteToggleChange}
+                                message-toggle-active="Delete"
+                                message-toggle-inactive="Keep">
+                            </lightning-input>
+                        </div>
+                    </div>
+                </div>
 
             </div>
 

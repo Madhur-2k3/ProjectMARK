@@ -9,6 +9,7 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     private String soqlQuery;
     private Id archiveRecordId;
     private String archiveRecordName;
+    private Boolean deleteAfterArchive;
 
     // Parent CSV — flush during execute(), don't accumulate unbounded
     private String  currentParentCsv;
@@ -40,19 +41,27 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
     }
     // ===================== CONSTRUCTORS (backward-compatible overloads) =====================
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery) {
-        this(objectName, fieldsCsv, soqlQuery, null, null);
+        this(objectName, fieldsCsv, soqlQuery, null, null, true);
     }
 
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery, String archiveName) {
-        this(objectName, fieldsCsv, soqlQuery, archiveName, null);
+        this(objectName, fieldsCsv, soqlQuery, archiveName, null, true);
     }
 
     public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
                             String archiveName, List<String> selectedChildObjects) {
+        this(objectName, fieldsCsv, soqlQuery, archiveName, selectedChildObjects, true);
+    }
+
+    // Full constructor with delete option
+    public DataArchiveBatch(String objectName, String fieldsCsv, String soqlQuery,
+                            String archiveName, List<String> selectedChildObjects,
+                            Boolean deleteAfterArchive) {
         this.objectName   = objectName;
         this.fields       = filterAccessibleFields(objectName, normalizeFields(fieldsCsv));
         this.soqlQuery    = soqlQuery;
         this.archiveRecordName = archiveName;
+        this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
 
         this.parentHeader     = String.join(this.fields, ',') + '\n';
         this.currentParentCsv = this.parentHeader;
@@ -267,11 +276,15 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
                         new List<Id>(generatedContentDocumentIds),
                         archiveRecordId,
                         objectName,
-                        processedParentIds
+                        processedParentIds,
+                        this.deleteAfterArchive
                     ));
                     System.debug('ArchivePostProcessQueueable enqueued (no children)');
-                } else {
+                } else if (this.deleteAfterArchive) {
                     CascadeDeleteHelper.deleteParentWithRelations(objectName, processedParentIds);
+                    update new Data_Archive__c(Id = archiveRecordId, Status__c = 'Completed');
+                } else {
+                    System.debug('Delete after archive disabled — skipping deletion');
                     update new Data_Archive__c(Id = archiveRecordId, Status__c = 'Completed');
                 }
             }
@@ -337,7 +350,8 @@ public class DataArchiveBatch implements Database.Batchable<SObject>, Database.S
             sortedChildren,
             collectedIds,
             new List<Id>(generatedContentDocumentIds),
-            processedParentIds
+            processedParentIds,
+            this.deleteAfterArchive
         ), 2000);
 
         System.debug('DataArchiveChildBatch started (' + sortedChildren.size() + ' child objects)');

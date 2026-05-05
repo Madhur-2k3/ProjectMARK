@@ -10,9 +10,15 @@ import hasDownloadPermission from '@salesforce/customPermission/Can_Download_Arc
 const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'bmp', 'webp', 'ico']);
 const PDF_EXTS = new Set(['pdf']);
 const CSV_EXTS = new Set(['csv']);
+const EXCEL_EXTS = new Set(['xls', 'xlsx']);
 const TEXT_EXTS = new Set(['txt', 'json', 'xml', 'html', 'css', 'js', 'log', 'md', 'yml', 'yaml']);
 const VIDEO_EXTS = new Set(['mp4', 'webm', 'ogg']);
 const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'aac']);
+
+// Maximum file size (in bytes) that can be previewed in-browser.
+// Files larger than this will show a direct download prompt instead.
+// Apex synchronous heap limit is ~6 MB; keep threshold safely below that.
+const MAX_PREVIEW_SIZE_BYTES = 19 * 1024; // 19 KB
 
 const MIME_MAP = {
     'png': 'image/png', 'jpg': 'image/jpeg', 'jpeg': 'image/jpeg',
@@ -45,6 +51,8 @@ export default class S3RecordFiles extends LightningElement {
     @track csvRows = [];
     @track previewMimeType = '';
     _previewExt = '';
+    @track exceedsLimit = false;
+    _previewSizeBytes = 0;
     _previewFullKey = '';
 
     // Pagination state
@@ -93,15 +101,15 @@ export default class S3RecordFiles extends LightningElement {
 
     // Preview type getters
     get isImagePreview() {
-        return IMAGE_EXTS.has(this._previewExt) && !this.previewError;
+        return IMAGE_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
     }
 
     get isPdfPreview() {
-        return PDF_EXTS.has(this._previewExt) && !this.previewError;
+        return PDF_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
     }
 
     get isCsvPreview() {
-        return CSV_EXTS.has(this._previewExt) && !this.previewError;
+        return CSV_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
     }
 
     get hasFilterFields() {
@@ -171,15 +179,26 @@ export default class S3RecordFiles extends LightningElement {
     }
 
     get isTextPreview() {
-        return TEXT_EXTS.has(this._previewExt) && !this.previewError;
+        return TEXT_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
     }
 
     get isVideoPreview() {
-        return VIDEO_EXTS.has(this._previewExt) && !this.previewError;
+        return VIDEO_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
+    }
+
+    get isExceedsLimitPreview() {
+        return this.exceedsLimit && !this.previewError;
+    }
+
+    get exceedsLimitSizeLabel() {
+        const bytes = this._previewSizeBytes;
+        if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+        if (bytes >= 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return bytes + ' B';
     }
 
     get isAudioPreview() {
-        return AUDIO_EXTS.has(this._previewExt) && !this.previewError;
+        return AUDIO_EXTS.has(this._previewExt) && !this.previewError && !this.exceedsLimit;
     }
 
     connectedCallback() {
@@ -221,6 +240,7 @@ export default class S3RecordFiles extends LightningElement {
                     displayName,
                     ext,
                     effectiveExt,
+                    sizeBytes,
                     sizeLabel,
                     dateLabel,
                     iconName: this.getIconName(effectiveExt)
@@ -278,7 +298,8 @@ export default class S3RecordFiles extends LightningElement {
      */
     _isPreviewable(ext) {
         return IMAGE_EXTS.has(ext) || PDF_EXTS.has(ext) || CSV_EXTS.has(ext)
-            || TEXT_EXTS.has(ext) || VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext);
+            || TEXT_EXTS.has(ext) || VIDEO_EXTS.has(ext) || AUDIO_EXTS.has(ext)
+            || EXCEL_EXTS.has(ext);
     }
 
     /**
@@ -288,13 +309,14 @@ export default class S3RecordFiles extends LightningElement {
         const fullKey = event.currentTarget.dataset.key;
         const fileName = event.currentTarget.dataset.filename;
         const ext = (event.currentTarget.dataset.ext || '').toLowerCase();
+        const sizeBytes = Number(event.currentTarget.dataset.size) || 0;
         // Use effective extension for preview routing
         const effectiveExt = this._getEffectiveExt(fileName, ext);
 
         if (!fullKey) return;
 
         if (this._isPreviewable(effectiveExt)) {
-            this._openPreview(fullKey, fileName, effectiveExt);
+            this._openPreview(fullKey, fileName, effectiveExt, sizeBytes);
         } else {
             this._downloadFile(fullKey, fileName);
         }
@@ -303,18 +325,28 @@ export default class S3RecordFiles extends LightningElement {
     /**
      * Opens the preview modal and fetches file content.
      */
-    async _openPreview(fullKey, fileName, ext) {
+    async _openPreview(fullKey, fileName, ext, sizeBytes = 0) {
         this._previewFullKey = fullKey;
         this._previewExt = ext;
+        this._previewSizeBytes = sizeBytes;
         this.previewFileName = this._buildDisplayName(fileName);
         this.previewDataUrl = '';
         this.previewTextContent = '';
         this.csvHeaders = [];
         this.csvRows = [];
         this.previewError = null;
+        this.exceedsLimit = false;
         this.previewMimeType = MIME_MAP[ext] || 'application/octet-stream';
         this.showPreview = true;
         this.previewLoading = true;
+
+        // Excel files can never be previewed in-browser — always show download
+        // Large CSV / text files that exceed the Apex heap limit also get download-only
+        if (EXCEL_EXTS.has(ext) || (sizeBytes > 0 && sizeBytes > MAX_PREVIEW_SIZE_BYTES)) {
+            this.exceedsLimit = true;
+            this.previewLoading = false;
+            return;
+        }
 
         try {
             if (CSV_EXTS.has(ext)) {
@@ -363,7 +395,9 @@ export default class S3RecordFiles extends LightningElement {
         this._allCsvRows = [];
         this._previewExt = '';
         this._previewFullKey = '';
+        this._previewSizeBytes = 0;
         this.previewError = null;
+        this.exceedsLimit = false;
         this.csvFieldMeta = [];
         this.csvObjectName = '';
         this._csvWhereClause = '';

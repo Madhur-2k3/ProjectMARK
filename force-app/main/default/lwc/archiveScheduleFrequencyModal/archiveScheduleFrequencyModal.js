@@ -9,6 +9,7 @@ export default class ArchiveScheduleFrequencyModal extends LightningElement {
     @api criteriaMode;      // 'days' | 'advanced'
     @api dateField;         // Date field API name (days mode)
     @api daysValue;         // Number of days (days mode)
+    @api deleteAfterArchive; // Delete records after archive
     selectedFrequency;
     preferredTime = '02:00';
     selectedDayOfWeek = 'MON';
@@ -90,7 +91,8 @@ export default class ArchiveScheduleFrequencyModal extends LightningElement {
                     selectedChildObjects: this.selectedChildObjects,
                     criteriaMode: this.criteriaMode,
                     dateField: this.dateField,
-                    daysValue: this.daysValue
+                    daysValue: this.daysValue,
+                    deleteAfterArchive: this.deleteAfterArchive
                 }
             })
         );

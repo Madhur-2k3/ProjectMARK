@@ -18,6 +18,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
     private Map<String, List<Id>> collectedIds;
     private List<Id>        contentDocumentIds;
     private List<Id>        processedParentIds;
+    private Boolean         deleteAfterArchive;
 
     // Per-child state — reset in start(), accumulated across execute() via Stateful
     private ChildInfo currentChild;
@@ -27,12 +28,25 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
     private Integer   totalRecords;
     private List<Id>  currentChildIds;
 
+    // Backward-compatible constructor (defaults to delete)
     public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordName,
                                   String rootObjectName,
                                   List<ChildInfo> sortedChildren,
                                   Map<String, List<Id>> collectedIds,
                                   List<Id> contentDocumentIds,
                                   List<Id> processedParentIds) {
+        this(archiveRecordId, archiveRecordName, rootObjectName, sortedChildren,
+             collectedIds, contentDocumentIds, processedParentIds, true);
+    }
+
+    // Full constructor with delete option
+    public DataArchiveChildBatch(Id archiveRecordId, String archiveRecordName,
+                                  String rootObjectName,
+                                  List<ChildInfo> sortedChildren,
+                                  Map<String, List<Id>> collectedIds,
+                                  List<Id> contentDocumentIds,
+                                  List<Id> processedParentIds,
+                                  Boolean deleteAfterArchive) {
         this.archiveRecordId    = archiveRecordId;
         this.archiveRecordName  = archiveRecordName;
         this.rootObjectName     = rootObjectName;
@@ -40,6 +54,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
         this.collectedIds       = collectedIds;
         this.contentDocumentIds = contentDocumentIds;
         this.processedParentIds = processedParentIds;
+        this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
     }
 
     /**
@@ -135,7 +150,8 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
         if (!sortedChildren.isEmpty()) {
             Database.executeBatch(new DataArchiveChildBatch(
                 archiveRecordId, archiveRecordName, rootObjectName,
-                sortedChildren, collectedIds, contentDocumentIds, processedParentIds
+                sortedChildren, collectedIds, contentDocumentIds, processedParentIds,
+                deleteAfterArchive
             ), 2000);
             System.debug('DataArchiveChildBatch: chaining to next child');
         } else {
@@ -148,6 +164,7 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
     private void finalizeArchive() {
         System.debug('DataArchiveChildBatch: all children processed');
         System.debug('Total files: ' + contentDocumentIds.size());
+        System.debug('Delete after archive: ' + this.deleteAfterArchive);
 
         update new Data_Archive__c(
             Id        = archiveRecordId,
@@ -159,14 +176,21 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
                 contentDocumentIds,
                 archiveRecordId,
                 rootObjectName,
-                processedParentIds
+                processedParentIds,
+                this.deleteAfterArchive
             ));
             System.debug('ArchivePostProcessQueueable enqueued');
-        } else {
+        } else if (this.deleteAfterArchive) {
             System.debug('Queueable limit reached — running deletion inline');
             if (!processedParentIds.isEmpty()) {
                 CascadeDeleteHelper.deleteParentWithRelations(rootObjectName, processedParentIds);
             }
+            update new Data_Archive__c(
+                Id        = archiveRecordId,
+                Status__c = 'Completed'
+            );
+        } else {
+            System.debug('Delete after archive disabled — skipping deletion');
             update new Data_Archive__c(
                 Id        = archiveRecordId,
                 Status__c = 'Completed'

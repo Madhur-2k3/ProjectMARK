@@ -24,7 +24,7 @@
                     <div class="file-grid">
                         <template for:each={displayedFiles} for:item="file">
                             <div key={file.id} class="file-tile" data-key={file.fullKey} data-filename={file.fileName}
-                                data-ext={file.ext} onclick={handleFileClick}>
+                                data-ext={file.ext} data-size={file.sizeBytes} onclick={handleFileClick}>
                                 <div class="file-tile__icon">
                                     <lightning-icon icon-name={file.iconName} size="small"></lightning-icon>
                                 </div>
@@ -82,6 +82,18 @@
                         <template if:true={previewError}>
                             <div class="slds-text-color_error slds-p-around_small">
                                 {previewError}
+                            </div>
+                        </template>
+
+                        <template if:true={isExceedsLimitPreview}>
+                            <div class="exceeds-limit-container">
+                                <div class="exceeds-limit-icon">
+                                    <lightning-icon icon-name="utility:download" size="large"></lightning-icon>
+                                </div>
+                                <p class="exceeds-limit-title">This file is too large to preview</p>
+                                <p class="exceeds-limit-subtitle">
+                                    File size: <strong>{exceedsLimitSizeLabel}</strong> — exceeds the in-browser preview limit.
+                                </p>
                             </div>
                         </template>
 

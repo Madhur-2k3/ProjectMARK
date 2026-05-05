@@ -22,7 +22,7 @@
 
                 <button class={unArchiveClass} onclick={activateUnArchive}>
                     <span class="dot"></span>
-                    Archived Records
+                    Un-Archive
                 </button>
 
             </div>
@@ -100,6 +100,7 @@
             criteria-mode={criteriaMode}
             date-field={dateField}
             days-value={daysValue}
+            delete-after-archive={deleteAfterArchive}
             onschedulecomplete={handleScheduleComplete}
             onprevious={handleFrequencyPrevious}
             onclose={closeAllModals}>

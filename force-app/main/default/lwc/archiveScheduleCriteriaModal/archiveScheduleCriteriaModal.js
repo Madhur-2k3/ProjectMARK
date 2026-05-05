@@ -16,6 +16,9 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
     @track selectedDateField = '';
     @track daysValue = null;
 
+    // ── Delete after archive toggle ──
+    @track deleteAfterArchive = true;
+
     // Auto-populate schedule name with object + today's date
     connectedCallback() {
         const today = new Date();
@@ -126,6 +129,10 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
         this.scheduleName = event.detail.value;
     }
 
+    handleDeleteToggleChange(event) {
+        this.deleteAfterArchive = event.target.checked;
+    }
+
     handleNext() {
         if (this.criteriaMode === 'days') {
             this.dispatchEvent(
@@ -134,7 +141,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
                         criteriaMode: 'days',
                         dateField: this.selectedDateField,
                         days: this.daysValue,
-                        scheduleName: this.scheduleName
+                        scheduleName: this.scheduleName,
+                        deleteAfterArchive: this.deleteAfterArchive
                     }
                 })
             );
@@ -144,7 +152,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
                     detail: {
                         criteriaMode: 'advanced',
                         whereClause: this.currentWhereClause,
-                        scheduleName: this.scheduleName
+                        scheduleName: this.scheduleName,
+                        deleteAfterArchive: this.deleteAfterArchive
                     }
                 })
             );

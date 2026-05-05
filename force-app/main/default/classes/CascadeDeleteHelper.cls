@@ -28,7 +28,7 @@ public with sharing class CascadeDeleteHelper {
             // No children — just delete the parents directly
             Database.executeBatch(
                 new CascadeDeleteQueueable(parentObjectApi, parentIds),
-                200
+                2000
             );
             return;
         }
@@ -94,7 +94,7 @@ public with sharing class CascadeDeleteHelper {
             CascadeDeleteQueueable.DeletionStep firstStep = steps.remove(0);
             Database.executeBatch(
                 new CascadeDeleteQueueable(firstStep, steps),
-                200
+                2000
             );
             System.debug('CascadeDeleteHelper: started cascade delete chain with '
                        + (steps.size() + 1) + ' total steps');

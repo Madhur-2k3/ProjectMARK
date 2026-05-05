@@ -29,6 +29,7 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
     criteriaMode;
     dateField;
     daysValue;
+    deleteAfterArchive = true;
 
     get archiveClass() {
         return this.booleanFlag
@@ -98,6 +99,8 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
         this.selectedCriteria = event.detail;
         this.scheduleName = event.detail.scheduleName;
         this.criteriaMode = event.detail.criteriaMode;
+        this.deleteAfterArchive = event.detail.deleteAfterArchive !== undefined
+            ? event.detail.deleteAfterArchive : true;
 
         if (this.criteriaMode === 'days') {
             this.dateField = event.detail.dateField;
@@ -167,7 +170,9 @@ export default class DataArchiveSelection extends NavigationMixin(LightningEleme
             preferredTime: scheduleData.preferredTime,
             dayOfWeek: scheduleData.dayOfWeek,
             scheduleName: scheduleData.scheduleName,
-            selectedChildObjects: scheduleData.selectedChildObjects
+            selectedChildObjects: scheduleData.selectedChildObjects,
+            deleteAfterArchive: scheduleData.deleteAfterArchive !== undefined
+                ? scheduleData.deleteAfterArchive : true
         })
             .then(recordId => {
 

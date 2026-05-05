@@ -66,6 +66,7 @@ export default class FilterBuilder extends LightningElement {
     archiveName = '';
     archiveModalStep = 1;
     selectedChildObjects = [];
+    deleteAfterArchive = true;
 
     // Warning popup state
     @track showWarningPopup = false;
@@ -587,6 +588,10 @@ export default class FilterBuilder extends LightningElement {
         console.log("Archive Name:", this.archiveName);
     }
 
+    handleDeleteToggleChange(event) {
+        this.deleteAfterArchive = event.target.checked;
+    }
+
     get isStartArchiveDisabled() {
         return !this.archiveName || this.archiveName.trim().length === 0;
     }
@@ -624,6 +629,7 @@ export default class FilterBuilder extends LightningElement {
         this.archiveName = '';
         this.archiveModalStep = 1;
         this.selectedChildObjects = [];
+        this.deleteAfterArchive = true;
     }
 
     confirmArchive() {
@@ -683,7 +689,8 @@ export default class FilterBuilder extends LightningElement {
             recordIds: ids,
             fieldsCsv: this.selectedFieldApiList.join(','),
             archiveName: this.archiveName,
-            selectedChildObjects: this.selectedChildObjects
+            selectedChildObjects: this.selectedChildObjects,
+            deleteAfterArchive: this.deleteAfterArchive
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;
@@ -715,7 +722,8 @@ export default class FilterBuilder extends LightningElement {
             fieldsCsv: this.selectedFieldApiList.join(','),
             fullQuery: this.query,
             archiveName: this.archiveName,
-            selectedChildObjects: this.selectedChildObjects
+            selectedChildObjects: this.selectedChildObjects,
+            deleteAfterArchive: this.deleteAfterArchive
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;

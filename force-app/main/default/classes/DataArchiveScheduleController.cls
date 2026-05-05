@@ -308,7 +308,7 @@ public with sharing class DataArchiveScheduleController {
         String  preferredTime,
         String  dayOfWeek
     ){
-        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, 'Schedule_' + Datetime.now().getTime(), null);
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, 'Schedule_' + Datetime.now().getTime(), null, true);
     }
 
     // ── Backward Compatibility Overload (8 params) ────────
@@ -322,7 +322,22 @@ public with sharing class DataArchiveScheduleController {
         String  dayOfWeek,
         String  scheduleName
     ){
-        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, null);
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, null, true);
+    }
+
+    // ── Backward Compatibility Overload (9 params - no delete flag) ────────
+    public static String scheduleArchive(
+        String  objectName,
+        String  frequency,
+        String  dateField,
+        Integer days,
+        String  filterValue,
+        String  preferredTime,
+        String  dayOfWeek,
+        String  scheduleName,
+        List<String> selectedChildObjects
+    ){
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, selectedChildObjects, true);
     }
 
     // ─────────────────────────────────────────────────
@@ -338,7 +353,8 @@ public with sharing class DataArchiveScheduleController {
         String  preferredTime,
         String  dayOfWeek,
         String  scheduleName,
-        List<String> selectedChildObjects
+        List<String> selectedChildObjects,
+        Boolean deleteAfterArchive
     ){
 
         // ── Clean up orphaned schedules first ────────
@@ -436,7 +452,8 @@ public with sharing class DataArchiveScheduleController {
                 days,
                 filterValue,
                 newSchedule.Name,
-                selectedChildObjects
+                selectedChildObjects,
+                deleteAfterArchive
             )
         );
 

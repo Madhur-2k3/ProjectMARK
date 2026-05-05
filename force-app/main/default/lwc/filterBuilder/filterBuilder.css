@@ -10,6 +10,7 @@
 
 .box {
     width: 27%;
+
 }
 
 .filter-box {
@@ -106,16 +107,8 @@
    PREMIUM MODAL STYLES
 ===================================================== */
 
-/* Container — force border-radius on the SLDS wrapper */
-:host .slds-modal__container {
-    border-radius: 14px !important;
-    overflow: hidden;
-}
-
+/* Container */
 .modal-premium {
-    width: 60vw !important;
-    max-width: 900px !important;
-    min-width: 480px;
     border-radius: 14px !important;
     overflow: hidden;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2) !important;
@@ -123,11 +116,10 @@
 
 /* ---------- Header ---------- */
 .modal-header-custom {
-    background: linear-gradient(135deg, #0176d3 0%, #1589ee 100%);
-    padding: 24px 28px 18px;
+    background: linear-gradient(135deg, #3b97e0 0%, #4BA3E3  100%);
+    padding: 20px 24px 16px;
     position: relative;
     color: #ffffff;
-    border-radius: 14px 14px 0 0;
 }
 
 .modal-close-btn {
@@ -252,9 +244,8 @@
 
 /* ---------- Modal Body ---------- */
 .modal-body-custom {
-    padding: 28px 32px !important;
+    padding: 24px !important;
     background: #ffffff;
-    min-height: 280px;
 }
 
 .modal-step-content {
@@ -297,13 +288,12 @@
 /* ---------- Modal Footer ---------- */
 .modal-footer-custom {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
     gap: 10px;
-    padding: 16px 28px;
+    padding: 14px 24px;
     background: #f8f9fb;
     border-top: 1px solid #e8ecf1;
-    border-radius: 0 0 14px 14px;
 }
 
 /* ═══════════════════════════════════════════════════════

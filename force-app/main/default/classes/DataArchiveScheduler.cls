@@ -6,6 +6,7 @@ public with sharing class DataArchiveScheduler implements Schedulable {
     private String filterValue;
     private String scheduleName;
     private List<String> selectedChildObjects;
+    private Boolean deleteAfterArchive;
 
     // Backward-compatible constructor (4 params - used by older tests)
     public DataArchiveScheduler(
@@ -14,7 +15,7 @@ public with sharing class DataArchiveScheduler implements Schedulable {
         Integer days,
         String scheduleName
     ){
-        this(objectName, criteriaField, days, null, scheduleName, null);
+        this(objectName, criteriaField, days, null, scheduleName, null, true);
     }
 
     // Backward-compatible constructor (no child objects)
@@ -25,10 +26,10 @@ public with sharing class DataArchiveScheduler implements Schedulable {
         String filterValue,
         String scheduleName
     ){
-        this(objectName, criteriaField, days, filterValue, scheduleName, null);
+        this(objectName, criteriaField, days, filterValue, scheduleName, null, true);
     }
 
-    // Full constructor with child object selection
+    // Backward-compatible constructor (no delete flag)
     public DataArchiveScheduler(
         String objectName,
         String criteriaField,
@@ -37,12 +38,26 @@ public with sharing class DataArchiveScheduler implements Schedulable {
         String scheduleName,
         List<String> selectedChildObjects
     ){
+        this(objectName, criteriaField, days, filterValue, scheduleName, selectedChildObjects, true);
+    }
+
+    // Full constructor with delete option
+    public DataArchiveScheduler(
+        String objectName,
+        String criteriaField,
+        Integer days,
+        String filterValue,
+        String scheduleName,
+        List<String> selectedChildObjects,
+        Boolean deleteAfterArchive
+    ){
         this.objectName    = objectName;
         this.criteriaField = criteriaField;
         this.days          = days;
         this.filterValue   = filterValue;
         this.scheduleName  = scheduleName;
         this.selectedChildObjects = selectedChildObjects;
+        this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
     }
 
     public void execute(SchedulableContext sc) {
@@ -90,7 +105,7 @@ public with sharing class DataArchiveScheduler implements Schedulable {
             ' WHERE ' + whereClause;
 
         DataArchiveBatch batch =
-            new DataArchiveBatch(objectName, fieldsCsv, soql, scheduleName, selectedChildObjects);
+            new DataArchiveBatch(objectName, fieldsCsv, soql, scheduleName, selectedChildObjects, this.deleteAfterArchive);
 
         Database.executeBatch(batch, 200);
     }

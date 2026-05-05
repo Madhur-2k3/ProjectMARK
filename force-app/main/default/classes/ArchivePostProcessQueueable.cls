@@ -3,23 +3,37 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
     private Id archiveRecordId;
     private String parentObjectApi;
     private List<Id> parentIds;
+    private Boolean deleteAfterArchive;
 
+    // Backward-compatible constructor (defaults to delete)
     public ArchivePostProcessQueueable(
         List<Id> contentDocumentIds,
         Id archiveRecordId,
         String parentObjectApi,
         List<Id> parentIds
     ) {
+        this(contentDocumentIds, archiveRecordId, parentObjectApi, parentIds, true);
+    }
+
+    // Full constructor with delete option
+    public ArchivePostProcessQueueable(
+        List<Id> contentDocumentIds,
+        Id archiveRecordId,
+        String parentObjectApi,
+        List<Id> parentIds,
+        Boolean deleteAfterArchive
+    ) {
         this.contentDocumentIds = contentDocumentIds == null ? new List<Id>() : contentDocumentIds;
         this.archiveRecordId = archiveRecordId;
         this.parentObjectApi = parentObjectApi;
         this.parentIds = parentIds == null ? new List<Id>() : parentIds;
+        this.deleteAfterArchive = deleteAfterArchive != null ? deleteAfterArchive : true;
     }
 
     public void execute(QueueableContext context) {
         uploadArchiveFilesToS3();
 
-        if (!parentIds.isEmpty()) {
+        if (this.deleteAfterArchive && !parentIds.isEmpty()) {
             CascadeDeleteHelper.deleteParentWithRelations(parentObjectApi, parentIds);
         }
 
