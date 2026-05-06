@@ -9,13 +9,34 @@ public class StorageProviderFactory {
      * Throws StorageProviderException if not found or inactive.
      */
     public static IExternalStorageProvider getProvider(String providerDevName) {
-        Storage_Provider__mdt config = Storage_Provider__mdt.getInstance(providerDevName);
-        if (config == null || !config.Is_Active__c) {
-            throw new StorageProviderException(
-                'Storage provider not found or inactive: ' + providerDevName
-            );
+        // Custom Metadata SOQL does NOT support OR (disjunctions), so we fetch all
+        // active providers and match in Apex — case-insensitively by DeveloperName first,
+        // then by Provider_Type__c (for old archives that stored the type, e.g. 'S3').
+        List<Storage_Provider__mdt> allActive = [
+            SELECT DeveloperName, MasterLabel, Named_Credential__c, Provider_Type__c,
+                   Is_Active__c, Is_Default__c, Base_Path__c
+            FROM Storage_Provider__mdt
+            WHERE Is_Active__c = true
+        ];
+
+        // 1st pass: match by DeveloperName (e.g. 'aws_s3', 'google_drive')
+        for (Storage_Provider__mdt c : allActive) {
+            if (c.DeveloperName.equalsIgnoreCase(providerDevName)) {
+                return buildProvider(c);
+            }
         }
-        return buildProvider(config);
+
+        // 2nd pass: match by Provider_Type__c (e.g. 'S3', 'Google_Drive')
+        for (Storage_Provider__mdt c : allActive) {
+            if (String.isNotBlank(c.Provider_Type__c)
+                    && c.Provider_Type__c.equalsIgnoreCase(providerDevName)) {
+                return buildProvider(c);
+            }
+        }
+
+        throw new StorageProviderException(
+            'Storage provider not found or inactive: ' + providerDevName
+        );
     }
 
     /**

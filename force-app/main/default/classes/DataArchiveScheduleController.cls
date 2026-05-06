@@ -308,7 +308,7 @@ public with sharing class DataArchiveScheduleController {
         String  preferredTime,
         String  dayOfWeek
     ){
-        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, 'Schedule_' + Datetime.now().getTime(), null, true);
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, 'Schedule_' + Datetime.now().getTime(), null, true, null);
     }
 
     // ── Backward Compatibility Overload (8 params) ────────
@@ -322,7 +322,7 @@ public with sharing class DataArchiveScheduleController {
         String  dayOfWeek,
         String  scheduleName
     ){
-        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, null, true);
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, null, true, null);
     }
 
     // ── Backward Compatibility Overload (9 params - no delete flag) ────────
@@ -337,7 +337,23 @@ public with sharing class DataArchiveScheduleController {
         String  scheduleName,
         List<String> selectedChildObjects
     ){
-        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, selectedChildObjects, true);
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, selectedChildObjects, true, null);
+    }
+
+    // ── Backward Compatibility Overload (10 params - no storageProviderName) ────
+    public static String scheduleArchive(
+        String  objectName,
+        String  frequency,
+        String  dateField,
+        Integer days,
+        String  filterValue,
+        String  preferredTime,
+        String  dayOfWeek,
+        String  scheduleName,
+        List<String> selectedChildObjects,
+        Boolean deleteAfterArchive
+    ){
+        return scheduleArchive(objectName, frequency, dateField, days, filterValue, preferredTime, dayOfWeek, scheduleName, selectedChildObjects, deleteAfterArchive, null);
     }
 
     // ─────────────────────────────────────────────────
@@ -354,7 +370,8 @@ public with sharing class DataArchiveScheduleController {
         String  dayOfWeek,
         String  scheduleName,
         List<String> selectedChildObjects,
-        Boolean deleteAfterArchive
+        Boolean deleteAfterArchive,
+        String  storageProviderName
     ){
 
         // ── Clean up orphaned schedules first ────────
@@ -438,7 +455,8 @@ public with sharing class DataArchiveScheduleController {
             Status__c          = 'Active',
             Preferred_Time__c  = preferredTime,
             Day_Of_Week__c     = dayOfWeek,
-            Selected_Child_Objects__c = childObjectsCsv
+            Selected_Child_Objects__c = childObjectsCsv,
+            Storage_Provider__c = String.isBlank(storageProviderName) ? null : storageProviderName
         );
         insert newSchedule;
 
@@ -453,7 +471,8 @@ public with sharing class DataArchiveScheduleController {
                 filterValue,
                 newSchedule.Name,
                 selectedChildObjects,
-                deleteAfterArchive
+                deleteAfterArchive,
+                String.isBlank(storageProviderName) ? null : storageProviderName
             )
         );
 

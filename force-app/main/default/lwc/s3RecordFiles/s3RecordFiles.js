@@ -6,6 +6,7 @@ import getObject              from '@salesforce/apex/ExternalStorageService.getO
 import getFilteredCsv         from '@salesforce/apex/ExternalStorageService.getFilteredCsv';
 import getObjectAsBase64       from '@salesforce/apex/ExternalStorageService.getObjectAsBase64';
 import getCsvFieldMetadata    from '@salesforce/apex/S3Controller.getCsvFieldMetadata';
+import getAvailableProviders  from '@salesforce/apex/ExternalStorageService.getAvailableProviders';
 import hasDownloadPermission  from '@salesforce/customPermission/Can_Download_Archive_Files';
 
 // File types that can be previewed in-browser
@@ -42,14 +43,47 @@ export default class S3RecordFiles extends LightningElement {
     @track loading = false;
     @track showAll = false;
 
-    // Wire in the archive record's Storage_Provider__c field
-    @wire(getRecord, { recordId: '$recordId', fields: [STORAGE_PROVIDER_FIELD] })
-    archiveRecord;
+    // ── Provider state ──
+    _currentProvider = 'AWS_S3';  // auto-set by wire; overrideable by user
+    _userPickedProvider = false;  // true once user manually selects
+    @track storageProviderOptions = [];
 
-    // Resolved provider name — falls back to AWS_S3 for older records
+    @wire(getAvailableProviders)
+    wiredProviders({ data }) {
+        if (data) {
+            this.storageProviderOptions = data.map(p => ({
+                label: p.label + (p.isDefault === 'true' ? ' ★' : ''),
+                value: p.developerName
+            }));
+        }
+    }
+
+    // Wire in the archive record's Storage_Provider__c field.
+    // Using a setter so loadFiles() fires AFTER the provider is resolved.
+    @wire(getRecord, { recordId: '$recordId', fields: [STORAGE_PROVIDER_FIELD] })
+    wiredArchiveRecord(result) {
+        this._archiveRecord = result;
+        if (result.data) {
+            // Only override if user hasn't manually selected a provider
+            if (!this._userPickedProvider) {
+                const val = getFieldValue(result.data, STORAGE_PROVIDER_FIELD);
+                this._currentProvider = val || 'AWS_S3';
+            }
+            this.loadFiles();
+        } else if (result.error) {
+            this.loadFiles(); // try with current provider
+        }
+    }
+
+    // Resolved provider (wire value OR user override)
     get providerName() {
-        const val = getFieldValue(this.archiveRecord?.data, STORAGE_PROVIDER_FIELD);
-        return val || 'AWS_S3';
+        return this._currentProvider;
+    }
+
+    handleManualProviderChange(event) {
+        this._currentProvider = event.detail.value;
+        this._userPickedProvider = true;
+        this.loadFiles();
     }
 
     // Preview state
@@ -214,7 +248,8 @@ export default class S3RecordFiles extends LightningElement {
     }
 
     connectedCallback() {
-        this.loadFiles();
+        // loadFiles() is triggered by wiredArchiveRecord once Storage_Provider__c is resolved.
+        // Do NOT call it here — the wire hasn't returned yet and providerName would default to AWS_S3.
     }
 
     async loadFiles() {

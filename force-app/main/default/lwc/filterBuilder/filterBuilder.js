@@ -7,6 +7,7 @@ import archiveAllRecords from '@salesforce/apex/DataArchiveController.archiveAll
 import getBatchStatus from '@salesforce/apex/DataArchiveController.getBatchStatus';
 import getArchiveRecordId from '@salesforce/apex/DataArchiveController.getArchiveRecordId';
 import getArchiveStatus from '@salesforce/apex/DataArchiveController.getArchiveStatus';
+import getAvailableProviders from '@salesforce/apex/ExternalStorageService.getAvailableProviders';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
 export default class FilterBuilder extends LightningElement {
@@ -67,6 +68,22 @@ export default class FilterBuilder extends LightningElement {
     archiveModalStep = 1;
     selectedChildObjects = [];
     deleteAfterArchive = true;
+    selectedStorageProvider = '';
+    storageProviderOptions = [];
+
+    @wire(getAvailableProviders)
+    wiredProviders({ data, error }) {
+        if (data) {
+            this.storageProviderOptions = data.map(p => ({
+                label: p.label + (p.isDefault === 'true' ? ' ★ Default' : ''),
+                value: p.developerName
+            }));
+            const def = data.find(p => p.isDefault === 'true');
+            if (def && !this.selectedStorageProvider) {
+                this.selectedStorageProvider = def.developerName;
+            }
+        }
+    }
 
     // Warning popup state
     @track showWarningPopup = false;
@@ -592,6 +609,10 @@ export default class FilterBuilder extends LightningElement {
         this.deleteAfterArchive = event.target.checked;
     }
 
+    handleStorageProviderChange(event) {
+        this.selectedStorageProvider = event.detail.value;
+    }
+
     get isStartArchiveDisabled() {
         return !this.archiveName || this.archiveName.trim().length === 0;
     }
@@ -630,6 +651,7 @@ export default class FilterBuilder extends LightningElement {
         this.archiveModalStep = 1;
         this.selectedChildObjects = [];
         this.deleteAfterArchive = true;
+        // Keep selectedStorageProvider — user likely wants same provider for next archive
     }
 
     confirmArchive() {
@@ -690,7 +712,8 @@ export default class FilterBuilder extends LightningElement {
             fieldsCsv: this.selectedFieldApiList.join(','),
             archiveName: this.archiveName,
             selectedChildObjects: this.selectedChildObjects,
-            deleteAfterArchive: this.deleteAfterArchive
+            deleteAfterArchive: this.deleteAfterArchive,
+            storageProviderName: this.selectedStorageProvider || null
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;
@@ -723,7 +746,8 @@ export default class FilterBuilder extends LightningElement {
             fullQuery: this.query,
             archiveName: this.archiveName,
             selectedChildObjects: this.selectedChildObjects,
-            deleteAfterArchive: this.deleteAfterArchive
+            deleteAfterArchive: this.deleteAfterArchive,
+            storageProviderName: this.selectedStorageProvider || null
         })
             .then((batchJobId) => {
                 this.batchJobId = batchJobId;

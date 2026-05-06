@@ -11,6 +11,19 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
 
     private static final Integer MAX_CSV_LENGTH = Integer.valueOf(Label.MAX_CSV_LENGTH);
 
+    /**
+     * Salesforce objects that cannot be queried via Database.getQueryLocator.
+     * Virtual/API objects that appear in schema relationships but throw
+     * DataSourceUnsupportedQueryException when queried directly.
+     */
+    private static final Set<String> UNSUPPORTED_OBJECTS = new Set<String>{
+        'OutgoingEmail', 'OutgoingEmailRelation',
+        'UserRecordAccess', 'Vote',
+        'CombinedAttachment', 'AttachedContentDocument',
+        'ContentDocumentLink', 'FeedComment', 'FeedItem',
+        'StreamingChannel', 'PushTopic'
+    };
+
     private Id              archiveRecordId;
     private String          archiveRecordName;
     private String          rootObjectName;
@@ -80,9 +93,17 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
         currentChild = null;
         List<Id> parentIds = null;
 
-        // Pop children until we find one with valid parent IDs
+        // Pop children until we find one with valid parent IDs AND is queryable
         while (!sortedChildren.isEmpty()) {
             ChildInfo candidate = sortedChildren.remove(0);
+
+            // Skip known non-queryable objects upfront
+            if (UNSUPPORTED_OBJECTS.contains(candidate.objectName)) {
+                System.debug('DataArchiveChildBatch: skipping known unsupported object: '
+                           + candidate.objectName);
+                continue;
+            }
+
             List<Id> candidateParentIds = collectedIds.get(candidate.parentObjectName);
 
             if (candidateParentIds != null && !candidateParentIds.isEmpty()) {
@@ -115,7 +136,20 @@ public class DataArchiveChildBatch implements Database.Batchable<SObject>, Datab
         System.debug('DataArchiveChildBatch: starting child ' + currentChild.objectName
                    + ' (depth ' + currentChild.depth + '), remaining: ' + sortedChildren.size());
 
-        return Database.getQueryLocator(childQuery);
+        // Wrap in try-catch: some objects pass the denylist but still throw at runtime
+        try {
+            return Database.getQueryLocator(childQuery);
+        } catch (System.ExternalObjectException e) {
+            System.debug('DataArchiveChildBatch: object not queryable (ExternalObjectException), skipping '
+                       + currentChild.objectName + ': ' + e.getMessage());
+            currentChild = null; // treat as if no records — finish() will chain to next child
+            return Database.getQueryLocator('SELECT Id FROM User WHERE Id = null');
+        } catch (System.QueryException e) {
+            System.debug('DataArchiveChildBatch: object not queryable (QueryException), skipping '
+                       + currentChild.objectName + ': ' + e.getMessage());
+            currentChild = null;
+            return Database.getQueryLocator('SELECT Id FROM User WHERE Id = null');
+        }
     }
 
     /**

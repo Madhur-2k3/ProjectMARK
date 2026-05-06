@@ -1,6 +1,8 @@
 import { LightningElement, api, wire, track } from 'lwc';
 import getFieldsBySObject
     from '@salesforce/apex/sObjectsController.getFieldsBySObject';
+import getAvailableProviders
+    from '@salesforce/apex/ExternalStorageService.getAvailableProviders';
 
 export default class ArchiveScheduleCriteriaModal extends LightningElement {
 
@@ -18,6 +20,25 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
 
     // ── Delete after archive toggle ──
     @track deleteAfterArchive = true;
+
+    // ── Storage provider picker ──
+    @track selectedStorageProvider = '';
+    @track storageProviderOptions = [];
+
+    @wire(getAvailableProviders)
+    wiredProviders({ data, error }) {
+        if (data) {
+            this.storageProviderOptions = data.map(p => ({
+                label: p.label + (p.isDefault === 'true' ? ' ★ Default' : ''),
+                value: p.developerName
+            }));
+            // Auto-select the default provider
+            const def = data.find(p => p.isDefault === 'true');
+            if (def && !this.selectedStorageProvider) {
+                this.selectedStorageProvider = def.developerName;
+            }
+        }
+    }
 
     // Auto-populate schedule name with object + today's date
     connectedCallback() {
@@ -133,6 +154,10 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
         this.deleteAfterArchive = event.target.checked;
     }
 
+    handleProviderChange(event) {
+        this.selectedStorageProvider = event.detail.value;
+    }
+
     handleNext() {
         if (this.criteriaMode === 'days') {
             this.dispatchEvent(
@@ -142,7 +167,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
                         dateField: this.selectedDateField,
                         days: this.daysValue,
                         scheduleName: this.scheduleName,
-                        deleteAfterArchive: this.deleteAfterArchive
+                        deleteAfterArchive: this.deleteAfterArchive,
+                        storageProviderName: this.selectedStorageProvider
                     }
                 })
             );
@@ -153,7 +179,8 @@ export default class ArchiveScheduleCriteriaModal extends LightningElement {
                         criteriaMode: 'advanced',
                         whereClause: this.currentWhereClause,
                         scheduleName: this.scheduleName,
-                        deleteAfterArchive: this.deleteAfterArchive
+                        deleteAfterArchive: this.deleteAfterArchive,
+                        storageProviderName: this.selectedStorageProvider
                     }
                 })
             );

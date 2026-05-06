@@ -92,6 +92,31 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                    <!-- Storage Destination Picker -->
+                                    <div class="slds-m-top_medium slds-box slds-theme_shade" style="border-radius: 8px;">
+                                        <div class="slds-grid slds-grid_vertical-align-center">
+                                            <div class="slds-col slds-grow">
+                                                <p class="slds-text-body_regular">
+                                                    <lightning-icon icon-name="utility:upload" size="xx-small"
+                                                        class="slds-m-right_xx-small"></lightning-icon>
+                                                    <strong>Storage Destination</strong>
+                                                </p>
+                                                <p class="slds-text-body_small slds-text-color_weak slds-m-top_xx-small">
+                                                    Choose where the archived files will be stored.
+                                                </p>
+                                            </div>
+                                            <div class="slds-col slds-no-flex slds-m-left_medium" style="min-width:200px;">
+                                                <lightning-combobox
+                                                    label=""
+                                                    placeholder="Select provider..."
+                                                    options={storageProviderOptions}
+                                                    value={selectedStorageProvider}
+                                                    onchange={handleStorageProviderChange}>
+                                                </lightning-combobox>
+                                            </div>
+                                        </div>
+                                    </div>
                             </template>
 
                             <!-- STEP 2: Child Object Selection -->

@@ -1,6 +1,17 @@
 <template>
     <lightning-card icon-name="standard:file" title={title}>
         <div slot="actions">
+            <!-- <div style="display:inline-flex;align-items:center;margin-right:6px;">
+                <lightning-combobox
+                    label=""
+                    placeholder="Source..."
+                    options={storageProviderOptions}
+                    value={providerName}
+                    variant="label-hidden"
+                    dropdown-alignment="right"
+                    onchange={handleManualProviderChange}>
+                </lightning-combobox>
+            </div> -->
             <lightning-button-icon icon-name="utility:refresh" alternative-text="Refresh" title="Refresh"
                 onclick={handleRefresh}></lightning-button-icon>
         </div>

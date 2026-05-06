@@ -131,7 +131,11 @@ public class ArchivePostProcessQueueable implements Queueable, Database.AllowsCa
             update new Data_Archive__c(
                 Id = archiveRecordId,
                 Encryption_Key__c    = EncodingUtil.base64Encode(aesKey),
-                Storage_Provider__c  = provider.getProviderType()
+                // Save the DeveloperName (storageProviderName), not Provider_Type__c.
+                // Fallback to getProviderType() only when called from old backward-compat paths.
+                Storage_Provider__c  = String.isNotBlank(storageProviderName)
+                                         ? storageProviderName
+                                         : provider.getProviderType()
             );
             System.debug('ArchivePostProcessQueueable: encryption key and provider saved to archive record.');
         } catch (Exception ex) {
